@@ -1457,10 +1457,10 @@ pub async fn product_detail_page(
         </table>
     </div>
 </div>"#,
-        product.id,
         product.name,
         product.name,
         status_badge,
+        product.id,
         product.product_code,
         product.name,
         product.name_en.as_deref().unwrap_or("-"),
