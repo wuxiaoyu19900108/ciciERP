@@ -1,0 +1,39 @@
+[package]
+name = "cicierp-api"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "cicierp-api"
+path = "src/main.rs"
+
+[dependencies]
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+config = { workspace = true }
+dotenvy = { workspace = true }
+validator = { workspace = true }
+argon2 = { workspace = true }
+jsonwebtoken = { workspace = true }
+askama = { workspace = true }
+reqwest = { workspace = true }
+sqlx = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+futures = { workspace = true }
+rust_xlsxwriter = "0.64"
+
+cicierp-db = { workspace = true }
+cicierp-models = { workspace = true }
+cicierp-utils = { workspace = true }

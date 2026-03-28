@@ -1,0 +1,20 @@
+# ciciERP 配置文件
+
+[server]
+host = "0.0.0.0"
+port = 3000
+
+[database]
+path = "./data/cicierp.db"
+
+[cache]
+default_ttl_seconds = 300
+
+[ai]
+claude_api_key = ""
+feishu_app_id = ""
+feishu_app_secret = ""
+
+[auth]
+jwt_secret = "your-secret-key-change-in-production"
+jwt_expire_hours = 24

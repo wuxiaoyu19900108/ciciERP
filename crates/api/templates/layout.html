@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - ciciERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        .htmx-request .htmx-indicator { display: inline-block; }
+        .htmx-request .htmx-hidden { display: none; }
+        .htmx-indicator { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="flex h-screen">
+        <!-- 侧边栏 -->
+        <aside class="w-64 bg-slate-800 text-white flex flex-col">
+            <!-- Logo -->
+            <div class="p-4 border-b border-slate-700">
+                <h1 class="text-xl font-bold">📦 ciciERP</h1>
+                <p class="text-slate-400 text-sm">企业资源管理系统</p>
+            </div>
+
+            <!-- 导航菜单 -->
+            <nav class="flex-1 p-4">
+                <ul class="space-y-2">
+                    {% for menu in menus %}
+                    <li>
+                        <a href="{{ menu.href }}"
+                           class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
+                                  {% if menu.code == active_menu %}
+                                  bg-slate-700 text-white
+                                  {% else %}
+                                  text-slate-300 hover:bg-slate-700 hover:text-white
+                                  {% endif %}">
+                            <span>{{ menu.icon }}</span>
+                            <span>{{ menu.label }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+
+            <!-- 底部信息 -->
+            <div class="p-4 border-t border-slate-700 text-slate-400 text-sm">
+                <p>ciciERP v0.1.0</p>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- 顶部导航 -->
+            <header class="bg-white shadow-sm border-b border-gray-200">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <h2 class="text-lg font-semibold text-gray-800">{{ title }}</h2>
+
+                    {% if let Some(user) = user %}
+                    <div class="flex items-center gap-4">
+                        <span class="text-gray-600">{{ user.display_name() }}</span>
+                        <form action="/logout" method="POST">
+                            <button type="submit"
+                                    class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
+                                退出登录
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </header>
+
+            <!-- 内容区域 -->
+            <main class="flex-1 overflow-auto p-6">
+                {{ content|safe }}
+            </main>
+        </div>
+    </div>
+
+    <!-- 全局消息提示 -->
+    <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <script>
+        // 显示提示消息
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const messageEl = document.getElementById('toast-message');
+            const container = toast.querySelector('div');
+
+            messageEl.textContent = message;
+            container.className = `px-6 py-3 rounded-lg shadow-lg text-white ${
+                type === 'success' ? 'bg-green-500' :
+                type === 'error' ? 'bg-red-500' :
+                'bg-blue-500'
+            }`;
+
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        // HTMX 事件处理
+        document.body.addEventListener('htmx:afterRequest', function(evt) {
+            if (evt.detail.successful) {
+                // 检查响应头中的消息
+                const message = evt.detail.xhr.getResponseHeader('X-Toast-Message');
+                if (message) {
+                    showToast(decodeURIComponent(message));
+                }
+            }
+        });
+    </script>
+</body>
+</html>

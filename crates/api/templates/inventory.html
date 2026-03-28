@@ -1,0 +1,163 @@
+<!-- 页面标题 -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-800">库存管理</h1>
+        <p class="text-gray-600 mt-1">查看和管理产品库存</p>
+    </div>
+    <div class="flex items-center gap-4">
+        <a href="/inventory{% if low_stock_only %}{% else %}?low_stock=1{% endif %}"
+           class="px-4 py-2 text-sm rounded-lg transition-colors {% if low_stock_only %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+            {% if low_stock_only %}显示全部{% else %}仅显示低库存{% endif %}
+        </a>
+    </div>
+</div>
+
+<!-- 库存统计 -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span class="text-xl">📦</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">总SKU数</p>
+                <p class="text-xl font-bold text-gray-800">{{ total }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <span class="text-xl">✅</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">库存正常</p>
+                <p class="text-xl font-bold text-green-600">
+                    {{ items|filter(|i| !i.is_low_stock && i.available_quantity > 0)|length }}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <span class="text-xl">⚠️</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">低库存</p>
+                <p class="text-xl font-bold text-yellow-600">
+                    {{ items|filter(|i| i.is_low_stock && i.available_quantity > 0)|length }}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <span class="text-xl">🚫</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">缺货</p>
+                <p class="text-xl font-bold text-red-600">
+                    {{ items|filter(|i| i.available_quantity <= 0)|length }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 库存表格 -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">SKU编码</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">产品名称</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">规格</th>
+                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">总库存</th>
+                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">可用</th>
+                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">锁定</th>
+                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">安全库存</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">状态</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">操作</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for item in items %}
+            <tr class="hover:bg-gray-50 transition-colors {% if item.is_low_stock %}bg-yellow-50{% endif %} {% if item.available_quantity <= 0 %}bg-red-50{% endif %}">
+                <td class="px-6 py-4">
+                    <span class="font-mono text-sm text-gray-600">{{ item.sku_code }}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="font-medium text-gray-800">{{ item.product_name }}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-sm text-gray-500">{{ item.spec_values|unwrap_or("-") }}</span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <span class="text-gray-800">{{ item.total_quantity }}</span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <span class="{% if item.available_quantity <= 0 %}text-red-600 font-semibold{% elif item.is_low_stock %}text-yellow-600 font-semibold{% else %}text-gray-800{% endif %}">
+                        {{ item.available_quantity }}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <span class="text-gray-500">{{ item.locked_quantity }}</span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <span class="text-gray-500">{{ item.safety_stock }}</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-2 py-1 text-xs font-medium rounded-full {{ crate::templates::inventory::stock_status_class(item) }}">
+                        {{ crate::templates::inventory::stock_status_text(item) }}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <button class="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors">
+                            入库
+                        </button>
+                        <button class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors">
+                            明细
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" class="px-6 py-12 text-center">
+                    <div class="text-gray-500">
+                        <p class="text-4xl mb-2">📊</p>
+                        <p>暂无库存数据</p>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 分页 -->
+{% if total_pages > 1 %}
+<div class="flex items-center justify-between mt-6">
+    <p class="text-sm text-gray-600">
+        共 {{ total }} 条记录，第 {{ page }}/{{ total_pages }} 页
+    </p>
+    <div class="flex items-center gap-2">
+        {% if has_prev() %}
+        <a href="/inventory?page={{ prev_page() }}{% if low_stock_only %}&low_stock=1{% endif %}"
+           class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
+            上一页
+        </a>
+        {% endif %}
+
+        {% if has_next() %}
+        <a href="/inventory?page={{ next_page() }}{% if low_stock_only %}&low_stock=1{% endif %}"
+           class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
+            下一页
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

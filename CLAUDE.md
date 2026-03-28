@@ -1,0 +1,1 @@
+/home/wxy/.xiaozhi/workers/worker-2026-02-26T16-00-23/CLAUDE.md

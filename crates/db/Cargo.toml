@@ -1,0 +1,23 @@
+[package]
+name = "cicierp-db"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "import_products"
+path = "src/bin/import_products.rs"
+
+[dependencies]
+sqlx = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+cicierp-models = { workspace = true }
+rand = { workspace = true }
+md-5 = { workspace = true }
+hex = { workspace = true }

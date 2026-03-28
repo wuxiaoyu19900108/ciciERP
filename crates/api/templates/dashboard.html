@@ -1,0 +1,129 @@
+<!-- 欢迎区域 -->
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-800">欢迎回来!</h1>
+    <p class="text-gray-600 mt-1">这是您的业务概览</p>
+</div>
+
+<!-- 统计卡片 -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- 订单总数 -->
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">订单总数</p>
+                <p class="text-3xl font-bold text-gray-800 mt-1">{{ stats.total_orders }}</p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">📋</span>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-orange-500">{{ stats.pending_orders }}</span>
+            <span class="text-gray-500 ml-1">待处理</span>
+        </div>
+    </div>
+
+    <!-- 今日销售 -->
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">今日销售额</p>
+                <p class="text-3xl font-bold text-gray-800 mt-1">¥{{ "%.2f"|format(stats.today_sales) }}</p>
+            </div>
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">💰</span>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-green-500">↑</span>
+            <span class="text-gray-500 ml-1">较昨日</span>
+        </div>
+    </div>
+
+    <!-- 库存预警 -->
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">库存预警</p>
+                <p class="text-3xl font-bold {% if stats.low_stock_count > 0 %}text-red-600{% else %}text-gray-800{% endif %} mt-1">{{ stats.low_stock_count }}</p>
+            </div>
+            <div class="w-12 h-12 {% if stats.low_stock_count > 0 %}bg-red-100{% else %}bg-gray-100{% endif %} rounded-lg flex items-center justify-center">
+                <span class="text-2xl">⚠️</span>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <a href="/inventory" class="text-blue-500 hover:text-blue-600">查看详情 →</a>
+        </div>
+    </div>
+
+    <!-- 产品总数 -->
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">产品总数</p>
+                <p class="text-3xl font-bold text-gray-800 mt-1">{{ stats.total_products }}</p>
+            </div>
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">📦</span>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center text-sm">
+            <span class="text-gray-500">客户: {{ stats.total_customers }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- 快捷操作 -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- 最近订单 -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-800">最近订单</h3>
+        </div>
+        <div class="p-6">
+            <div class="text-center text-gray-500 py-8">
+                <p class="text-4xl mb-2">📋</p>
+                <p>暂无订单数据</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快捷入口 -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-800">快捷操作</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-2 gap-4">
+                <a href="/products" class="flex items-center gap-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    <span class="text-2xl">📦</span>
+                    <div>
+                        <p class="font-medium text-gray-800">产品管理</p>
+                        <p class="text-sm text-gray-500">管理产品信息</p>
+                    </div>
+                </a>
+                <a href="/orders" class="flex items-center gap-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                    <span class="text-2xl">📋</span>
+                    <div>
+                        <p class="font-medium text-gray-800">订单管理</p>
+                        <p class="text-sm text-gray-500">处理订单</p>
+                    </div>
+                </a>
+                <a href="/inventory" class="flex items-center gap-3 p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+                    <span class="text-2xl">📊</span>
+                    <div>
+                        <p class="font-medium text-gray-800">库存管理</p>
+                        <p class="text-sm text-gray-500">查看库存</p>
+                    </div>
+                </a>
+                <a href="/customers" class="flex items-center gap-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                    <span class="text-2xl">👥</span>
+                    <div>
+                        <p class="font-medium text-gray-800">客户管理</p>
+                        <p class="text-sm text-gray-500">管理客户</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
