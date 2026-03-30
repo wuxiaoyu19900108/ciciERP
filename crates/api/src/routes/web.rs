@@ -6467,9 +6467,9 @@ pub async fn analytics_page(
         format!(
             r#"<tr class="hover:bg-gray-50">
                 <td class="px-4 py-3 font-medium">{}</td>
-                <td class="px-4 py-3 text-right">{}</ {:.2}</td>
-                <td class="px-4 py-3 text-right">{}</ {:.2}</td>
-                <td class="px-4 py-3 text-right font-medium text-green-600">{}</ {:.2}</td>
+                <td class="px-4 py-3 text-right">{}{:.2}</td>
+                <td class="px-4 py-3 text-right">{}{:.2}</td>
+                <td class="px-4 py-3 text-right font-medium text-green-600">{}{:.2}</td>
                 <td class="px-4 py-3 text-center">{}%</td>
                 <td class="px-4 py-3 text-center">{}</td>
             </tr>"#,
