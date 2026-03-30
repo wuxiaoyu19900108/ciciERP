@@ -46,6 +46,12 @@ pub fn get_menus() -> Vec<MenuItem> {
             href: "/orders",
         },
         MenuItem {
+            code: "analytics",
+            icon: "📈",
+            label: "数据分析",
+            href: "/analytics",
+        },
+        MenuItem {
             code: "inventory",
             icon: "📊",
             label: "库存管理",
