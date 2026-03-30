@@ -591,49 +591,94 @@ pub async fn products_page(
         };
 
         let stock_class = if p.stock_quantity.unwrap_or(0) <= 0 { "text-red-600 font-semibold" } else { "text-gray-800" };
-        let cost_display = p.cost_cny.map(|c| format!("¥{:.2}", c)).unwrap_or_else(|| "-".to_string());
-        let price_display = p.sale_price_cny.map(|p| format!("¥{:.2}", p)).unwrap_or_else(|| "-".to_string());
+
+        // 成本显示
+        let cost_cny_display = p.cost_cny.map(|c| format!("¥{:.2}", c)).unwrap_or_else(|| "-".to_string());
+        let cost_usd_display = p.cost_usd.map(|c| format!("${:.2}", c)).unwrap_or_else(|| "-".to_string());
+
+        // 售价显示
+        let price_usd_display = p.sale_price_usd.map(|v| format!("${:.2}", v)).unwrap_or_else(|| "-".to_string());
+
+        // 平台费用
+        let platform_fee_display = p.platform_fee.map(|f| format!("${:.2}", f)).unwrap_or_else(|| "-".to_string());
+
+        // 利润显示
+        let profit_usd_display = p.profit_usd.map(|v| {
+            let color = if v >= 0.0 { "text-green-600" } else { "text-red-600" };
+            format!(r#"<span class="{}">${:.2}</span>"#, color, v)
+        }).unwrap_or_else(|| "-".to_string());
+
+        let profit_margin_display = p.profit_margin.map(|v| {
+            let color = if v >= 0.0 { "text-green-600" } else { "text-red-600" };
+            format!(r#"<span class="{}">{:.1}%</span>"#, color, v)
+        }).unwrap_or_else(|| "-".to_string());
 
         rows.push_str(&format!(
             r#"<tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-4 sm:px-6 py-4"><span class="font-mono text-sm text-gray-600">{}</span></td>
-                <td class="px-4 sm:px-6 py-4"><span class="font-medium text-gray-800">{}</span></td>
-                <td class="px-4 sm:px-6 py-4 text-right"><span class="text-gray-600">{}</span></td>
-                <td class="px-4 sm:px-6 py-4 text-right"><span class="font-medium text-gray-800">{}</span></td>
-                <td class="px-4 sm:px-6 py-4 text-right"><span class="{}">{}</span></td>
-                <td class="px-4 sm:px-6 py-4 text-center">{}</td>
-                <td class="px-4 sm:px-6 py-4 text-center">
-                    <div class="flex items-center justify-center gap-2">
-                        <a href="/products/{}" class="px-2 sm:px-3 py-1 text-xs sm:text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors">查看</a>
-                        <a href="/products/{}/edit" class="px-2 sm:px-3 py-1 text-xs sm:text-sm text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors">编辑</a>
-                        <button hx-delete="/api/v1/products/{}" hx-target="closest tr" hx-swap="outerHTML swap:0.5s" hx-confirm="确定要删除这个产品吗？"
-                                class="px-2 sm:px-3 py-1 text-xs sm:text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors cursor-pointer">删除</button>
+                <td class="px-2 py-3"><span class="font-mono text-xs text-gray-600">{}</span></td>
+                <td class="px-2 py-3"><span class="font-medium text-gray-800 text-sm">{}</span></td>
+                <td class="px-2 py-3 text-right"><span class="text-xs text-gray-600">{}</span></td>
+                <td class="px-2 py-3 text-right"><span class="text-xs text-gray-600">{}</span></td>
+                <td class="px-2 py-3 text-right"><span class="text-xs font-medium text-gray-800">{}</span></td>
+                <td class="px-2 py-3 text-right"><span class="text-xs text-gray-600">{}</span></td>
+                <td class="px-2 py-3 text-right"><span class="text-xs">{}</span></td>
+                <td class="px-2 py-3 text-right"><span class="text-xs">{}</span></td>
+                <td class="px-2 py-3 text-right"><span class="{} text-xs">{}</span></td>
+                <td class="px-2 py-3 text-center">{}</td>
+                <td class="px-2 py-3 text-center">
+                    <div class="flex items-center justify-center gap-1">
+                        <a href="/products/{}" class="px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded">查看</a>
+                        <a href="/products/{}/edit" class="px-2 py-1 text-xs text-green-600 hover:text-green-800 hover:bg-green-50 rounded">编辑</a>
                     </div>
                 </td>
             </tr>"#,
             p.product_code,
             p.name,
-            cost_display,
-            price_display,
+            cost_cny_display,
+            cost_usd_display,
+            price_usd_display,
+            platform_fee_display,
+            profit_usd_display,
+            profit_margin_display,
             stock_class,
             p.stock_quantity.unwrap_or(0),
             status_badge,
-            p.id,
             p.id,
             p.id
         ));
     }
 
     if rows.is_empty() {
-        rows = r#"<tr><td colspan="7" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📦</p><p>暂无产品数据</p></div></td></tr>"#.to_string();
+        rows = r#"<tr><td colspan="11" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📦</p><p>暂无产品数据</p></div></td></tr>"#.to_string();
     }
 
     let pagination = if total_pages > 1 {
+        // 上一页按钮
+        let prev_btn = if page > 1 {
+            let url = match &query.keyword {
+                Some(k) => format!("/products?page={}&keyword={}", page - 1, k),
+                None => format!("/products?page={}", page - 1),
+            };
+            format!(r#"<a href="{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">上一页</a>"#, url)
+        } else {
+            r#"<span class="px-4 py-2 text-sm text-gray-400 rounded-lg border border-gray-200">上一页</span>"#.to_string()
+        };
+        // 下一页按钮
+        let next_btn = if page < total_pages {
+            let url = match &query.keyword {
+                Some(k) => format!("/products?page={}&keyword={}", page + 1, k),
+                None => format!("/products?page={}", page + 1),
+            };
+            format!(r#"<a href="{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">下一页</a>"#, url)
+        } else {
+            r#"<span class="px-4 py-2 text-sm text-gray-400 rounded-lg border border-gray-200">下一页</span>"#.to_string()
+        };
         format!(
             r#"<div class="flex items-center justify-between mt-4 sm:mt-6 px-2">
                 <p class="text-xs sm:text-sm text-gray-600">共 {} 条，第 {}/{} 页</p>
+                <div class="flex items-center gap-2">{}{}</div>
             </div>"#,
-            total, page, total_pages
+            total, page, total_pages, prev_btn, next_btn
         )
     } else {
         String::new()
@@ -665,16 +710,20 @@ pub async fn products_page(
 <!-- 产品表格 -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="w-full min-w-[700px]">
+        <table class="w-full min-w-[1100px]">
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
-                    <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">产品编码</th>
-                    <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">产品名称</th>
-                    <th class="px-4 sm:px-6 py-4 text-right text-sm font-semibold text-gray-700">成本</th>
-                    <th class="px-4 sm:px-6 py-4 text-right text-sm font-semibold text-gray-700">售价</th>
-                    <th class="px-4 sm:px-6 py-4 text-right text-sm font-semibold text-gray-700">库存</th>
-                    <th class="px-4 sm:px-6 py-4 text-center text-sm font-semibold text-gray-700">状态</th>
-                    <th class="px-4 sm:px-6 py-4 text-center text-sm font-semibold text-gray-700">操作</th>
+                    <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700">产品编码</th>
+                    <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700">产品名称</th>
+                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">RMB成本</th>
+                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">美金成本</th>
+                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">美金卖价</th>
+                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">平台费用</th>
+                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">利润($)</th>
+                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">利润率</th>
+                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">库存</th>
+                    <th class="px-2 py-3 text-center text-xs font-semibold text-gray-700">状态</th>
+                    <th class="px-2 py-3 text-center text-xs font-semibold text-gray-700">操作</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">{}</tbody>

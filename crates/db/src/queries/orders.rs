@@ -83,8 +83,8 @@ impl<'a> OrderQueries<'a> {
             r#"SELECT
                 o.id, o.order_code, o.customer_name, o.total_amount,
                 o.order_status, o.payment_status, o.fulfillment_status,
-                o.created_at,
-                (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count
+                (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count,
+                o.created_at
             FROM orders o
             WHERE 1=1"#
         );

@@ -45,6 +45,7 @@
                 <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">进价</th>
                 <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">售价</th>
                 <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">库存</th>
+                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">总金额</th>
                 <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">状态</th>
                 <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">操作</th>
             </tr>
@@ -71,6 +72,9 @@
                     <span class="{% if product.stock_quantity < 10 %}text-red-600 font-semibold{% else %}text-gray-800{% endif %}">
                         {{ product.stock_quantity }}
                     </span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <span class="font-medium text-gray-800">¥{{ "%.2f"|format(product.sale_price_cny * product.stock_quantity) }}</span>
                 </td>
                 <td class="px-6 py-4 text-center">
                     {% if product.status == 1 %}
@@ -103,7 +107,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="8" class="px-6 py-12 text-center">
+                <td colspan="9" class="px-6 py-12 text-center">
                     <div class="text-gray-500">
                         <p class="text-4xl mb-2">📦</p>
                         <p>暂无产品数据</p>

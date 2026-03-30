@@ -215,8 +215,19 @@ pub struct ProductListItem {
     pub product_code: String,
     pub name: String,
     pub main_image: Option<String>,
-    pub cost_cny: Option<f64>,        // 从 product_costs 获取的成本（人民币）
-    pub sale_price_cny: Option<f64>,  // 从 product_prices 获取的参考售价
+    // 成本信息
+    pub cost_cny: Option<f64>,        // RMB成本
+    pub cost_usd: Option<f64>,        // 美金成本
+    pub cost_exchange_rate: Option<f64>, // 成本汇率
+    // 售价信息
+    pub sale_price_cny: Option<f64>,  // RMB售价
+    pub sale_price_usd: Option<f64>,  // 美金售价
+    pub price_exchange_rate: Option<f64>, // 售价汇率
+    pub platform_fee: Option<f64>,    // 平台费用
+    // 计算字段
+    pub profit_usd: Option<f64>,      // 利润（美金）
+    pub profit_margin: Option<f64>,   // 利润比例
+    //
     pub status: i64,
     pub stock_quantity: Option<i64>,
     pub category_name: Option<String>,

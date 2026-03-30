@@ -60,20 +60,36 @@ impl<'a> ProductQueries<'a> {
             .await?;
 
         // 构建安全的 list 查询（从 product_prices 获取参考售价，从 product_costs 获取成本）
+        // 利润计算：美金售价 - 美金成本 - 平台费用(转美金)
         let mut list_query = QueryBuilder::new(
             r#"SELECT
                 p.id, p.product_code, p.name, p.main_image, p.status,
                 p.created_at,
                 pc.cost_cny,
+                pc.cost_usd,
+                pc.exchange_rate as cost_exchange_rate,
                 pp.sale_price_cny,
+                pp.sale_price_usd,
+                pp.exchange_rate as price_exchange_rate,
+                pp.platform_fee,
                 COALESCE(SUM(ps.stock_quantity), 0) as stock_quantity,
                 c.name as category_name,
-                b.name as brand_name
+                b.name as brand_name,
+                CASE
+                    WHEN pp.sale_price_usd IS NOT NULL AND pc.cost_usd IS NOT NULL
+                    THEN pp.sale_price_usd - pc.cost_usd - COALESCE(pp.platform_fee, 0)
+                    ELSE NULL
+                END as profit_usd,
+                CASE
+                    WHEN pp.sale_price_usd IS NOT NULL AND pp.sale_price_usd > 0
+                    THEN ((pp.sale_price_usd - COALESCE(pc.cost_usd, 0) - COALESCE(pp.platform_fee, 0)) / pp.sale_price_usd) * 100
+                    ELSE NULL
+                END as profit_margin
             FROM products p
             LEFT JOIN product_skus ps ON ps.product_id = p.id
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN brands b ON b.id = p.brand_id
-            LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1 AND pp.platform = 'website'
+            LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1
             LEFT JOIN product_costs pc ON pc.product_id = p.id AND pc.is_reference = 1
             WHERE p.deleted_at IS NULL"#
         );
@@ -349,7 +365,7 @@ impl<'a> ProductQueries<'a> {
             LEFT JOIN product_skus ps ON ps.product_id = p.id
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN brands b ON b.id = p.brand_id
-            LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1 AND pp.platform = 'website'
+            LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1
             WHERE products_fts MATCH ? AND p.deleted_at IS NULL
             GROUP BY p.id
             ORDER BY p.created_at DESC
