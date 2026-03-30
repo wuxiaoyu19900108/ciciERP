@@ -261,6 +261,7 @@ pub struct OrderQuery {
     pub date_from: Option<String>,
     pub date_to: Option<String>,
     pub keyword: Option<String>,
+    pub currency: Option<String>,
 }
 
 impl OrderQuery {

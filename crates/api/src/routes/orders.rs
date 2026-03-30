@@ -62,6 +62,7 @@ pub async fn list_orders(
             query.date_from.as_deref(),
             query.date_to.as_deref(),
             query.keyword.as_deref(),
+            query.currency.as_deref(),
         )
         .await?;
 

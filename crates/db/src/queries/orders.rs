@@ -32,6 +32,7 @@ impl<'a> OrderQueries<'a> {
         date_from: Option<&str>,
         date_to: Option<&str>,
         keyword: Option<&str>,
+        currency: Option<&str>,
     ) -> Result<PagedResponse<OrderListItem>> {
         let offset = (page.saturating_sub(1)) * page_size;
 
@@ -72,6 +73,10 @@ impl<'a> OrderQueries<'a> {
             count_query.push(" OR o.customer_mobile LIKE ");
             count_query.push_bind(format!("%{}%", kw));
             count_query.push(")");
+        }
+        if let Some(c) = currency {
+            count_query.push(" AND o.currency = ");
+            count_query.push_bind(c);
         }
 
         let total: (i64,) = count_query.build_query_as()
@@ -123,6 +128,10 @@ impl<'a> OrderQueries<'a> {
             list_query.push(" OR o.customer_mobile LIKE ");
             list_query.push_bind(format!("%{}%", kw));
             list_query.push(")");
+        }
+        if let Some(c) = currency {
+            list_query.push(" AND o.currency = ");
+            list_query.push_bind(c);
         }
 
         list_query.push(" ORDER BY o.created_at DESC LIMIT ");
@@ -618,4 +627,112 @@ pub struct ProductHistoryPrice {
     pub order_code: String,
     pub customer_name: Option<String>,
     pub order_date: DateTime<Utc>,
+}
+
+/// 分析报告数据
+#[derive(Debug, Clone, Serialize)]
+pub struct AnalyticsReport {
+    /// 按币种分组的销售数据
+    pub sales_by_currency: Vec<CurrencySales>,
+    /// 产品销量 Top 10
+    pub top_products: Vec<TopProduct>,
+    /// 平台分布
+    pub platform_distribution: Vec<PlatformStats>,
+}
+
+/// 按币种分组的销售数据
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct CurrencySales {
+    pub currency: String,
+    pub total_sales: f64,
+    pub total_cost: f64,
+    pub total_profit: f64,
+    pub order_count: i64,
+}
+
+/// 产品销量 Top N
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct TopProduct {
+    pub product_id: Option<i64>,
+    pub product_name: String,
+    pub total_quantity: i64,
+    pub total_sales: f64,
+}
+
+/// 平台分布统计
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct PlatformStats {
+    pub platform: String,
+    pub order_count: i64,
+    pub total_sales: f64,
+}
+
+impl<'a> OrderQueries<'a> {
+    /// 获取分析报告数据
+    pub async fn get_analytics(&self, year: i32, month: i32) -> Result<AnalyticsReport> {
+        // 按币种分组统计销售额和利润
+        let sales_by_currency: Vec<CurrencySales> = sqlx::query_as(
+            r#"
+            SELECT
+                o.currency,
+                SUM(o.total_amount) as total_sales,
+                COALESCE(SUM(oi.cost_price * oi.quantity), 0) as total_cost,
+                SUM(o.total_amount) - COALESCE(SUM(oi.cost_price * oi.quantity), 0) as total_profit,
+                COUNT(*) as order_count
+            FROM orders o
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            WHERE strftime('%Y', o.created_at) = ? AND strftime('%m', o.created_at) = ?
+            GROUP BY o.currency
+            "#
+        )
+        .bind(format!("{:04}", year))
+        .bind(format!("{:02}", month))
+        .fetch_all(self.pool)
+        .await?;
+
+        // 产品销量 Top 10
+        let top_products: Vec<TopProduct> = sqlx::query_as(
+            r#"
+            SELECT
+                oi.product_id,
+                oi.product_name,
+                SUM(oi.quantity) as total_quantity,
+                SUM(oi.total_amount) as total_sales
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            WHERE strftime('%Y', o.created_at) = ? AND strftime('%m', o.created_at) = ?
+            GROUP BY oi.product_id, oi.product_name
+            ORDER BY total_quantity DESC
+            LIMIT 10
+            "#
+        )
+        .bind(format!("{:04}", year))
+        .bind(format!("{:02}", month))
+        .fetch_all(self.pool)
+        .await?;
+
+        // 平台分布
+        let platform_distribution: Vec<PlatformStats> = sqlx::query_as(
+            r#"
+            SELECT
+                platform,
+                COUNT(*) as order_count,
+                SUM(total_amount) as total_sales
+            FROM orders
+            WHERE strftime('%Y', created_at) = ? AND strftime('%m', created_at) = ?
+            GROUP BY platform
+            ORDER BY order_count DESC
+            "#
+        )
+        .bind(format!("{:04}", year))
+        .bind(format!("{:02}", month))
+        .fetch_all(self.pool)
+        .await?;
+
+        Ok(AnalyticsReport {
+            sales_by_currency,
+            top_products,
+            platform_distribution,
+        })
+    }
 }

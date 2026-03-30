@@ -8,6 +8,7 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
+use chrono::{Datelike, Local};
 use serde::Deserialize;
 use tracing::info;
 
@@ -84,6 +85,8 @@ pub fn protected_router() -> Router<AppState> {
         .route("/purchase/:id", get(purchase_detail_page))
         // 物流
         .route("/logistics", get(logistics_page))
+        // 分析报告
+        .route("/analytics", get(analytics_page))
         // PI/CI
         .merge(super::web_invoice::router())
 }
@@ -2002,6 +2005,7 @@ pub async fn product_update_handler(
 pub struct OrdersQuery {
     pub page: Option<u32>,
     pub status: Option<i64>,
+    pub currency: Option<String>,
 }
 
 /// 订单列表页面
@@ -2026,14 +2030,48 @@ pub async fn orders_page(
         None, // date_from
         None, // date_to
         None, // keyword
+        query.currency.as_deref(), // currency
     ).await.unwrap_or_else(|_| PagedResponse::new(vec![], page, page_size, 0));
 
-    // 生成状态筛选链接
+    // 当前币种
+    let current_currency = query.currency.as_deref();
+
+    // 生成币种筛选链接
+    let currency_filter = |current: Option<&str>, target: Option<&str>, text: &str| -> String {
+        let is_active = current == target;
+        let mut params = Vec::new();
+        if let Some(t) = target {
+            params.push(format!("currency={}", t));
+        }
+        if let Some(s) = query.status {
+            params.push(format!("status={}", s));
+        }
+        let url = if params.is_empty() {
+            "/orders".to_string()
+        } else {
+            format!("/orders?{}", params.join("&"))
+        };
+        if is_active {
+            format!(r#"<a href="{}" class="px-3 py-1 text-sm rounded-full transition-colors bg-green-100 text-green-700">{}</a>"#, url, text)
+        } else {
+            format!(r#"<a href="{}" class="px-3 py-1 text-sm rounded-full transition-colors text-gray-600 hover:bg-gray-100">{}</a>"#, url, text)
+        }
+    };
+
+    // 生成状态筛选链接（保留币种参数）
     let status_filter = |current: Option<i64>, target: Option<i64>, text: &str| -> String {
         let is_active = current == target;
-        let url = match target {
-            Some(s) => format!("/orders?status={}", s),
-            None => "/orders".to_string(),
+        let mut params = Vec::new();
+        if let Some(t) = target {
+            params.push(format!("status={}", t));
+        }
+        if let Some(c) = current_currency {
+            params.push(format!("currency={}", c));
+        }
+        let url = if params.is_empty() {
+            "/orders".to_string()
+        } else {
+            format!("/orders?{}", params.join("&"))
         };
         if is_active {
             format!(r#"<a href="{}" class="px-3 py-1 text-sm rounded-full transition-colors bg-blue-100 text-blue-700">{}</a>"#, url, text)
@@ -2116,20 +2154,24 @@ pub async fn orders_page(
     // 分页
     let total_pages = ((result.pagination.total as f64) / (page_size as f64)).ceil() as u32;
     let pagination = if total_pages > 1 {
+        let build_page_url = |p: u32| -> String {
+            let mut params = vec![format!("page={}", p)];
+            if let Some(s) = query.status {
+                params.push(format!("status={}", s));
+            }
+            if let Some(c) = current_currency {
+                params.push(format!("currency={}", c));
+            }
+            format!("/orders?{}", params.join("&"))
+        };
         let prev_btn = if page > 1 {
-            let url = match query.status {
-                Some(s) => format!("/orders?page={}&status={}", page - 1, s),
-                None => format!("/orders?page={}", page - 1),
-            };
+            let url = build_page_url(page - 1);
             format!(r#"<a href="{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">上一页</a>"#, url)
         } else {
             String::new()
         };
         let next_btn = if page < total_pages {
-            let url = match query.status {
-                Some(s) => format!("/orders?page={}&status={}", page + 1, s),
-                None => format!("/orders?page={}", page + 1),
-            };
+            let url = build_page_url(page + 1);
             format!(r#"<a href="{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">下一页</a>"#, url)
         } else {
             String::new()
@@ -2168,6 +2210,18 @@ pub async fn orders_page(
     </div>
 </div>
 
+<!-- 币种筛选 -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 overflow-x-auto">
+    <div class="flex items-center gap-3 sm:gap-4 min-w-max">
+        <span class="text-sm text-gray-500 whitespace-nowrap">币种:</span>
+        <div class="flex items-center gap-2">
+            {}
+            {}
+            {}
+        </div>
+    </div>
+</div>
+
 <!-- 状态筛选 -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 overflow-x-auto">
     <div class="flex items-center gap-3 sm:gap-4 min-w-max">
@@ -2202,6 +2256,9 @@ pub async fn orders_page(
     </div>
     {}
 </div>"#,
+        currency_filter(current_currency, None, "全部"),
+        currency_filter(current_currency, Some("USD"), "USD"),
+        currency_filter(current_currency, Some("CNY"), "CNY"),
         status_filter(query.status, None, "全部"),
         status_filter(query.status, Some(1), "未成交"),
         status_filter(query.status, Some(2), "价格锁定"),
@@ -6364,4 +6421,243 @@ pub async fn logistics_page(
     );
 
     render_layout("物流管理", "logistics", Some(user), &content)
+}
+
+// ============================================================================
+// 分析报告
+// ============================================================================
+
+#[derive(Debug, Deserialize)]
+pub struct AnalyticsQuery {
+    pub year: Option<i32>,
+    pub month: Option<i32>,
+}
+
+/// 分析报告页面
+pub async fn analytics_page(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Query(query): Query<AnalyticsQuery>,
+) -> Html<String> {
+    let user = get_user_from_extension(&auth_user);
+
+    // 获取当前年月或使用查询参数
+    let now = Local::now();
+    let year = query.year.unwrap_or_else(|| now.year());
+    let month = query.month.unwrap_or_else(|| now.month() as i32);
+
+    // 获取分析数据
+    let queries = OrderQueries::new(state.db.pool());
+    let report = queries.get_analytics(year, month).await.unwrap_or_else(|_| {
+        cicierp_db::queries::orders::AnalyticsReport {
+            sales_by_currency: vec![],
+            top_products: vec![],
+            platform_distribution: vec![],
+        }
+    });
+
+    // 币种销售统计
+    let sales_rows: String = report.sales_by_currency.iter().map(|s| {
+        let profit_rate = if s.total_sales > 0.0 {
+            (s.total_profit / s.total_sales * 100.0) as i32
+        } else {
+            0
+        };
+        let currency_symbol = if s.currency == "USD" { "$" } else { "¥" };
+        format!(
+            r#"<tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 font-medium">{}</td>
+                <td class="px-4 py-3 text-right">{}</ {:.2}</td>
+                <td class="px-4 py-3 text-right">{}</ {:.2}</td>
+                <td class="px-4 py-3 text-right font-medium text-green-600">{}</ {:.2}</td>
+                <td class="px-4 py-3 text-center">{}%</td>
+                <td class="px-4 py-3 text-center">{}</td>
+            </tr>"#,
+            s.currency,
+            currency_symbol, s.total_sales,
+            currency_symbol, s.total_cost,
+            currency_symbol, s.total_profit,
+            profit_rate,
+            s.order_count
+        )
+    }).collect();
+
+    let sales_rows = if sales_rows.is_empty() {
+        r#"<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">暂无销售数据</td></tr>"#.to_string()
+    } else {
+        sales_rows
+    };
+
+    // 产品销量 Top 10
+    let product_rows: String = report.top_products.iter().enumerate().map(|(i, p)| {
+        format!(
+            r#"<tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 text-center font-bold text-gray-400">{}</td>
+                <td class="px-4 py-3">{}</td>
+                <td class="px-4 py-3 text-right font-medium">{}</td>
+                <td class="px-4 py-3 text-right">${:.2}</td>
+            </tr>"#,
+            i + 1,
+            p.product_name,
+            p.total_quantity,
+            p.total_sales
+        )
+    }).collect();
+
+    let product_rows = if product_rows.is_empty() {
+        r#"<tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">暂无产品数据</td></tr>"#.to_string()
+    } else {
+        product_rows
+    };
+
+    // 平台分布
+    let platform_rows: String = report.platform_distribution.iter().map(|p| {
+        let platform_name = match p.platform.as_str() {
+            "ali_import" => "阿里进口",
+            "import" => "自主进口",
+            _ => &p.platform,
+        };
+        format!(
+            r#"<tr class="hover:bg-gray-50">
+                <td class="px-4 py-3">{}</td>
+                <td class="px-4 py-3 text-center">{}</td>
+                <td class="px-4 py-3 text-right">${:.2}</td>
+            </tr>"#,
+            platform_name,
+            p.order_count,
+            p.total_sales
+        )
+    }).collect();
+
+    let platform_rows = if platform_rows.is_empty() {
+        r#"<tr><td colspan="3" class="px-6 py-8 text-center text-gray-500">暂无平台数据</td></tr>"#.to_string()
+    } else {
+        platform_rows
+    };
+
+    // 年月选择器
+    let current_year = Local::now().year();
+    let year_options: String = (2024..=current_year).map(|y| {
+        if y == year {
+            format!(r#"<option value="{}" selected>{}</option>"#, y, y)
+        } else {
+            format!(r#"<option value="{}">{}</option>"#, y, y)
+        }
+    }).collect();
+
+    let month_options: String = (1..=12).map(|m| {
+        if m == month {
+            format!(r#"<option value="{}" selected>{}月</option>"#, m, m)
+        } else {
+            format!(r#"<option value="{}">{}月</option>"#, m, m)
+        }
+    }).collect();
+
+    let content = format!(
+        r#"<!-- 页面标题 -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">分析报告</h1>
+        <p class="text-gray-600 mt-1 text-sm sm:text-base">月度销售数据分析</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <form method="GET" class="flex items-center gap-2">
+            <select name="year" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {}
+            </select>
+            <select name="month" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {}
+            </select>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                查询
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- 销售额统计 -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h3 class="font-semibold text-gray-800">💰 销售额统计（按币种）</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">币种</th>
+                        <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">销售额</th>
+                        <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">成本</th>
+                        <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">利润</th>
+                        <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">利润率</th>
+                        <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">订单数</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">{}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 平台分布 -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+            <h3 class="font-semibold text-gray-800">📊 平台分布</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">平台</th>
+                        <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">订单数</th>
+                        <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">销售额</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">{}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 产品销量 Top 10 -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden lg:col-span-2">
+        <div class="p-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50">
+            <h3 class="font-semibold text-gray-800">🏆 产品销量 Top 10</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 w-16">排名</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">产品名称</th>
+                        <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">销量</th>
+                        <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">销售额</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">{}</tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 数据说明 -->
+<div class="mt-6 bg-blue-50 rounded-xl border border-blue-100 p-4">
+    <div class="flex items-start gap-3">
+        <span class="text-2xl">💡</span>
+        <div class="text-sm text-gray-700">
+            <p class="font-medium mb-1">数据说明</p>
+            <ul class="list-disc list-inside space-y-1 text-gray-600">
+                <li>利润 = 销售额 - 成本（order_items.cost_price × quantity）</li>
+                <li>仅统计当月已完成的订单</li>
+                <li>平台：阿里进口 = 从阿里巴巴导入的订单，自主进口 = 手动创建的订单</li>
+            </ul>
+        </div>
+    </div>
+</div>"#,
+        year_options,
+        month_options,
+        sales_rows,
+        platform_rows,
+        product_rows
+    );
+
+    render_layout("分析报告", "analytics", Some(user), &content)
 }
