@@ -80,3 +80,13 @@ pub fn payment_status_class(status: i64) -> &'static str {
         _ => "text-gray-500",
     }
 }
+
+/// 获取平台名称
+pub fn platform_text(platform: &str) -> &str {
+    match platform {
+        "ali" => "阿里国际站",
+        "ae" => "速卖通",
+        "manual" => "手动创建",
+        _ => platform,
+    }
+}

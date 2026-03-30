@@ -66,7 +66,7 @@
                     <span class="font-mono text-sm text-blue-600">{{ order.order_code }}</span>
                 </td>
                 <td class="px-6 py-4">
-                    <span class="text-gray-600">{{ order.platform }}</span>
+                    <span class="text-gray-600">{{ crate::templates::orders::platform_text(order.platform) }}</span>
                 </td>
                 <td class="px-6 py-4">
                     <span class="text-gray-800">{{ order.customer_name|unwrap_or("-") }}</span>

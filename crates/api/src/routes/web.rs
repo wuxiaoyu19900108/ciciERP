@@ -6512,19 +6512,21 @@ pub async fn analytics_page(
 
     // 平台分布
     let platform_rows: String = report.platform_distribution.iter().map(|p| {
-        let platform_name = match p.platform.as_str() {
-            "ali_import" => "阿里进口",
-            "import" => "自主进口",
-            _ => &p.platform,
+        let (platform_name, currency_symbol): (&str, &str) = match p.platform.as_str() {
+            "ali" => ("阿里国际站", "$"),
+            "ae" => ("速卖通", "¥"),
+            "manual" => ("手动创建", "$"),
+            other => (other, "$"),
         };
         format!(
             r#"<tr class="hover:bg-gray-50">
                 <td class="px-4 py-3">{}</td>
                 <td class="px-4 py-3 text-center">{}</td>
-                <td class="px-4 py-3 text-right">${:.2}</td>
+                <td class="px-4 py-3 text-right">{}{:.2}</td>
             </tr>"#,
             platform_name,
             p.order_count,
+            currency_symbol,
             p.total_sales
         )
     }).collect();
@@ -6647,7 +6649,7 @@ pub async fn analytics_page(
             <ul class="list-disc list-inside space-y-1 text-gray-600">
                 <li>利润 = 销售额 - 成本（order_items.cost_price × quantity）</li>
                 <li>仅统计当月已完成的订单</li>
-                <li>平台：阿里进口 = 从阿里巴巴导入的订单，自主进口 = 手动创建的订单</li>
+                <li>平台：阿里国际站(ali) = 阿里巴巴国际站订单，速卖通(ae) = 速卖通平台订单</li>
             </ul>
         </div>
     </div>
