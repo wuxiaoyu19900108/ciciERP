@@ -29,6 +29,7 @@ pub struct Product {
     pub id: i64,
     pub product_code: String,
     pub name: String,
+    pub model: Option<String>,
     pub name_en: Option<String>,
     pub slug: Option<String>,
     pub category_id: Option<i64>,
@@ -135,6 +136,7 @@ pub struct CreateProductRequest {
     pub product_code: Option<String>,
     #[validate(length(min = 1, max = 200))]
     pub name: String,
+    pub model: Option<String>,
     pub name_en: Option<String>,
     pub slug: Option<String>,
     pub category_id: Option<i64>,
@@ -158,6 +160,7 @@ pub struct CreateProductRequest {
 pub struct UpdateProductRequest {
     #[validate(length(min = 1, max = 200))]
     pub name: Option<String>,
+    pub model: Option<String>,
     pub name_en: Option<String>,
     pub slug: Option<String>,
     pub category_id: Option<i64>,
@@ -183,9 +186,14 @@ pub struct ProductQuery {
     pub page_size: Option<u32>,
     pub category_id: Option<i64>,
     pub brand_id: Option<i64>,
+    pub supplier_id: Option<i64>,
     pub status: Option<i64>,
     pub keyword: Option<String>,
     pub sort: Option<String>,
+    /// 售价下限（USD）
+    pub price_min: Option<f64>,
+    /// 售价上限（USD）
+    pub price_max: Option<f64>,
 }
 
 impl ProductQuery {
@@ -214,7 +222,10 @@ pub struct ProductListItem {
     pub id: i64,
     pub product_code: String,
     pub name: String,
+    pub model: Option<String>,
     pub main_image: Option<String>,
+    // 供应商
+    pub supplier_name: Option<String>,
     // 成本信息
     pub cost_cny: Option<f64>,        // RMB成本
     pub cost_usd: Option<f64>,        // 美金成本
@@ -223,8 +234,7 @@ pub struct ProductListItem {
     pub sale_price_cny: Option<f64>,  // RMB售价
     pub sale_price_usd: Option<f64>,  // 美金售价
     pub price_exchange_rate: Option<f64>, // 售价汇率
-    pub platform_fee: Option<f64>,    // 平台费用
-    // 计算字段
+    // 计算字段（platform_fee_rate 来自 product_prices，仅用于利润计算，不单独展示）
     pub profit_usd: Option<f64>,      // 利润（美金）
     pub profit_margin: Option<f64>,   // 利润比例
     //

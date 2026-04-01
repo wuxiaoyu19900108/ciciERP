@@ -581,3 +581,76 @@ VALUES
 -- 默认分类
 INSERT INTO categories (name, slug, level, sort_order)
 VALUES ('未分类', 'uncategorized', 0, 0);
+
+-- ─── 产品成本表（产品模块扩展） ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS product_costs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    supplier_id INTEGER,
+    cost_cny REAL NOT NULL,
+    cost_usd REAL,
+    currency TEXT DEFAULT 'CNY',
+    exchange_rate REAL DEFAULT 6.81,
+    profit_margin REAL DEFAULT 0,
+    platform_fee_rate REAL DEFAULT 0.025,
+    platform_fee REAL,
+    sale_price_usd REAL,
+    quantity INTEGER DEFAULT 1,
+    purchase_order_id INTEGER,
+    is_reference INTEGER DEFAULT 0,
+    effective_date TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+);
+CREATE INDEX IF NOT EXISTS idx_product_costs_product ON product_costs(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_costs_supplier ON product_costs(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_product_costs_effective ON product_costs(effective_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_product_costs_reference
+    ON product_costs(product_id) WHERE is_reference = 1;
+
+-- ─── 产品售价表（多平台定价） ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS product_prices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    platform TEXT NOT NULL DEFAULT 'website',
+    sale_price_cny REAL NOT NULL,
+    sale_price_usd REAL,
+    exchange_rate REAL DEFAULT 7.2,
+    profit_margin REAL DEFAULT 0.15,
+    platform_fee_rate REAL DEFAULT 0.025,
+    platform_fee REAL,
+    is_reference INTEGER DEFAULT 0,
+    effective_date TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_product_prices_product ON product_prices(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_prices_platform ON product_prices(platform);
+CREATE INDEX IF NOT EXISTS idx_product_prices_effective ON product_prices(effective_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_product_prices_reference
+    ON product_prices(product_id, platform) WHERE is_reference = 1;
+
+-- ─── 产品内容表（独立站 SEO 内容） ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS product_content (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL UNIQUE,
+    title_en TEXT,
+    description TEXT,
+    description_en TEXT,
+    main_image TEXT,
+    images TEXT,
+    specifications TEXT,
+    meta_title TEXT,
+    meta_description TEXT,
+    meta_keywords TEXT,
+    content_html TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_product_content_product ON product_content(product_id);

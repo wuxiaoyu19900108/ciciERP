@@ -414,7 +414,7 @@ impl<'a> OrderQueries<'a> {
         let result = sqlx::query(
             r#"
             UPDATE orders SET
-                order_status = CASE WHEN order_status = 2 THEN 4 ELSE order_status END,
+                order_status = CASE WHEN order_status IN (2, 3) THEN 4 ELSE order_status END,
                 fulfillment_status = 3,
                 ship_time = ?,
                 updated_at = ?

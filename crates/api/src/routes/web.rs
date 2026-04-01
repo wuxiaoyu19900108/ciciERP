@@ -9,8 +9,114 @@ use axum::{
     Extension, Router,
 };
 use chrono::{Datelike, Local};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use tracing::info;
+
+/// 将 HTML 表单中空字符串的整数字段反序列化为 None
+fn empty_string_as_none_i64<'de, D>(de: D) -> Result<Option<i64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Option::deserialize(de)?;
+    match s.as_deref() {
+        None | Some("") => Ok(None),
+        Some(v) => v.parse::<i64>().map(Some).map_err(serde::de::Error::custom),
+    }
+}
+
+/// 将 HTML 表单中空字符串的浮点数字段反序列化为 None
+fn empty_string_as_none_f64<'de, D>(de: D) -> Result<Option<f64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Option::deserialize(de)?;
+    match s.as_deref() {
+        None | Some("") => Ok(None),
+        Some(v) => v.parse::<f64>().map(Some).map_err(serde::de::Error::custom),
+    }
+}
+
+/// serde_urlencoded 对单值不自动包装成 Vec，需要自定义 visitor 同时接受 str 和 seq
+fn str_or_vec_string<'de, D>(de: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Visitor;
+    impl<'de> serde::de::Visitor<'de> for Visitor {
+        type Value = Vec<String>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("string or sequence of strings")
+        }
+        fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            Ok(if v.is_empty() { vec![] } else { vec![v.to_owned()] })
+        }
+        fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+            let mut out = Vec::new();
+            while let Some(v) = seq.next_element::<String>()? {
+                out.push(v);
+            }
+            Ok(out)
+        }
+    }
+    de.deserialize_any(Visitor)
+}
+
+fn str_or_vec_i64<'de, D>(de: D) -> Result<Vec<i64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Visitor;
+    impl<'de> serde::de::Visitor<'de> for Visitor {
+        type Value = Vec<i64>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("integer or sequence of integers")
+        }
+        fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            if v.is_empty() { return Ok(vec![]); }
+            v.parse::<i64>().map(|n| vec![n]).map_err(E::custom)
+        }
+        fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+            let mut out = Vec::new();
+            while let Some(s) = seq.next_element::<String>()? {
+                if !s.is_empty() {
+                    out.push(s.parse::<i64>().map_err(|e| serde::de::Error::custom(e.to_string()))?);
+                }
+            }
+            Ok(out)
+        }
+        fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<Self::Value, E> { Ok(vec![v]) }
+        fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<Self::Value, E> { Ok(vec![v as i64]) }
+    }
+    de.deserialize_any(Visitor)
+}
+
+fn str_or_vec_f64<'de, D>(de: D) -> Result<Vec<f64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Visitor;
+    impl<'de> serde::de::Visitor<'de> for Visitor {
+        type Value = Vec<f64>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("float or sequence of floats")
+        }
+        fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            if v.is_empty() { return Ok(vec![]); }
+            v.parse::<f64>().map(|n| vec![n]).map_err(E::custom)
+        }
+        fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+            let mut out = Vec::new();
+            while let Some(s) = seq.next_element::<String>()? {
+                if !s.is_empty() {
+                    out.push(s.parse::<f64>().map_err(|e| serde::de::Error::custom(e.to_string()))?);
+                }
+            }
+            Ok(out)
+        }
+        fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<Self::Value, E> { Ok(vec![v]) }
+    }
+    de.deserialize_any(Visitor)
+}
 
 use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
@@ -563,6 +669,9 @@ pub async fn dashboard_page(
 pub struct ProductsQuery {
     page: Option<u32>,
     keyword: Option<String>,
+    supplier_id: Option<i64>,
+    price_min: Option<f64>,
+    price_max: Option<f64>,
 }
 
 /// 产品列表页面
@@ -575,9 +684,27 @@ pub async fn products_page(
     let page = query.page.unwrap_or(1).max(1);
     let page_size = 20;
 
+    // Fetch suppliers for filter dropdown
+    let supplier_queries = SupplierQueries::new(state.db.pool());
+    let all_suppliers = supplier_queries
+        .list(1, 1000, Some(1), None, None)
+        .await
+        .map(|r| r.items)
+        .unwrap_or_default();
+
     let queries = ProductQueries::new(state.db.pool());
     let result = queries
-        .list(page, page_size, None, None, None, query.keyword.as_deref())
+        .list(
+            page,
+            page_size,
+            None,
+            None,
+            None,
+            query.keyword.as_deref(),
+            query.supplier_id,
+            query.price_min,
+            query.price_max,
+        )
         .await
         .unwrap_or_else(|_| PagedResponse::new(vec![], page, page_size, 0));
 
@@ -602,9 +729,6 @@ pub async fn products_page(
         // 售价显示
         let price_usd_display = p.sale_price_usd.map(|v| format!("${:.2}", v)).unwrap_or_else(|| "-".to_string());
 
-        // 平台费用
-        let platform_fee_display = p.platform_fee.map(|f| format!("${:.2}", f)).unwrap_or_else(|| "-".to_string());
-
         // 利润显示
         let profit_usd_display = p.profit_usd.map(|v| {
             let color = if v >= 0.0 { "text-green-600" } else { "text-red-600" };
@@ -616,14 +740,18 @@ pub async fn products_page(
             format!(r#"<span class="{}">{:.1}%</span>"#, color, v)
         }).unwrap_or_else(|| "-".to_string());
 
+        let model_display = p.model.as_deref().unwrap_or("-");
+        let supplier_display = p.supplier_name.as_deref().unwrap_or("-");
+
         rows.push_str(&format!(
             r#"<tr class="hover:bg-gray-50 transition-colors">
                 <td class="px-2 py-3"><span class="font-mono text-xs text-gray-600">{}</span></td>
                 <td class="px-2 py-3"><span class="font-medium text-gray-800 text-sm">{}</span></td>
+                <td class="px-2 py-3"><span class="text-xs text-gray-600">{}</span></td>
+                <td class="px-2 py-3"><span class="text-xs text-gray-500">{}</span></td>
                 <td class="px-2 py-3 text-right"><span class="text-xs text-gray-600">{}</span></td>
                 <td class="px-2 py-3 text-right"><span class="text-xs text-gray-600">{}</span></td>
                 <td class="px-2 py-3 text-right"><span class="text-xs font-medium text-gray-800">{}</span></td>
-                <td class="px-2 py-3 text-right"><span class="text-xs text-gray-600">{}</span></td>
                 <td class="px-2 py-3 text-right"><span class="text-xs">{}</span></td>
                 <td class="px-2 py-3 text-right"><span class="text-xs">{}</span></td>
                 <td class="px-2 py-3 text-right"><span class="{} text-xs">{}</span></td>
@@ -637,10 +765,11 @@ pub async fn products_page(
             </tr>"#,
             p.product_code,
             p.name,
+            model_display,
+            supplier_display,
             cost_cny_display,
             cost_usd_display,
             price_usd_display,
-            platform_fee_display,
             profit_usd_display,
             profit_margin_display,
             stock_class,
@@ -652,27 +781,29 @@ pub async fn products_page(
     }
 
     if rows.is_empty() {
-        rows = r#"<tr><td colspan="11" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📦</p><p>暂无产品数据</p></div></td></tr>"#.to_string();
+        rows = r#"<tr><td colspan="12" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📦</p><p>暂无产品数据</p></div></td></tr>"#.to_string();
     }
 
     let pagination = if total_pages > 1 {
+        // Build base query string preserving filters
+        let base_params = {
+            let mut p = Vec::new();
+            if let Some(ref k) = query.keyword { p.push(format!("keyword={}", k)); }
+            if let Some(sid) = query.supplier_id { p.push(format!("supplier_id={}", sid)); }
+            if let Some(v) = query.price_min { p.push(format!("price_min={}", v)); }
+            if let Some(v) = query.price_max { p.push(format!("price_max={}", v)); }
+            p.join("&")
+        };
+        let sep = if base_params.is_empty() { "" } else { "&" };
         // 上一页按钮
         let prev_btn = if page > 1 {
-            let url = match &query.keyword {
-                Some(k) => format!("/products?page={}&keyword={}", page - 1, k),
-                None => format!("/products?page={}", page - 1),
-            };
-            format!(r#"<a href="{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">上一页</a>"#, url)
+            format!(r#"<a href="/products?page={}{}{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">上一页</a>"#, page - 1, sep, base_params)
         } else {
             r#"<span class="px-4 py-2 text-sm text-gray-400 rounded-lg border border-gray-200">上一页</span>"#.to_string()
         };
         // 下一页按钮
         let next_btn = if page < total_pages {
-            let url = match &query.keyword {
-                Some(k) => format!("/products?page={}&keyword={}", page + 1, k),
-                None => format!("/products?page={}", page + 1),
-            };
-            format!(r#"<a href="{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">下一页</a>"#, url)
+            format!(r#"<a href="/products?page={}{}{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">下一页</a>"#, page + 1, sep, base_params)
         } else {
             r#"<span class="px-4 py-2 text-sm text-gray-400 rounded-lg border border-gray-200">下一页</span>"#.to_string()
         };
@@ -687,6 +818,21 @@ pub async fn products_page(
         String::new()
     };
 
+    // Build supplier filter options
+    let supplier_options: String = all_suppliers.iter().map(|s| {
+        let selected = query.supplier_id.map(|id| id == s.id).unwrap_or(false);
+        format!(
+            r#"<option value="{}" {}>{}</option>"#,
+            s.id,
+            if selected { "selected" } else { "" },
+            s.name
+        )
+    }).collect();
+
+    let keyword_val = query.keyword.as_deref().unwrap_or("");
+    let price_min_val = query.price_min.map(|v| format!("{}", v)).unwrap_or_default();
+    let price_max_val = query.price_max.map(|v| format!("{}", v)).unwrap_or_default();
+
     let content = format!(
         r#"<!-- 页面标题 -->
 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -699,29 +845,48 @@ pub async fn products_page(
     </a>
 </div>
 
-<!-- 搜索栏 -->
+<!-- 筛选栏 -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-    <form action="/products" method="GET" class="flex flex-col sm:flex-row gap-3 sm:gap-4">
-        <div class="flex-1">
-            <input type="text" name="keyword" value="{}" placeholder="搜索产品编码、名称..."
-                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+    <form action="/products" method="GET" class="flex flex-col gap-3">
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1">
+                <input type="text" name="keyword" value="{}" placeholder="搜索产品编码、名称、型号..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+            </div>
+            <div class="sm:w-48">
+                <select name="supplier_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                    <option value="">全部供应商</option>
+                    {}
+                </select>
+            </div>
+            <div class="flex gap-2 items-center">
+                <input type="number" name="price_min" value="{}" placeholder="最低售价($)" step="0.01" min="0"
+                       class="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                <span class="text-gray-400 text-sm">—</span>
+                <input type="number" name="price_max" value="{}" placeholder="最高售价($)" step="0.01" min="0"
+                       class="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">筛选</button>
+                <a href="/products" class="px-5 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">重置</a>
+            </div>
         </div>
-        <button type="submit" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors w-full sm:w-auto">搜索</button>
     </form>
 </div>
 
 <!-- 产品表格 -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="w-full min-w-[1100px]">
+        <table class="w-full min-w-[1200px]">
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
                     <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700">产品编码</th>
                     <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700">产品名称</th>
+                    <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700">型号</th>
+                    <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700">供应商</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">RMB成本</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">美金成本</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">美金卖价</th>
-                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">平台费用</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">利润($)</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">利润率</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">库存</th>
@@ -734,7 +899,10 @@ pub async fn products_page(
     </div>
 </div>
 {}"#,
-        query.keyword.unwrap_or_default(),
+        keyword_val,
+        supplier_options,
+        price_min_val,
+        price_max_val,
         rows,
         pagination
     );
@@ -1038,27 +1206,41 @@ pub struct ProductForm {
     // 产品基本信息（product_code 由系统自动生成）
     name: String,
     name_en: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     category_id: Option<i64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     brand_id: Option<i64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     supplier_id: Option<i64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     weight: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     volume: Option<f64>,
     description: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     status: Option<i64>,
     is_featured: Option<String>,
     is_new: Option<String>,
     notes: Option<String>,
     // 参考成本（可选）
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_cny: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_usd: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_exchange_rate: Option<f64>,
     cost_notes: Option<String>,
     // 参考售价（可选）
     price_platform: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     sale_price_cny: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     sale_price_usd: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     price_exchange_rate: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     profit_margin: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     platform_fee_rate: Option<f64>,
     price_notes: Option<String>,
 }
@@ -1075,6 +1257,7 @@ pub async fn product_create_handler(
     let req = CreateProductRequest {
         product_code: None,  // 自动生成
         name: form.name.clone(),
+        model: None,
         name_en: form.name_en.clone(),
         slug: None,
         category_id: form.category_id,
@@ -1853,22 +2036,33 @@ pub struct ProductEditForm {
     // 产品基本信息（不含 product_code，不可编辑）
     name: String,
     name_en: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     weight: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     volume: Option<f64>,
     description: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     status: Option<i64>,
     notes: Option<String>,
     // 参考成本（可选）
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_cny: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_usd: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_exchange_rate: Option<f64>,
     cost_notes: Option<String>,
     // 参考售价（可选）
     price_platform: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     sale_price_cny: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     sale_price_usd: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     price_exchange_rate: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     profit_margin: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     platform_fee_rate: Option<f64>,
     price_notes: Option<String>,
 }
@@ -1894,6 +2088,7 @@ pub async fn product_update_handler(
     // 更新产品基本信息
     let update_req = UpdateProductRequest {
         name: Some(form.name.clone()),
+        model: None,
         name_en: form.name_en.clone(),
         slug: None,
         category_id: None,
@@ -2734,7 +2929,7 @@ pub async fn order_new_page(
 
     // 获取产品列表用于选择
     let product_queries = ProductQueries::new(state.db.pool());
-    let products = product_queries.list(1, 100, None, None, None, None).await
+    let products = product_queries.list(1, 100, None, None, None, None, None, None, None).await
         .map(|r| r.items).unwrap_or_default();
 
     // 生成客户选项
@@ -3155,6 +3350,7 @@ async function showHistoryPrice(btn) {{
 /// 创建订单表单
 #[derive(Debug, Deserialize)]
 pub struct OrderForm {
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     customer_id: Option<i64>,
     customer_name: Option<String>,
     customer_mobile: Option<String>,
@@ -3164,11 +3360,16 @@ pub struct OrderForm {
     country: String,
     address: String,
     save_address: Option<String>, // 保存到客户地址列表
-    // 多商品支持
+    // 多商品支持 - HTML 表单发送 item_product[]=... 格式
+    #[serde(rename = "item_product[]", deserialize_with = "str_or_vec_string")]
     item_product: Vec<String>,
+    #[serde(rename = "item_quantity[]", deserialize_with = "str_or_vec_i64")]
     item_quantity: Vec<i64>,
+    #[serde(rename = "item_price[]", deserialize_with = "str_or_vec_f64")]
     item_price: Vec<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     shipping_fee: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     discount_amount: Option<f64>,
     customer_note: Option<String>,
     payment_terms: Option<String>,
@@ -3623,7 +3824,7 @@ pub async fn order_edit_page(
 
     // 获取产品列表
     let product_queries = ProductQueries::new(state.db.pool());
-    let products = product_queries.list(1, 100, None, None, None, None).await
+    let products = product_queries.list(1, 100, None, None, None, None, None, None, None).await
         .map(|r| r.items).unwrap_or_default();
 
     let customer_options: String = customers.iter().map(|c| {
@@ -3900,6 +4101,7 @@ calculateTotal();
 /// 订单更新表单
 #[derive(Debug, Deserialize)]
 pub struct OrderEditForm {
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     customer_id: Option<i64>,
     customer_name: Option<String>,
     customer_mobile: Option<String>,
@@ -3908,10 +4110,16 @@ pub struct OrderEditForm {
     receiver_phone: String,
     country: String,
     address: String,
+    // HTML 表单发送 item_product[]=... 格式
+    #[serde(rename = "item_product[]", deserialize_with = "str_or_vec_string")]
     item_product: Vec<String>,
+    #[serde(rename = "item_quantity[]", deserialize_with = "str_or_vec_i64")]
     item_quantity: Vec<i64>,
+    #[serde(rename = "item_price[]", deserialize_with = "str_or_vec_f64")]
     item_price: Vec<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     shipping_fee: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     discount_amount: Option<f64>,
     customer_note: Option<String>,
     payment_terms: Option<String>,
@@ -5843,7 +6051,7 @@ pub async fn purchase_new_page(
 
     // 获取产品列表
     let product_queries = ProductQueries::new(state.db.pool());
-    let products = match product_queries.list(1, 1000, None, None, None, None).await {
+    let products = match product_queries.list(1, 1000, None, None, None, None, None, None, None).await {
         Ok(resp) => resp.items,
         Err(_) => vec![],
     };

@@ -2,7 +2,7 @@
 
 use axum::{
     body::Body,
-    extract::State,
+    extract::{OriginalUri, State},
     http::{Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
@@ -90,8 +90,13 @@ pub fn extract_token<B>(req: &Request<B>) -> Option<String> {
 }
 
 /// 判断是否为 Web 页面请求（非 API 请求）
+/// 嵌套路由中 req.uri() 会去掉前缀，需用 OriginalUri 获取完整路径
 fn is_web_request<B>(req: &Request<B>) -> bool {
-    let path = req.uri().path();
+    let path = req
+        .extensions()
+        .get::<OriginalUri>()
+        .map(|u| u.path().to_owned())
+        .unwrap_or_else(|| req.uri().path().to_owned());
     !path.starts_with("/api/")
 }
 

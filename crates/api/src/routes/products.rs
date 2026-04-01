@@ -56,6 +56,9 @@ pub async fn list_products(
             query.brand_id,
             query.status,
             query.keyword.as_deref(),
+            query.supplier_id,
+            query.price_min,
+            query.price_max,
         )
         .await?;
 

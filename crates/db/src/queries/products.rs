@@ -29,11 +29,18 @@ impl<'a> ProductQueries<'a> {
         brand_id: Option<i64>,
         status: Option<i64>,
         keyword: Option<&str>,
+        supplier_id: Option<i64>,
+        price_min: Option<f64>,
+        price_max: Option<f64>,
     ) -> Result<PagedResponse<ProductListItem>> {
         let offset = (page.saturating_sub(1)) * page_size;
 
         // 构建安全的 count 查询
-        let mut count_query = QueryBuilder::new("SELECT COUNT(*) as count FROM products p WHERE p.deleted_at IS NULL");
+        let mut count_query = QueryBuilder::new(
+            "SELECT COUNT(DISTINCT p.id) as count FROM products p \
+             LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1 \
+             WHERE p.deleted_at IS NULL"
+        );
 
         if let Some(cat_id) = category_id {
             count_query.push(" AND p.category_id = ");
@@ -42,6 +49,10 @@ impl<'a> ProductQueries<'a> {
         if let Some(b_id) = brand_id {
             count_query.push(" AND p.brand_id = ");
             count_query.push_bind(b_id);
+        }
+        if let Some(s_id) = supplier_id {
+            count_query.push(" AND p.supplier_id = ");
+            count_query.push_bind(s_id);
         }
         if let Some(s) = status {
             count_query.push(" AND p.status = ");
@@ -52,7 +63,17 @@ impl<'a> ProductQueries<'a> {
             count_query.push_bind(format!("%{}%", kw));
             count_query.push(" OR p.product_code LIKE ");
             count_query.push_bind(format!("%{}%", kw));
+            count_query.push(" OR p.model LIKE ");
+            count_query.push_bind(format!("%{}%", kw));
             count_query.push(")");
+        }
+        if let Some(min) = price_min {
+            count_query.push(" AND pp.sale_price_usd >= ");
+            count_query.push_bind(min);
+        }
+        if let Some(max) = price_max {
+            count_query.push(" AND pp.sale_price_usd <= ");
+            count_query.push_bind(max);
         }
 
         let total: (i64,) = count_query.build_query_as()
@@ -60,35 +81,36 @@ impl<'a> ProductQueries<'a> {
             .await?;
 
         // 构建安全的 list 查询（从 product_prices 获取参考售价，从 product_costs 获取成本）
-        // 利润计算：美金售价 - 美金成本 - 平台费用(转美金)
+        // 利润计算：美金售价 - 美金成本 - 平台费率*售价（platform_fee_rate 用于参考利润估算）
         let mut list_query = QueryBuilder::new(
             r#"SELECT
-                p.id, p.product_code, p.name, p.main_image, p.status,
+                p.id, p.product_code, p.name, p.model, p.main_image, p.status,
                 p.created_at,
+                s.name as supplier_name,
                 pc.cost_cny,
                 pc.cost_usd,
                 pc.exchange_rate as cost_exchange_rate,
                 pp.sale_price_cny,
                 pp.sale_price_usd,
                 pp.exchange_rate as price_exchange_rate,
-                pp.platform_fee,
                 COALESCE(SUM(ps.stock_quantity), 0) as stock_quantity,
                 c.name as category_name,
                 b.name as brand_name,
                 CASE
                     WHEN pp.sale_price_usd IS NOT NULL AND pc.cost_usd IS NOT NULL
-                    THEN pp.sale_price_usd - pc.cost_usd - COALESCE(pp.platform_fee, 0)
+                    THEN pp.sale_price_usd - pc.cost_usd - (pp.sale_price_usd * COALESCE(pp.platform_fee_rate, 0))
                     ELSE NULL
                 END as profit_usd,
                 CASE
                     WHEN pp.sale_price_usd IS NOT NULL AND pp.sale_price_usd > 0
-                    THEN ((pp.sale_price_usd - COALESCE(pc.cost_usd, 0) - COALESCE(pp.platform_fee, 0)) / pp.sale_price_usd) * 100
+                    THEN ((pp.sale_price_usd - COALESCE(pc.cost_usd, 0) - (pp.sale_price_usd * COALESCE(pp.platform_fee_rate, 0))) / pp.sale_price_usd) * 100
                     ELSE NULL
                 END as profit_margin
             FROM products p
             LEFT JOIN product_skus ps ON ps.product_id = p.id
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN brands b ON b.id = p.brand_id
+            LEFT JOIN suppliers s ON s.id = p.supplier_id
             LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1
             LEFT JOIN product_costs pc ON pc.product_id = p.id AND pc.is_reference = 1
             WHERE p.deleted_at IS NULL"#
@@ -102,6 +124,10 @@ impl<'a> ProductQueries<'a> {
             list_query.push(" AND p.brand_id = ");
             list_query.push_bind(b_id);
         }
+        if let Some(s_id) = supplier_id {
+            list_query.push(" AND p.supplier_id = ");
+            list_query.push_bind(s_id);
+        }
         if let Some(s) = status {
             list_query.push(" AND p.status = ");
             list_query.push_bind(s);
@@ -111,7 +137,17 @@ impl<'a> ProductQueries<'a> {
             list_query.push_bind(format!("%{}%", kw));
             list_query.push(" OR p.product_code LIKE ");
             list_query.push_bind(format!("%{}%", kw));
+            list_query.push(" OR p.model LIKE ");
+            list_query.push_bind(format!("%{}%", kw));
             list_query.push(")");
+        }
+        if let Some(min) = price_min {
+            list_query.push(" AND pp.sale_price_usd >= ");
+            list_query.push_bind(min);
+        }
+        if let Some(max) = price_max {
+            list_query.push(" AND pp.sale_price_usd <= ");
+            list_query.push_bind(max);
         }
 
         list_query.push(" GROUP BY p.id ORDER BY p.created_at DESC LIMIT ");
@@ -168,15 +204,16 @@ impl<'a> ProductQueries<'a> {
         let result = sqlx::query(
             r#"
             INSERT INTO products (
-                product_code, name, name_en, slug, category_id, brand_id, supplier_id,
+                product_code, name, model, name_en, slug, category_id, brand_id, supplier_id,
                 weight, volume,
                 description, description_en, specifications, main_image, images,
-                status, is_featured, is_new, notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                status, is_featured, is_new, notes, purchase_price, sale_price, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#
         )
         .bind(&product_code)
         .bind(&req.name)
+        .bind(&req.model)
         .bind(&req.name_en)
         .bind(&req.slug)
         .bind(req.category_id)
@@ -193,6 +230,8 @@ impl<'a> ProductQueries<'a> {
         .bind(is_featured)
         .bind(is_new)
         .bind(&req.notes)
+        .bind(0.0_f64) // purchase_price: 价格已迁移到 product_costs/product_prices，此处保持默认值
+        .bind(0.0_f64) // sale_price: 同上
         .bind(&now)
         .bind(&now)
         .execute(self.pool)
@@ -218,6 +257,10 @@ impl<'a> ProductQueries<'a> {
         if let Some(ref name) = req.name {
             updates.push("name = ?");
             bindings.push(name.clone());
+        }
+        if let Some(ref model) = req.model {
+            updates.push("model = ?");
+            bindings.push(model.clone());
         }
         if let Some(ref name_en) = req.name_en {
             updates.push("name_en = ?");
@@ -354,9 +397,25 @@ impl<'a> ProductQueries<'a> {
         // 搜索列表（从 product_prices 获取参考售价）
         let list_sql = r#"
             SELECT
-                p.id, p.product_code, p.name, p.main_image, p.status,
+                p.id, p.product_code, p.name, p.model, p.main_image, p.status,
                 p.created_at,
+                NULL as supplier_name,
+                pc.cost_cny,
+                pc.cost_usd,
+                pc.exchange_rate as cost_exchange_rate,
                 pp.sale_price_cny,
+                pp.sale_price_usd,
+                pp.exchange_rate as price_exchange_rate,
+                CASE
+                    WHEN pp.sale_price_usd IS NOT NULL AND pc.cost_usd IS NOT NULL
+                    THEN pp.sale_price_usd - pc.cost_usd - (pp.sale_price_usd * COALESCE(pp.platform_fee_rate, 0))
+                    ELSE NULL
+                END as profit_usd,
+                CASE
+                    WHEN pp.sale_price_usd IS NOT NULL AND pp.sale_price_usd > 0
+                    THEN ((pp.sale_price_usd - COALESCE(pc.cost_usd, 0) - (pp.sale_price_usd * COALESCE(pp.platform_fee_rate, 0))) / pp.sale_price_usd) * 100
+                    ELSE NULL
+                END as profit_margin,
                 COALESCE(SUM(ps.stock_quantity), 0) as stock_quantity,
                 c.name as category_name,
                 b.name as brand_name
@@ -366,6 +425,7 @@ impl<'a> ProductQueries<'a> {
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN brands b ON b.id = p.brand_id
             LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1
+            LEFT JOIN product_costs pc ON pc.product_id = p.id AND pc.is_reference = 1
             WHERE products_fts MATCH ? AND p.deleted_at IS NULL
             GROUP BY p.id
             ORDER BY p.created_at DESC

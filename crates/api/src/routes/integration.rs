@@ -254,6 +254,9 @@ pub async fn list_products_for_sync(
             query.brand_id,
             Some(1), // 只返回上架产品
             query.keyword.as_deref(),
+            None,
+            None,
+            None,
         )
         .await?;
 

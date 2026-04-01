@@ -190,6 +190,9 @@ impl Database {
             ("005_purchase_multi_supplier", include_str!("../migrations/005_purchase_multi_supplier.sql")),
             ("006_exchange_rates", include_str!("../migrations/006_exchange_rates.sql")),
             ("007_integration_api", include_str!("../migrations/007_integration_api.sql")),
+            ("008_pi_ci_flow", include_str!("../migrations/008_pi_ci_flow.sql")),
+            ("009_order_terms", include_str!("../migrations/009_order_terms.sql")),
+            ("010_product_model", include_str!("../migrations/010_product_model.sql")),
         ];
 
         for (name, sql) in migrations {

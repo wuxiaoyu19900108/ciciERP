@@ -1,0 +1,18 @@
+{
+  "name": "cicierp-e2e-tests",
+  "version": "1.0.0",
+  "description": "ciciERP Playwright E2E Tests",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report",
+    "test:auth": "playwright test tests/e2e/auth.spec.ts",
+    "test:products": "playwright test tests/e2e/products.spec.ts",
+    "test:products-ui": "playwright test tests/e2e/products-ui.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.0.0"
+  }
+}
