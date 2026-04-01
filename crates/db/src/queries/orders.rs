@@ -88,8 +88,15 @@ impl<'a> OrderQueries<'a> {
             r#"SELECT
                 o.id, o.order_code, o.customer_name, o.total_amount,
                 o.order_status, o.payment_status, o.fulfillment_status,
+                o.currency, o.platform,
                 (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count,
-                o.created_at
+                o.created_at,
+                (SELECT SUM(oi.total_amount) - COALESCE(SUM(oi.cost_price * oi.quantity), 0)
+                 FROM order_items oi WHERE oi.order_id = o.id) as profit_amount,
+                CASE WHEN o.total_amount > 0 THEN
+                    ((SELECT SUM(oi.total_amount) - COALESCE(SUM(oi.cost_price * oi.quantity), 0)
+                      FROM order_items oi WHERE oi.order_id = o.id) / o.total_amount * 100)
+                ELSE NULL END as profit_rate
             FROM orders o
             WHERE 1=1"#
         );
@@ -667,7 +674,61 @@ pub struct PlatformStats {
     pub total_sales: f64,
 }
 
+/// 订单列表筛选后的聚合统计
+#[derive(Debug, Clone, Serialize, sqlx::FromRow, Default)]
+pub struct OrderFilterStats {
+    pub total_orders: i64,
+    pub total_amount: f64,
+    pub total_profit: f64,
+    pub loss_count: i64,
+}
+
 impl<'a> OrderQueries<'a> {
+    /// 获取当前筛选条件下的聚合统计（用于列表页统计栏）
+    pub async fn filter_stats(
+        &self,
+        order_status: Option<i64>,
+        platform: Option<&str>,
+        currency: Option<&str>,
+    ) -> Result<OrderFilterStats> {
+        let mut q = QueryBuilder::new(
+            r#"SELECT
+                COUNT(*) as total_orders,
+                COALESCE(SUM(o.total_amount), 0) as total_amount,
+                COALESCE(SUM(
+                    (SELECT SUM(oi.total_amount) - COALESCE(SUM(oi.cost_price * oi.quantity), 0)
+                     FROM order_items oi WHERE oi.order_id = o.id)
+                ), 0) as total_profit,
+                COUNT(CASE WHEN (
+                    SELECT SUM(oi.total_amount) - COALESCE(SUM(oi.cost_price * oi.quantity), 0)
+                    FROM order_items oi WHERE oi.order_id = o.id
+                ) < 0 THEN 1 END) as loss_count
+            FROM orders o
+            WHERE 1=1"#
+        );
+        if let Some(os) = order_status {
+            q.push(" AND o.order_status = "); q.push_bind(os);
+        }
+        if let Some(p) = platform {
+            q.push(" AND o.platform = "); q.push_bind(p);
+        }
+        if let Some(c) = currency {
+            q.push(" AND o.currency = "); q.push_bind(c);
+        }
+        let stats: OrderFilterStats = q.build_query_as().fetch_one(self.pool).await
+            .unwrap_or_default();
+        Ok(stats)
+    }
+
+    /// 各平台订单数量统计（用于平台筛选 tab 显示数量）
+    pub async fn platform_counts(&self) -> Result<Vec<PlatformStats>> {
+        let rows: Vec<PlatformStats> = sqlx::query_as(
+            r#"SELECT platform, COUNT(*) as order_count, COALESCE(SUM(total_amount), 0) as total_sales
+               FROM orders GROUP BY platform ORDER BY order_count DESC"#
+        ).fetch_all(self.pool).await?;
+        Ok(rows)
+    }
+
     /// 获取分析报告数据
     pub async fn get_analytics(&self, year: i32, month: i32) -> Result<AnalyticsReport> {
         // 按币种分组统计销售额和利润

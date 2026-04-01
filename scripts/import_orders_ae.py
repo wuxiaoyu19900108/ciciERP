@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """导入 orders_ae.xlsx 数据到 ciciERP 数据库"""
 
+import sys
+import json
 import pandas as pd
 import sqlite3
 import random
@@ -8,7 +10,7 @@ import string
 from datetime import datetime
 
 # 配置
-EXCEL_PATH = '/home/wxy/.xiaozhi/files/file_1774829048324_a84af3a2_orders_ae.xlsx.xlsx'
+EXCEL_PATH = sys.argv[1] if len(sys.argv) > 1 else '/home/wxy/.xiaozhi/files/file_1774829048324_a84af3a2_orders_ae.xlsx.xlsx'
 DB_PATH = '/home/wxy/data/ciciERP/data/cicierp.db'
 
 def generate_customer_code():
@@ -217,6 +219,12 @@ def main():
     print(f"订单项: 新增 {stats['items_added']} 条")
     print(f"跳过: {stats['orders_skipped']} 条")
     print("\n✅ 导入完成")
+    print("\n__JSON_SUMMARY__")
+    print(json.dumps({
+        "orders_added": stats['orders_added'],
+        "customers_added": stats['customers_added'],
+        "skipped": stats['orders_skipped'],
+    }))
 
 if __name__ == '__main__':
     main()

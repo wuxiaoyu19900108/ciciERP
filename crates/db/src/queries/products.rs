@@ -4,7 +4,7 @@ use anyhow::Result;
 use sqlx::{QueryBuilder, SqlitePool};
 
 use cicierp_models::{
-    product::{CreateProductRequest, Product, ProductListItem, ProductSku, UpdateProductRequest},
+    product::{CreateProductRequest, Product, ProductDashboardStats, ProductListItem, ProductSku, UpdateProductRequest},
     common::PagedResponse,
 };
 
@@ -160,6 +160,38 @@ impl<'a> ProductQueries<'a> {
             .await?;
 
         Ok(PagedResponse::new(items, page, page_size, total.0 as u64))
+    }
+
+    pub async fn dashboard_stats(
+        &self,
+        category_id: Option<i64>,
+        supplier_id: Option<i64>,
+        keyword: Option<&str>,
+    ) -> Result<ProductDashboardStats> {
+        let mut q = QueryBuilder::new(
+            r#"SELECT
+                CAST(COUNT(DISTINCT p.id) AS INTEGER) as total_count,
+                CAST(COALESCE(SUM(COALESCE(ps.stock_quantity, 0)), 0) AS REAL) as total_stock,
+                CAST(COALESCE(AVG(pp.sale_price_usd), 0) AS REAL) as avg_price_usd,
+                CAST(COALESCE(SUM(pp.sale_price_usd * COALESCE(ps.stock_quantity, 0)), 0) AS REAL) as total_stock_value
+            FROM products p
+            LEFT JOIN product_skus ps ON ps.product_id = p.id
+            LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1
+            WHERE p.deleted_at IS NULL"#
+        );
+        if let Some(cid) = category_id {
+            q.push(" AND p.category_id = "); q.push_bind(cid);
+        }
+        if let Some(sid) = supplier_id {
+            q.push(" AND p.supplier_id = "); q.push_bind(sid);
+        }
+        if let Some(kw) = keyword {
+            q.push(" AND (p.name LIKE "); q.push_bind(format!("%{}%", kw));
+            q.push(" OR p.product_code LIKE "); q.push_bind(format!("%{}%", kw));
+            q.push(")");
+        }
+        let stats: ProductDashboardStats = q.build_query_as().fetch_one(self.pool).await?;
+        Ok(stats)
     }
 
     /// 根据 ID 获取产品

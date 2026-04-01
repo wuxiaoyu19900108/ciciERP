@@ -695,6 +695,7 @@ pub async fn sync_customer(
         mobile: req.mobile.unwrap_or_default(),
         email: req.email,
         status: Some(1),
+        lead_status: None,
         notes: None,
         source: Some(req.source.unwrap_or_else(|| "integration".to_string())),
     };

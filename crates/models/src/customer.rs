@@ -44,6 +44,7 @@ pub struct Customer {
     pub external_id: Option<String>,
     pub external_platform: Option<String>,
     pub status: i64,
+    pub lead_status: i64,
     pub notes: Option<String>,
     pub last_login_at: Option<DateTime<Utc>>,
     pub last_order_at: Option<DateTime<Utc>>,
@@ -103,9 +104,10 @@ pub struct CreateCustomerRequest {
     pub mobile: String,  // 改为必填
     #[validate(email)]
     pub email: Option<String>,
-    pub status: Option<i64>,  // 添加状态
-    pub notes: Option<String>,  // 添加备注
-    pub source: Option<String>,  // 改为可选，默认为 manual
+    pub status: Option<i64>,
+    pub lead_status: Option<i64>,
+    pub notes: Option<String>,
+    pub source: Option<String>,
 }
 
 /// 更新客户请求（简化版）
@@ -118,6 +120,7 @@ pub struct UpdateCustomerRequest {
     #[validate(email)]
     pub email: Option<String>,
     pub status: Option<i64>,
+    pub lead_status: Option<i64>,
     pub notes: Option<String>,
 }
 
@@ -128,6 +131,7 @@ pub struct CustomerQuery {
     pub page_size: Option<u32>,
     pub level_id: Option<i64>,
     pub status: Option<i64>,
+    pub lead_status: Option<i64>,
     pub keyword: Option<String>,
     pub source: Option<String>,
 }

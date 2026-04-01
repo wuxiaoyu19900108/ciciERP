@@ -48,6 +48,7 @@ pub async fn list_customers(
             query.page_size(),
             query.level_id,
             query.status,
+            query.lead_status,
             query.source.as_deref(),
             query.keyword.as_deref(),
         )

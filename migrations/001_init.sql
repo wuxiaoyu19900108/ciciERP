@@ -260,6 +260,7 @@ CREATE TABLE IF NOT EXISTS customers (
     external_id TEXT,
     external_platform TEXT,
     status INTEGER DEFAULT 1,  -- 1:正常 2:冻结 3:黑名单
+    lead_status INTEGER DEFAULT 1,  -- 1:潜在客户 2:跟进中 3:已成交 4:已流失
     last_login_at TEXT,
     last_order_at TEXT,
     created_at TEXT DEFAULT (datetime('now')),

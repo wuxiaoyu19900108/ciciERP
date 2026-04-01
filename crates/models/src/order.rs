@@ -293,6 +293,10 @@ pub struct OrderListItem {
     pub order_status: i64,
     pub payment_status: i64,
     pub fulfillment_status: i64,
+    pub currency: String,
+    pub platform: String,
     pub item_count: i64,
     pub created_at: DateTime<Utc>,
+    pub profit_amount: Option<f64>,
+    pub profit_rate: Option<f64>,
 }

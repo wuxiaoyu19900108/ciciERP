@@ -126,7 +126,7 @@ use cicierp_db::queries::{
     customers::{CustomerQueries, CreateAddressRequest},
     inventory::InventoryQueries,
     logistics::{LogisticsCompanyQueries, ShipmentQueries},
-    orders::OrderQueries,
+    orders::{OrderQueries, OrderFilterStats},
     product_content::ProductContentQueries,
     product_costs::ProductCostQueries,
     product_prices::ProductPriceQueries,
@@ -161,6 +161,7 @@ pub fn protected_router() -> Router<AppState> {
         .route("/products/:id/edit", get(product_edit_page).post(product_update_handler))
         // 订单
         .route("/orders", get(orders_page))
+        .route("/orders/import/ae", get(order_import_ae_page).post(order_import_ae_handler))
         .route("/orders/new", get(order_new_page).post(order_create_handler))
         .route("/orders/:id", get(order_detail_page))
         .route("/orders/:id/edit", get(order_edit_page).post(order_update_handler))
@@ -708,6 +709,12 @@ pub async fn products_page(
         .await
         .unwrap_or_else(|_| PagedResponse::new(vec![], page, page_size, 0));
 
+    let stats = queries.dashboard_stats(
+        None,
+        query.supplier_id,
+        query.keyword.as_deref(),
+    ).await.unwrap_or_default();
+
     let products = result.items;
     let total = result.pagination.total;
     let total_pages = ((total as f64) / (page_size as f64)).ceil() as u32;
@@ -874,6 +881,26 @@ pub async fn products_page(
     </form>
 </div>
 
+<!-- 看板统计 -->
+<div style="display:flex;gap:16px;margin-bottom:20px;">
+  <div style="flex:1;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;text-align:center;">
+    <div style="font-size:24px;font-weight:700;color:#0284c7;">{}</div>
+    <div style="font-size:12px;color:#64748b;margin-top:4px;">商品数量</div>
+  </div>
+  <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;text-align:center;">
+    <div style="font-size:24px;font-weight:700;color:#16a34a;">{}</div>
+    <div style="font-size:12px;color:#64748b;margin-top:4px;">库存总数</div>
+  </div>
+  <div style="flex:1;background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:16px;text-align:center;">
+    <div style="font-size:24px;font-weight:700;color:#ca8a04;">${:.2}</div>
+    <div style="font-size:12px;color:#64748b;margin-top:4px;">平均销售价 (USD)</div>
+  </div>
+  <div style="flex:1;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;padding:16px;text-align:center;">
+    <div style="font-size:24px;font-weight:700;color:#9333ea;">${:.0}</div>
+    <div style="font-size:12px;color:#64748b;margin-top:4px;">理论库存价值 (USD)</div>
+  </div>
+</div>
+
 <!-- 产品表格 -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="overflow-x-auto">
@@ -903,6 +930,10 @@ pub async fn products_page(
         supplier_options,
         price_min_val,
         price_max_val,
+        stats.total_count,
+        stats.total_stock as i64,
+        stats.avg_price_usd,
+        stats.total_stock_value,
         rows,
         pagination
     );
@@ -2201,6 +2232,7 @@ pub struct OrdersQuery {
     pub page: Option<u32>,
     pub status: Option<i64>,
     pub currency: Option<String>,
+    pub platform: Option<String>,
 }
 
 /// 订单列表页面
@@ -2221,15 +2253,24 @@ pub async fn orders_page(
         query.status,
         None, // payment_status
         None, // customer_id
-        None, // platform
+        query.platform.as_deref(), // platform
         None, // date_from
         None, // date_to
         None, // keyword
         query.currency.as_deref(), // currency
     ).await.unwrap_or_else(|_| PagedResponse::new(vec![], page, page_size, 0));
 
-    // 当前币种
+    // 获取平台统计和当前筛选统计
+    let filter_stats = queries.filter_stats(
+        query.status,
+        query.platform.as_deref(),
+        query.currency.as_deref(),
+    ).await.unwrap_or_default();
+    let platform_counts = queries.platform_counts().await.unwrap_or_default();
+
+    // 当前币种 / 平台
     let current_currency = query.currency.as_deref();
+    let current_platform = query.platform.as_deref();
 
     // 生成币种筛选链接
     let currency_filter = |current: Option<&str>, target: Option<&str>, text: &str| -> String {
@@ -2240,6 +2281,9 @@ pub async fn orders_page(
         }
         if let Some(s) = query.status {
             params.push(format!("status={}", s));
+        }
+        if let Some(p) = current_platform {
+            params.push(format!("platform={}", p));
         }
         let url = if params.is_empty() {
             "/orders".to_string()
@@ -2253,7 +2297,84 @@ pub async fn orders_page(
         }
     };
 
-    // 生成状态筛选链接（保留币种参数）
+    // 生成平台筛选链接
+    let platform_filter = |current: Option<&str>, target: Option<&str>, text: &str, count: i64| -> String {
+        let is_active = current == target;
+        let mut params = Vec::new();
+        if let Some(t) = target {
+            params.push(format!("platform={}", t));
+        }
+        if let Some(s) = query.status {
+            params.push(format!("status={}", s));
+        }
+        if let Some(c) = current_currency {
+            params.push(format!("currency={}", c));
+        }
+        let url = if params.is_empty() {
+            "/orders".to_string()
+        } else {
+            format!("/orders?{}", params.join("&"))
+        };
+        let label = if count > 0 {
+            format!("{} <span style='font-size:11px;opacity:0.7;'>({})</span>", text, count)
+        } else {
+            text.to_string()
+        };
+        if is_active {
+            format!(r#"<a href="{}" class="px-3 py-1 text-sm rounded-full transition-colors bg-purple-100 text-purple-700">{}</a>"#, url, label)
+        } else {
+            format!(r#"<a href="{}" class="px-3 py-1 text-sm rounded-full transition-colors text-gray-600 hover:bg-gray-100">{}</a>"#, url, label)
+        }
+    };
+
+    // 平台数量 map
+    let mut platform_map: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+    let mut total_platform_count = 0i64;
+    for ps in &platform_counts {
+        platform_map.insert(ps.platform.clone(), ps.order_count);
+        total_platform_count += ps.order_count;
+    }
+    let ali_count = platform_map.get("alibaba").or_else(|| platform_map.get("Alibaba")).copied().unwrap_or(0);
+    let ae_count = platform_map.get("aliexpress").or_else(|| platform_map.get("AliExpress")).copied().unwrap_or(0);
+
+    // 统计栏
+    let profit_rate_str = if filter_stats.total_amount > 0.0 {
+        format!("{:.1}%", filter_stats.total_profit / filter_stats.total_amount * 100.0)
+    } else {
+        "-".to_string()
+    };
+    let loss_badge = if filter_stats.loss_count > 0 {
+        format!(r#" <span style="color:#dc2626;font-size:12px;">⚠️{}单亏损</span>"#, filter_stats.loss_count)
+    } else {
+        String::new()
+    };
+    let stats_bar = format!(
+        r#"<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:120px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px;text-align:center;">
+    <div style="font-size:22px;font-weight:700;color:#0284c7;">{}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px;">订单总数</div>
+  </div>
+  <div style="flex:1;min-width:120px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;text-align:center;">
+    <div style="font-size:22px;font-weight:700;color:#16a34a;">{:.2}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px;">总销售额</div>
+  </div>
+  <div style="flex:1;min-width:120px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px;text-align:center;">
+    <div style="font-size:22px;font-weight:700;color:#ca8a04;">{:.2}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px;">总毛利{}</div>
+  </div>
+  <div style="flex:1;min-width:120px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;padding:12px;text-align:center;">
+    <div style="font-size:22px;font-weight:700;color:#9333ea;">{}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px;">平均毛利率</div>
+  </div>
+</div>"#,
+        filter_stats.total_orders,
+        filter_stats.total_amount,
+        filter_stats.total_profit,
+        loss_badge,
+        profit_rate_str
+    );
+
+    // 生成状态筛选链接（保留币种/平台参数）
     let status_filter = |current: Option<i64>, target: Option<i64>, text: &str| -> String {
         let is_active = current == target;
         let mut params = Vec::new();
@@ -2262,6 +2383,9 @@ pub async fn orders_page(
         }
         if let Some(c) = current_currency {
             params.push(format!("currency={}", c));
+        }
+        if let Some(p) = current_platform {
+            params.push(format!("platform={}", p));
         }
         let url = if params.is_empty() {
             "/orders".to_string()
@@ -2309,6 +2433,28 @@ pub async fn orders_page(
             }
         };
 
+        let profit_cell = match order.profit_amount {
+            None => r#"<span class="text-gray-400">-</span>"#.to_string(),
+            Some(p) if p < 0.0 => {
+                let rate_str = order.profit_rate
+                    .map(|r| format!(" ({:.1}%)", r))
+                    .unwrap_or_default();
+                format!(
+                    r#"<span class="text-red-600 font-medium">{:.2}{}</span> <span class="ml-1 px-1 py-0.5 text-xs bg-red-100 text-red-600 rounded">⚠️亏损</span>"#,
+                    p, rate_str
+                )
+            }
+            Some(p) => {
+                let rate_str = order.profit_rate
+                    .map(|r| format!(" ({:.1}%)", r))
+                    .unwrap_or_default();
+                format!(
+                    r#"<span class="text-green-600 font-medium">{:.2}{}</span>"#,
+                    p, rate_str
+                )
+            }
+        };
+
         format!(
             r#"<tr class="hover:bg-gray-50 transition-colors">
                 <td class="px-4 sm:px-6 py-4">
@@ -2321,7 +2467,10 @@ pub async fn orders_page(
                     <span class="text-gray-800">{}</span>
                 </td>
                 <td class="px-4 sm:px-6 py-4 text-right">
-                    <span class="font-medium text-gray-800">${:.2}</span>
+                    <span class="font-medium text-gray-800">{:.2}</span>
+                </td>
+                <td class="px-4 sm:px-6 py-4 text-right">
+                    {}
                 </td>
                 <td class="px-4 sm:px-6 py-4 text-center">
                     <span class="px-2 py-1 text-xs font-medium rounded-full {}">{}</span>
@@ -2331,9 +2480,10 @@ pub async fn orders_page(
                 </td>
             </tr>"#,
             order.order_code,
-            order.fulfillment_status,  // 使用 fulfillment_status 代替 platform
+            order.platform,
             order.customer_name.as_deref().unwrap_or("-"),
             order.total_amount,
+            profit_cell,
             status_class,
             status_text,
             action_buttons
@@ -2341,7 +2491,7 @@ pub async fn orders_page(
     }).collect();
 
     let rows = if rows.is_empty() {
-        r#"<tr><td colspan="6" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📋</p><p>暂无订单数据</p></div></td></tr>"#.to_string()
+        r#"<tr><td colspan="7" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📋</p><p>暂无订单数据</p></div></td></tr>"#.to_string()
     } else {
         rows
     };
@@ -2390,11 +2540,17 @@ pub async fn orders_page(
         <p class="text-gray-600 mt-1 text-sm sm:text-base">以订单为核心，PI/CI 为可下载文件</p>
     </div>
     <div class="flex flex-wrap gap-2">
+        <a href="/orders/import/ae" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+            <span>📥</span><span>导入AE订单</span>
+        </a>
         <a href="/orders/new" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <span>+</span><span>新建订单</span>
         </a>
     </div>
 </div>
+
+<!-- 聚合统计栏 -->
+{}
 
 <!-- 状态说明 -->
 <div class="bg-blue-50 rounded-xl border border-blue-100 p-4 mb-6">
@@ -2402,6 +2558,19 @@ pub async fn orders_page(
         <span class="text-gray-600">状态说明:</span>
         <span class="text-gray-700"><strong>未成交/价格锁定</strong> → 可下载 PI（形式发票）</span>
         <span class="text-gray-700"><strong>已付款/已发货/已收货</strong> → 可下载 CI（商业发票）</span>
+    </div>
+</div>
+
+<!-- 平台筛选 -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 overflow-x-auto">
+    <div class="flex items-center gap-3 sm:gap-4 min-w-max">
+        <span class="text-sm text-gray-500 whitespace-nowrap">平台:</span>
+        <div class="flex items-center gap-2">
+            {}
+            {}
+            {}
+            {}
+        </div>
     </div>
 </div>
 
@@ -2442,6 +2611,7 @@ pub async fn orders_page(
                     <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">来源</th>
                     <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">客户</th>
                     <th class="px-4 sm:px-6 py-4 text-right text-sm font-semibold text-gray-700">金额</th>
+                    <th class="px-4 sm:px-6 py-4 text-right text-sm font-semibold text-gray-700">毛利</th>
                     <th class="px-4 sm:px-6 py-4 text-center text-sm font-semibold text-gray-700">状态</th>
                     <th class="px-4 sm:px-6 py-4 text-center text-sm font-semibold text-gray-700">操作</th>
                 </tr>
@@ -2451,6 +2621,12 @@ pub async fn orders_page(
     </div>
     {}
 </div>"#,
+        stats_bar,
+        platform_filter(current_platform, None, "全部", total_platform_count),
+        platform_filter(current_platform, Some("alibaba"), "Alibaba", ali_count),
+        platform_filter(current_platform, Some("aliexpress"), "AliExpress", ae_count),
+        platform_filter(current_platform, Some("other"), "其他",
+            total_platform_count.saturating_sub(ali_count).saturating_sub(ae_count)),
         currency_filter(current_currency, None, "全部"),
         currency_filter(current_currency, Some("USD"), "USD"),
         currency_filter(current_currency, Some("CNY"), "CNY"),
@@ -2465,6 +2641,159 @@ pub async fn orders_page(
     );
 
     render_layout("订单管理", "orders", Some(user), &content)
+}
+
+/// GET /orders/import/ae — AliExpress 订单导入页面
+pub async fn order_import_ae_page(
+    Extension(auth_user): Extension<AuthUser>,
+    State(_state): State<AppState>,
+) -> Html<String> {
+    let user = get_user_from_extension(&auth_user);
+    let content = r#"<div style="max-width:600px;margin:0 auto;">
+  <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:16px;">导入 AliExpress 订单</h2>
+  <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin-bottom:20px;">
+    <h4 style="margin:0 0 8px;font-weight:600;">Excel 文件格式要求</h4>
+    <p style="margin:0;font-size:14px;color:#555;">列顺序：Date | Order No. | Client Name | Product | Qty | Order Amount (RMB) | Sales Unit Price (RMB) | Cost per Unit (RMB) | Gross Profit (RMB) | Loss Flag | Shipping Status</p>
+  </div>
+  <form method="POST" action="/orders/import/ae" enctype="multipart/form-data" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:24px;">
+    <div style="margin-bottom:16px;">
+      <label style="display:block;margin-bottom:6px;font-weight:600;">选择 Excel 文件 (.xlsx)</label>
+      <input type="file" name="file" accept=".xlsx,.xls" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;">
+    </div>
+    <button type="submit" style="background:#3b82f6;color:#fff;padding:10px 24px;border:none;border-radius:6px;cursor:pointer;font-size:14px;">开始导入</button>
+    <a href="/orders" style="margin-left:12px;color:#64748b;text-decoration:none;">取消</a>
+  </form>
+</div>"#;
+    render_layout("导入AE订单", "orders", Some(user), content)
+}
+
+/// POST /orders/import/ae — 处理 AliExpress 订单文件上传并执行导入
+pub async fn order_import_ae_handler(
+    Extension(auth_user): Extension<AuthUser>,
+    State(_state): State<AppState>,
+    mut multipart: axum::extract::Multipart,
+) -> Html<String> {
+    let user = get_user_from_extension(&auth_user);
+
+    // 读取上传的文件数据
+    let mut file_data: Option<Vec<u8>> = None;
+    while let Ok(Some(field)) = multipart.next_field().await {
+        if field.name() == Some("file") {
+            if let Ok(bytes) = field.bytes().await {
+                file_data = Some(bytes.to_vec());
+                break;
+            }
+        }
+    }
+
+    let file_bytes = match file_data {
+        Some(b) if !b.is_empty() => b,
+        _ => {
+            let content = r#"<div style="color:red;padding:20px;">错误：未收到文件，请重试。<br><a href="/orders/import/ae">返回</a></div>"#;
+            return render_layout("导入失败", "orders", Some(user), content);
+        }
+    };
+
+    // 保存上传文件到项目 data/uploads 目录
+    let uploads_dir = "/home/wxy/data/ciciERP/data/uploads";
+    if let Err(e) = std::fs::create_dir_all(uploads_dir) {
+        let content = format!(r#"<div style="color:red;padding:20px;">创建目录失败: {}<br><a href="/orders/import/ae">返回</a></div>"#, e);
+        return render_layout("导入失败", "orders", Some(user), &content);
+    }
+
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let upload_path = format!("{}/ae_import_{}.xlsx", uploads_dir, ts);
+
+    if let Err(e) = std::fs::write(&upload_path, &file_bytes) {
+        let content = format!(r#"<div style="color:red;padding:20px;">保存文件失败: {}<br><a href="/orders/import/ae">返回</a></div>"#, e);
+        return render_layout("导入失败", "orders", Some(user), &content);
+    }
+
+    // 运行 Python 导入脚本
+    let script_path = "/home/wxy/data/ciciERP/scripts/import_orders_ae.py";
+    let output = std::process::Command::new("python3")
+        .arg(script_path)
+        .arg(&upload_path)
+        .output();
+
+    // 清理上传的临时文件
+    let _ = std::fs::remove_file(&upload_path);
+
+    let content = match output {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stderr = String::from_utf8_lossy(&out.stderr);
+
+            // 尝试从输出中解析 JSON 摘要
+            let summary = stdout
+                .lines()
+                .rev()
+                .find(|l| l.starts_with('{'))
+                .and_then(|l| serde_json::from_str::<serde_json::Value>(l).ok());
+
+            if out.status.success() {
+                let (orders_added, customers_added, skipped) = if let Some(j) = &summary {
+                    (
+                        j["orders_added"].as_i64().unwrap_or(0),
+                        j["customers_added"].as_i64().unwrap_or(0),
+                        j["skipped"].as_i64().unwrap_or(0),
+                    )
+                } else {
+                    (0, 0, 0)
+                };
+                format!(
+                    r#"<div style="max-width:600px;margin:0 auto;">
+  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;margin-bottom:20px;">
+    <h3 style="color:#16a34a;margin:0 0 12px;">✅ 导入成功</h3>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="padding:4px 0;color:#555;">新增订单</td><td style="font-weight:700;">{} 条</td></tr>
+      <tr><td style="padding:4px 0;color:#555;">新增客户</td><td style="font-weight:700;">{} 个</td></tr>
+      <tr><td style="padding:4px 0;color:#555;">跳过记录</td><td style="font-weight:700;">{} 条</td></tr>
+    </table>
+  </div>
+  <details style="margin-bottom:16px;">
+    <summary style="cursor:pointer;color:#64748b;font-size:13px;">查看完整输出</summary>
+    <pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">{}</pre>
+  </details>
+  <a href="/orders" style="background:#3b82f6;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;">查看订单列表</a>
+  <a href="/orders/import/ae" style="margin-left:12px;color:#64748b;text-decoration:none;font-size:14px;">再次导入</a>
+</div>"#,
+                    orders_added, customers_added, skipped,
+                    html_escape(&stdout)
+                )
+            } else {
+                format!(
+                    r#"<div style="max-width:600px;margin:0 auto;">
+  <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:20px;margin-bottom:20px;">
+    <h3 style="color:#dc2626;margin:0 0 12px;">❌ 导入失败</h3>
+    <pre style="font-size:12px;white-space:pre-wrap;margin:0;">{}</pre>
+  </div>
+  <a href="/orders/import/ae" style="background:#3b82f6;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px;">重试</a>
+</div>"#,
+                    html_escape(&format!("STDOUT:\n{}\nSTDERR:\n{}", stdout, stderr))
+                )
+            }
+        }
+        Err(e) => {
+            format!(
+                r#"<div style="color:red;padding:20px;">执行脚本失败: {}<br><a href="/orders/import/ae">返回</a></div>"#,
+                e
+            )
+        }
+    };
+
+    render_layout("导入AE订单结果", "orders", Some(user), &content)
+}
+
+/// 对 HTML 特殊字符转义
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 // ============================================================================
@@ -2677,6 +3006,7 @@ pub struct CustomersQuery {
     page: Option<u32>,
     keyword: Option<String>,
     status: Option<i64>,
+    lead_status: Option<i64>,
 }
 
 /// 客户页面
@@ -2695,6 +3025,7 @@ pub async fn customers_page(
         page_size,
         None,
         query.status,
+        query.lead_status,
         None,
         query.keyword.as_deref(),
     ).await.unwrap_or_else(|_| PagedResponse::new(vec![], page, page_size, 0));
@@ -2705,12 +3036,19 @@ pub async fn customers_page(
             2 => r#"<span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">冻结</span>"#,
             _ => r#"<span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full">黑名单</span>"#,
         };
+        let lead_badge = match c.lead_status {
+            2 => r#"<span class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">跟进中</span>"#,
+            3 => r#"<span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">已成交</span>"#,
+            4 => r#"<span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full">已流失</span>"#,
+            _ => r#"<span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">潜在客户</span>"#,
+        };
         format!(
             r#"<tr class="hover:bg-gray-50">
                 <td class="px-4 sm:px-6 py-4"><span class="font-mono text-sm">{}</span></td>
                 <td class="px-4 sm:px-6 py-4 font-medium">{}</td>
                 <td class="px-4 sm:px-6 py-4">{}</td>
                 <td class="px-4 sm:px-6 py-4">{}</td>
+                <td class="px-4 sm:px-6 py-4 text-center">{}</td>
                 <td class="px-4 sm:px-6 py-4 text-center">{}</td>
                 <td class="px-4 sm:px-6 py-4 text-center">
                     <a href="/customers/{}" class="text-blue-600 hover:text-blue-800 text-sm mr-2">查看</a>
@@ -2722,13 +3060,14 @@ pub async fn customers_page(
             c.mobile.as_deref().unwrap_or("-"),
             c.email.as_deref().unwrap_or("-"),
             status_badge,
+            lead_badge,
             c.id,
             c.id
         )
     }).collect();
 
     let rows = if rows.is_empty() {
-        r#"<tr><td colspan="6" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">👥</p><p>暂无客户数据</p><a href="/customers/new" class="text-blue-500 hover:text-blue-600 mt-2 inline-block">添加第一个客户</a></div></td></tr>"#.to_string()
+        r#"<tr><td colspan="7" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">👥</p><p>暂无客户数据</p><a href="/customers/new" class="text-blue-500 hover:text-blue-600 mt-2 inline-block">添加第一个客户</a></div></td></tr>"#.to_string()
     } else {
         rows
     };
@@ -2739,6 +3078,30 @@ pub async fn customers_page(
     } else {
         String::new()
     };
+
+    let lead_active = |val: Option<i64>| -> &'static str {
+        if query.lead_status == val { "bg-blue-600 text-white" } else { "bg-white text-gray-600 hover:bg-gray-50" }
+    };
+    let lead_tabs = format!(
+        r#"<div class="flex flex-wrap gap-2 mb-6">
+    <a href="/customers{}" class="px-4 py-2 text-sm rounded-lg border border-gray-200 {}">全部</a>
+    <a href="/customers?lead_status=1{}" class="px-4 py-2 text-sm rounded-lg border border-gray-200 {}">潜在客户</a>
+    <a href="/customers?lead_status=2{}" class="px-4 py-2 text-sm rounded-lg border border-gray-200 {}">跟进中</a>
+    <a href="/customers?lead_status=3{}" class="px-4 py-2 text-sm rounded-lg border border-gray-200 {}">已成交</a>
+    <a href="/customers?lead_status=4{}" class="px-4 py-2 text-sm rounded-lg border border-gray-200 {}">已流失</a>
+</div>"#,
+        if query.keyword.is_some() { format!("?keyword={}", query.keyword.as_deref().unwrap_or("")) } else { String::new() },
+        lead_active(None),
+        if query.keyword.is_some() { format!("&keyword={}", query.keyword.as_deref().unwrap_or("")) } else { String::new() },
+        lead_active(Some(1)),
+        if query.keyword.is_some() { format!("&keyword={}", query.keyword.as_deref().unwrap_or("")) } else { String::new() },
+        lead_active(Some(2)),
+        if query.keyword.is_some() { format!("&keyword={}", query.keyword.as_deref().unwrap_or("")) } else { String::new() },
+        lead_active(Some(3)),
+        if query.keyword.is_some() { format!("&keyword={}", query.keyword.as_deref().unwrap_or("")) } else { String::new() },
+        lead_active(Some(4)),
+    );
+    let lead_status_hidden = query.lead_status.map(|ls| format!(r#"<input type="hidden" name="lead_status" value="{}">"#, ls)).unwrap_or_default();
 
     let content = format!(
         r#"<!-- 页面标题 -->
@@ -2753,8 +3116,9 @@ pub async fn customers_page(
 </div>
 
 <!-- 搜索栏 -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
     <form action="/customers" method="GET" class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        {}
         <div class="flex-1">
             <input type="text" name="keyword" value="{}" placeholder="搜索客户名称、手机号..."
                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -2763,10 +3127,12 @@ pub async fn customers_page(
     </form>
 </div>
 
+{}
+
 <!-- 客户表格 -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="w-full min-w-[700px]">
+        <table class="w-full min-w-[800px]">
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
                     <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">客户编码</th>
@@ -2774,6 +3140,7 @@ pub async fn customers_page(
                     <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">手机号</th>
                     <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">邮箱</th>
                     <th class="px-4 sm:px-6 py-4 text-center text-sm font-semibold text-gray-700">状态</th>
+                    <th class="px-4 sm:px-6 py-4 text-center text-sm font-semibold text-gray-700">阶段</th>
                     <th class="px-4 sm:px-6 py-4 text-center text-sm font-semibold text-gray-700">操作</th>
                 </tr>
             </thead>
@@ -2782,7 +3149,9 @@ pub async fn customers_page(
     </div>
     {}
 </div>"#,
+        lead_status_hidden,
         query.keyword.as_deref().unwrap_or(""),
+        lead_tabs,
         rows,
         pagination
     );
@@ -2923,7 +3292,7 @@ pub async fn order_new_page(
 
     // 获取客户列表用于选择
     let customer_queries = CustomerQueries::new(state.db.pool());
-    let customers_result = customer_queries.list(1, 100, None, None, None, None).await
+    let customers_result = customer_queries.list(1, 100, None, None, None, None, None).await
         .unwrap_or_else(|_| PagedResponse::new(vec![], 1, 100, 0));
     let customers = customers_result.items;
 
@@ -3407,6 +3776,7 @@ pub async fn order_create_handler(
                         mobile: mobile.clone(),
                         email: form.customer_email.clone(),
                         status: Some(1),
+                        lead_status: None,
                         notes: Some("Auto-created from order".to_string()),
                         source: Some("order".to_string()),
                     };
@@ -3819,7 +4189,7 @@ pub async fn order_edit_page(
 
     // 获取客户列表
     let customer_queries = CustomerQueries::new(state.db.pool());
-    let customers = customer_queries.list(1, 100, None, None, None, None).await
+    let customers = customer_queries.list(1, 100, None, None, None, None, None).await
         .map(|r| r.items).unwrap_or_default();
 
     // 获取产品列表
@@ -4840,6 +5210,15 @@ pub async fn customer_new_page(
                     <option value="3">黑名单</option>
                 </select>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">销售阶段</label>
+                <select name="lead_status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="1">潜在客户</option>
+                    <option value="2">跟进中</option>
+                    <option value="3">已成交</option>
+                    <option value="4">已流失</option>
+                </select>
+            </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
                 <textarea name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="备注信息..."></textarea>
@@ -4860,9 +5239,10 @@ pub async fn customer_new_page(
 #[derive(Debug, Deserialize)]
 pub struct CustomerForm {
     name: String,
-    mobile: String,  // 改为必填
+    mobile: String,
     email: Option<String>,
     status: Option<i64>,
+    lead_status: Option<i64>,
     notes: Option<String>,
 }
 
@@ -4884,6 +5264,7 @@ pub async fn customer_create_handler(
         mobile: form.mobile.clone(),
         email: form.email.clone(),
         status: form.status,
+        lead_status: form.lead_status,
         notes: form.notes.clone(),
         source: None,
     };
@@ -5155,6 +5536,10 @@ pub async fn customer_edit_page(
     let status_selected_1 = if customer.status == 1 { "selected" } else { "" };
     let status_selected_2 = if customer.status == 2 { "selected" } else { "" };
     let status_selected_3 = if customer.status == 3 { "selected" } else { "" };
+    let lead_selected_1 = if customer.lead_status == 1 { "selected" } else { "" };
+    let lead_selected_2 = if customer.lead_status == 2 { "selected" } else { "" };
+    let lead_selected_3 = if customer.lead_status == 3 { "selected" } else { "" };
+    let lead_selected_4 = if customer.lead_status == 4 { "selected" } else { "" };
 
     let content = format!(
         r#"<!-- 页面标题 -->
@@ -5193,6 +5578,15 @@ pub async fn customer_edit_page(
                     <option value="3" {}>黑名单</option>
                 </select>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">销售阶段</label>
+                <select name="lead_status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="1" {}>潜在客户</option>
+                    <option value="2" {}>跟进中</option>
+                    <option value="3" {}>已成交</option>
+                    <option value="4" {}>已流失</option>
+                </select>
+            </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
                 <textarea name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="备注信息...">{}</textarea>
@@ -5214,6 +5608,10 @@ pub async fn customer_edit_page(
         status_selected_1,
         status_selected_2,
         status_selected_3,
+        lead_selected_1,
+        lead_selected_2,
+        lead_selected_3,
+        lead_selected_4,
         customer.notes.unwrap_or_default(),
         id
     );
@@ -5234,6 +5632,7 @@ pub async fn customer_update_handler(
         mobile: Some(form.mobile.clone()),
         email: form.email.clone(),
         status: form.status,
+        lead_status: form.lead_status,
         notes: form.notes.clone(),
     };
 

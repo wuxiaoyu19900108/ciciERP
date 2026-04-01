@@ -42,6 +42,7 @@ impl<'a> CustomerQueries<'a> {
         page_size: u32,
         level_id: Option<i64>,
         status: Option<i64>,
+        lead_status: Option<i64>,
         source: Option<&str>,
         keyword: Option<&str>,
     ) -> Result<PagedResponse<Customer>> {
@@ -57,6 +58,10 @@ impl<'a> CustomerQueries<'a> {
         if let Some(s) = status {
             count_query.push(" AND status = ");
             count_query.push_bind(s);
+        }
+        if let Some(ls) = lead_status {
+            count_query.push(" AND lead_status = ");
+            count_query.push_bind(ls);
         }
         if let Some(src) = source {
             count_query.push(" AND source = ");
@@ -86,6 +91,10 @@ impl<'a> CustomerQueries<'a> {
         if let Some(s) = status {
             list_query.push(" AND status = ");
             list_query.push_bind(s);
+        }
+        if let Some(ls) = lead_status {
+            list_query.push(" AND lead_status = ");
+            list_query.push_bind(ls);
         }
         if let Some(src) = source {
             list_query.push(" AND source = ");
@@ -143,13 +152,14 @@ impl<'a> CustomerQueries<'a> {
         let customer_code = self.generate_customer_code().await?;
         let source = req.source.clone().unwrap_or_else(|| "manual".to_string());
         let status = req.status.unwrap_or(1);
+        let lead_status = req.lead_status.unwrap_or(1);
 
         let result = sqlx::query(
             r#"
             INSERT INTO customers (
-                customer_code, name, mobile, email, status, notes, source,
+                customer_code, name, mobile, email, status, lead_status, notes, source,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#
         )
         .bind(&customer_code)
@@ -157,6 +167,7 @@ impl<'a> CustomerQueries<'a> {
         .bind(&req.mobile)
         .bind(&req.email)
         .bind(status)
+        .bind(lead_status)
         .bind(&req.notes)
         .bind(&source)
         .bind(&now)
@@ -193,6 +204,10 @@ impl<'a> CustomerQueries<'a> {
         if let Some(s) = req.status {
             updates.push("status = ?");
             bindings.push(s.to_string());
+        }
+        if let Some(ls) = req.lead_status {
+            updates.push("lead_status = ?");
+            bindings.push(ls.to_string());
         }
         if let Some(ref notes) = req.notes {
             updates.push("notes = ?");

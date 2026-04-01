@@ -457,6 +457,15 @@ pub struct PriceQuery {
     pub is_reference: Option<bool>,
 }
 
+/// 产品看板统计数据
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, Default)]
+pub struct ProductDashboardStats {
+    pub total_count: i64,
+    pub total_stock: f64,
+    pub avg_price_usd: f64,
+    pub total_stock_value: f64,
+}
+
 /// 产品价格统计（用于列表显示）
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct ProductPriceSummary {
