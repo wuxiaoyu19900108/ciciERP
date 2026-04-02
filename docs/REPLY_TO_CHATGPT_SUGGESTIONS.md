@@ -111,3 +111,126 @@ Step 5
 你的建议**整体战略方向是对的**（打通数据链路、利润准确、可运营），但**技术方案是按照从零设计一个简单系统**来写的，没有考虑到现有系统已经完成的工作和更成熟的数据模型。
 
 **正确做法是：在现有架构上补充真实缺口（利润快照、跟进日期、日志、导出），而不是推倒重建。** 推倒重建会丢失 169 条经过人工对账验证的真实订单数据，以及已经实现的多平台价格/费率管理能力。
+
+---
+
+## 五、ciciERP 远期规划：多平台销售中台
+
+### 5.1 系统定位
+
+ciciERP 的最终目标不是一个孤立的 ERP，而是**多个前端销售平台的统一后台中台**。
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   前端销售平台层                          │
+├──────────┬──────────┬──────────┬──────────┬─────────────┤
+│cicishop  │AliExpress│ Alibaba  │  Amazon  │  其他平台   │
+│(独立站)  │(速卖通)  │(1688/国际)│         │  (未来扩展) │
+└────┬─────┴────┬─────┴────┬─────┴────┬─────┴──────┬──────┘
+     │          │          │          │            │
+     └──────────┴──────────┴──────────┴────────────┘
+                           │
+                  Integration API Layer
+                  /api/v1/integration/*
+                           │
+┌──────────────────────────▼──────────────────────────────┐
+│                      ciciERP 核心                        │
+│  产品中心 │ 订单中心 │ 库存中心 │ 客户中心 │ 财务中心   │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 5.2 已完成的对接基础
+
+当前 ciciERP 已实现 Integration API 层（`/api/v1/integration`），支持外部平台接入：
+
+| 能力 | 状态 |
+|------|------|
+| API Key 鉴权（`api_clients` 表） | ✅ 已实现 |
+| Webhook 事件推送（`webhook_subscriptions` 表） | ✅ 已实现 |
+| 产品数据同步接口（`GET /integration/products`） | ✅ 已实现 |
+| 增量产品更新接口（`GET /integration/products/updated`） | ✅ 已实现 |
+| 订单回写接口（`POST /integration/orders`） | ✅ 已实现 |
+| 细粒度权限控制（`products:read`、`orders:write` 等） | ✅ 已实现 |
+| cicishop 独立站已对接 | ✅ 已对接 |
+
+### 5.3 各平台接入规划
+
+#### cicishop（独立站）— 已对接
+- 产品数据从 ERP 同步到独立站
+- 独立站订单回写到 ERP
+- 汇率、库存实时同步
+
+#### AliExpress（速卖通）— 部分接入
+- 现状：订单通过 Excel 手动导入 ERP
+- 目标：通过 AliExpress Open Platform API 自动同步订单
+- 需要：AliExpress 平台 AppKey，实现 OAuth + 订单 Webhook
+
+#### Alibaba（国际站）— 部分接入
+- 现状：订单通过 Excel 手动导入 ERP
+- 目标：通过 Alibaba Open API 自动同步订单
+- 需要：Alibaba 平台开发者账号，实现订单自动同步
+
+#### Amazon — 规划中
+- 目标：通过 Amazon SP-API 同步订单和库存
+- 涉及：FBA 库存、多仓库管理
+
+### 5.4 数据流向设计
+
+```
+平台订单产生
+     │
+     ▼
+Integration API 接收（POST /integration/orders）
+     │
+     ├── 写入 orders + order_items（含成本快照、利润快照）
+     ├── 扣减库存（stock_movements）
+     └── 触发 Webhook 通知其他系统
+
+产品/价格更新
+     │
+     ▼
+ERP 内部修改产品成本/售价
+     │
+     ├── 写入 product_costs / product_prices（历史记录保留）
+     ├── 触发 Webhook → 各平台同步最新价格
+     └── 历史订单利润快照不受影响（cost_snapshot 已固化）
+```
+
+### 5.5 多平台核心挑战
+
+| 挑战 | 解决方案 |
+|------|---------|
+| 各平台币种不同（AE=RMB，ALI=USD，Amazon=USD） | `orders.currency` + `exchange_rates` 表统一转换 |
+| 各平台费率不同（AE≈5%，ALI≈3%，Amazon≈15%） | `product_prices.platform_fee_rate` 按平台分别存储 |
+| 各平台订单格式不同 | Integration API 层做格式标准化，内部统一存储 |
+| 库存跨平台超卖风险 | 统一库存中心，各平台实时查询可用库存 |
+| 产品在各平台 ID 不同 | `products.product_code` 作为内部唯一键，`platform_order_id` 映射外部 ID |
+
+### 5.6 远期功能路线图
+
+```
+阶段一（当前）
+  ✅ ERP 核心数据正确（订单/产品/采购/客户）
+  ✅ cicishop 独立站对接
+  ✅ 多平台费率支持
+  ✅ Integration API 框架
+
+阶段二（近期）
+  □ 订单利润快照字段（gross_profit / net_profit 存储）
+  □ Dashboard 多平台销售对比
+  □ Excel 导出（订单/产品）
+  □ 客户跟进日期 + 今日待跟进提醒
+  □ 操作日志表
+
+阶段三（中期）
+  □ AliExpress Open API 自动同步订单
+  □ Alibaba Open API 自动同步订单
+  □ 库存自动联动（下单扣减、入库增加）
+  □ 多平台库存预警统一视图
+
+阶段四（远期）
+  □ Amazon SP-API 接入
+  □ AI 管家（飞书 Bot + 数据查询）
+  □ 数据分析看板（多平台对比、趋势分析）
+  □ 自动补货建议（基于销售速度 + 库存水位）
+```
