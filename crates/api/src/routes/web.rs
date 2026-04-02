@@ -3292,13 +3292,13 @@ pub async fn order_new_page(
 
     // 获取客户列表用于选择
     let customer_queries = CustomerQueries::new(state.db.pool());
-    let customers_result = customer_queries.list(1, 100, None, None, None, None, None).await
-        .unwrap_or_else(|_| PagedResponse::new(vec![], 1, 100, 0));
+    let customers_result = customer_queries.list(1, 500, None, None, None, None, None).await
+        .unwrap_or_else(|_| PagedResponse::new(vec![], 1, 500, 0));
     let customers = customers_result.items;
 
-    // 获取产品列表用于选择
+    // 获取产品列表用于选择（全量，避免截断）
     let product_queries = ProductQueries::new(state.db.pool());
-    let products = product_queries.list(1, 100, None, None, None, None, None, None, None).await
+    let products = product_queries.list(1, 500, None, None, None, None, None, None, None).await
         .map(|r| r.items).unwrap_or_default();
 
     // 生成客户选项
@@ -3307,11 +3307,11 @@ pub async fn order_new_page(
             c.id, c.name, c.email.as_deref().unwrap_or(""), c.mobile.as_deref().unwrap_or(""), c.name)
     }).collect();
 
-    // 生成产品选项（使用 sale_price_cny 字段）
+    // 生成产品选项（显示产品编码方便搜索）
     let product_options: String = products.iter().map(|p| {
         let price = p.sale_price_cny.unwrap_or(0.0);
-        format!(r#"<option value="{}" data-name="{}" data-price="{}">{}</option>"#,
-            p.id, p.name, price, p.name)
+        format!(r#"<option value="{}" data-name="{}" data-price="{}">[{}] {}</option>"#,
+            p.id, p.name, price, p.product_code, p.name)
     }).collect();
 
     let content = format!(
@@ -3335,6 +3335,7 @@ pub async fn order_new_page(
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">选择已有客户</label>
+                        <input type="text" id="customerSearch" class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm mb-1 focus:ring-2 focus:ring-blue-300" placeholder="🔍 输入姓名搜索客户..." oninput="filterCustomers(this.value)">
                         <select id="customerSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="fillCustomerInfo()">
                             <option value="">-- 手动输入客户信息 --</option>
                             {}
@@ -3404,6 +3405,7 @@ pub async fn order_new_page(
                     <div class="item-row grid grid-cols-12 gap-2 mb-2 items-end">
                         <div class="col-span-5">
                             <label class="block text-sm font-medium text-gray-700 mb-1">商品</label>
+                            <input type="text" class="product-search w-full px-3 py-1 border border-gray-200 rounded-lg text-sm mb-1 focus:ring-2 focus:ring-blue-300" placeholder="🔍 编码或名称搜索..." oninput="filterProductSelect(this)">
                             <select name="item_product[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateItemPrice(this)">
                                 <option value="">-- 选择商品 --</option>
                                 {}
@@ -3638,7 +3640,12 @@ function addItem() {{
     const container = document.getElementById('itemsContainer');
     const row = container.querySelector('.item-row').cloneNode(true);
     // 清空值
-    row.querySelector('select').value = '';
+    const searchInput = row.querySelector('.product-search');
+    if (searchInput) {{ searchInput.value = ''; }}
+    const sel = row.querySelector('select');
+    sel.value = '';
+    // 恢复所有被隐藏的选项（搜索重置）
+    for (let opt of sel.options) opt.hidden = false;
     row.querySelector('input[name="item_quantity[]"]').value = '1';
     row.querySelector('input[name="item_price[]"]').value = '';
     row.querySelector('input[name="item_subtotal[]"]').value = '';
@@ -3706,6 +3713,24 @@ async function showHistoryPrice(btn) {{
     }} catch (e) {{
         console.error('获取历史价格失败:', e);
         alert('获取历史价格失败');
+    }}
+}}
+
+// 客户搜索过滤
+function filterCustomers(q) {{
+    const sel = document.getElementById('customerSelect');
+    const lower = q.toLowerCase().trim();
+    for (let i = 1; i < sel.options.length; i++) {{
+        sel.options[i].hidden = lower.length > 0 && !sel.options[i].text.toLowerCase().includes(lower);
+    }}
+}}
+
+// 商品搜索过滤（每行独立）
+function filterProductSelect(input) {{
+    const q = input.value.toLowerCase().trim();
+    const select = input.nextElementSibling;
+    for (let i = 1; i < select.options.length; i++) {{
+        select.options[i].hidden = q.length > 0 && !select.options[i].text.toLowerCase().includes(q);
     }}
 }}
 </script>"#,
@@ -4189,12 +4214,12 @@ pub async fn order_edit_page(
 
     // 获取客户列表
     let customer_queries = CustomerQueries::new(state.db.pool());
-    let customers = customer_queries.list(1, 100, None, None, None, None, None).await
+    let customers = customer_queries.list(1, 500, None, None, None, None, None).await
         .map(|r| r.items).unwrap_or_default();
 
-    // 获取产品列表
+    // 获取产品列表（全量）
     let product_queries = ProductQueries::new(state.db.pool());
-    let products = product_queries.list(1, 100, None, None, None, None, None, None, None).await
+    let products = product_queries.list(1, 500, None, None, None, None, None, None, None).await
         .map(|r| r.items).unwrap_or_default();
 
     let customer_options: String = customers.iter().map(|c| {
@@ -4206,8 +4231,8 @@ pub async fn order_edit_page(
 
     let product_options: String = products.iter().map(|p| {
         let price = p.sale_price_cny.unwrap_or(0.0);
-        format!(r#"<option value="{}" data-name="{}" data-price="{}">{}</option>"#,
-            p.id, p.name, price, p.name)
+        format!(r#"<option value="{}" data-name="{}" data-price="{}"> [{}] {}</option>"#,
+            p.id, p.name, price, p.product_code, p.name)
     }).collect();
 
     // 商品行
@@ -4215,6 +4240,7 @@ pub async fn order_edit_page(
         format!(r#"<div class="item-row grid grid-cols-12 gap-2 mb-2 items-end">
             <div class="col-span-5">
                 <label class="block text-sm font-medium text-gray-700 mb-1">商品</label>
+                <input type="text" class="product-search w-full px-3 py-1 border border-gray-200 rounded-lg text-sm mb-1 focus:ring-2 focus:ring-blue-300" placeholder="🔍 编码或名称搜索..." oninput="filterProductSelect(this)">
                 <select name="item_product[]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" onchange="updateItemPrice(this)">
                     <option value="">-- 选择商品 --</option>
                     {}
@@ -4266,6 +4292,7 @@ pub async fn order_edit_page(
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">选择已有客户</label>
+                        <input type="text" id="customerSearch" class="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm mb-1 focus:ring-2 focus:ring-blue-300" placeholder="🔍 输入姓名搜索客户..." oninput="filterCustomers(this.value)">
                         <select id="customerSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="fillCustomerInfo()">
                             <option value="">-- 手动输入客户信息 --</option>
                             {}
@@ -4405,7 +4432,11 @@ function updateItemPrice(select) {{
 function addItem() {{
     const container = document.getElementById('itemsContainer');
     const row = container.querySelector('.item-row').cloneNode(true);
-    row.querySelector('select').value = '';
+    const searchInput = row.querySelector('.product-search');
+    if (searchInput) {{ searchInput.value = ''; }}
+    const sel = row.querySelector('select');
+    sel.value = '';
+    for (let opt of sel.options) opt.hidden = false;
     row.querySelector('input[name="item_quantity[]"]').value = '1';
     row.querySelector('input[name="item_price[]"]').value = '';
     row.querySelector('input[name="item_subtotal[]"]').value = '';
@@ -4440,6 +4471,22 @@ function calculateTotal() {{
 }}
 
 calculateTotal();
+
+function filterCustomers(q) {{
+    const sel = document.getElementById('customerSelect');
+    const lower = q.toLowerCase().trim();
+    for (let i = 1; i < sel.options.length; i++) {{
+        sel.options[i].hidden = lower.length > 0 && !sel.options[i].text.toLowerCase().includes(lower);
+    }}
+}}
+
+function filterProductSelect(input) {{
+    const q = input.value.toLowerCase().trim();
+    const select = input.nextElementSibling;
+    for (let i = 1; i < select.options.length; i++) {{
+        select.options[i].hidden = q.length > 0 && !select.options[i].text.toLowerCase().includes(q);
+    }}
+}}
 </script>"#,
         order.order.id,
         order.order.order_code,
