@@ -3,7 +3,7 @@
 use axum::{
     extract::{Path, Query, State},
     response::{IntoResponse, Response},
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
     Json, Router,
 };
 use rust_xlsxwriter::{Format, Workbook, XlsxError};
@@ -24,6 +24,7 @@ pub fn router() -> Router<AppState> {
         .route("/orders/export", get(export_orders))
         .route("/orders/:id", get(get_order))
         .route("/orders/:id", put(update_order))
+        .route("/orders/:id", delete(delete_order))
         .route("/orders/:id/status", post(update_order_status))
         .route("/orders/:id/ship", post(ship_order))
         .route("/orders/:id/cancel", post(cancel_order))
@@ -238,6 +239,26 @@ pub async fn update_order_status(
 
     info!("Order status updated: id={}, status={}", id, req.status);
     Ok(Json(ApiResponse::success(order)))
+}
+
+/// @api DELETE /api/v1/orders/:id
+/// @desc 删除订单（软删除）
+/// @param id: number (订单ID)
+/// @response 200 {"code": 200, "message": "删除成功"}
+/// @response 404 订单不存在
+/// @example curl -X DELETE "http://localhost:3000/api/v1/orders/1"
+#[instrument(skip(state))]
+pub async fn delete_order(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> AppResult<Json<ApiResponse<()>>> {
+    info!("Deleting order: id={}", id);
+    let queries = OrderQueries::new(state.db.pool());
+    let deleted = queries.delete(id).await?;
+    if !deleted {
+        return Err(AppError::NotFound);
+    }
+    Ok(Json(ApiResponse::success_message("删除成功")))
 }
 
 /// @api GET /api/v1/orders/export

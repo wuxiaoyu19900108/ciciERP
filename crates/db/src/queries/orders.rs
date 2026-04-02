@@ -796,4 +796,16 @@ impl<'a> OrderQueries<'a> {
             platform_distribution,
         })
     }
+
+    pub async fn delete(&self, id: i64) -> Result<bool> {
+        let now = chrono::Utc::now().to_rfc3339();
+        let result = sqlx::query(
+            "UPDATE orders SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL"
+        )
+        .bind(&now)
+        .bind(id)
+        .execute(self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
 }

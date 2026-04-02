@@ -339,6 +339,22 @@ fn render_layout(title: &str, active_menu: &str, user: Option<UserInfo>, content
             toast.classList.remove('hidden');
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }}
+
+        async function deleteItem(apiUrl, confirmMsg, reloadOnSuccess) {{
+            if (!confirm(confirmMsg || '确认删除？此操作不可恢复。')) return;
+            try {{
+                const resp = await fetch(apiUrl, {{ method: 'DELETE' }});
+                const data = await resp.json().catch(() => ({{}}));
+                if (resp.ok) {{
+                    showToast(data.message || '删除成功', 'success');
+                    setTimeout(() => reloadOnSuccess ? location.reload() : location.reload(), 800);
+                }} else {{
+                    showToast(data.message || '删除失败', 'error');
+                }}
+            }} catch(e) {{
+                showToast('网络错误，请重试', 'error');
+            }}
+        }}
     </script>
 </body>
 </html>"#,
@@ -862,6 +878,7 @@ pub async fn products_page(
                     <div class="flex items-center justify-center gap-1">
                         <a href="/products/{}" class="px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded">查看</a>
                         <a href="/products/{}/edit" class="px-2 py-1 text-xs text-green-600 hover:text-green-800 hover:bg-green-50 rounded">编辑</a>
+                        <button onclick="deleteItem('/api/v1/products/{}', '确认删除产品「{}」？', true)" class="px-2 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded">删除</button>
                     </div>
                 </td>
             </tr>"#,
@@ -879,7 +896,9 @@ pub async fn products_page(
             p.stock_quantity.unwrap_or(0),
             status_badge,
             p.id,
-            p.id
+            p.id,
+            p.id,
+            p.name
         ));
     }
 
@@ -2590,6 +2609,7 @@ pub async fn orders_page(
         let status_class = crate::templates::orders::order_status_class(order.order_status);
 
         // 根据状态生成操作按钮
+        let delete_btn = format!(r#"<button onclick="deleteItem('/api/v1/orders/{}', '确认删除订单「{}」？', true)" class="text-red-600 hover:text-red-800 text-sm ml-2">删除</button>"#, order.id, order.order_code);
         let action_buttons = match order.order_status {
             1 => {
                 // 未成交 - 可编辑、可下载 PI
@@ -2597,24 +2617,27 @@ pub async fn orders_page(
                     <a href="/orders/{}" class="text-blue-600 hover:text-blue-800 text-sm">详情</a>
                     <a href="/orders/{}/edit" class="text-orange-600 hover:text-orange-800 text-sm ml-2">编辑</a>
                     <a href="/api/v1/orders/{}/download-pi" class="text-green-600 hover:text-green-800 text-sm ml-2" target="_blank">下载PI</a>
-                "#, order.id, order.id, order.id)
+                    {}
+                "#, order.id, order.id, order.id, delete_btn)
             }
             2 => {
                 // 价格锁定 - 可下载 PI
                 format!(r#"
                     <a href="/orders/{}" class="text-blue-600 hover:text-blue-800 text-sm">详情</a>
                     <a href="/api/v1/orders/{}/download-pi" class="text-green-600 hover:text-green-800 text-sm ml-2" target="_blank">下载PI</a>
-                "#, order.id, order.id)
+                    {}
+                "#, order.id, order.id, delete_btn)
             }
             3 | 4 | 5 => {
                 // 已付款/已发货/已收货 - 可下载 CI
                 format!(r#"
                     <a href="/orders/{}" class="text-blue-600 hover:text-blue-800 text-sm">详情</a>
                     <a href="/api/v1/orders/{}/download-ci" class="text-green-600 hover:text-green-800 text-sm ml-2" target="_blank">下载CI</a>
-                "#, order.id, order.id)
+                    {}
+                "#, order.id, order.id, delete_btn)
             }
             _ => {
-                format!(r#"<a href="/orders/{}" class="text-blue-600 hover:text-blue-800 text-sm">详情</a>"#, order.id)
+                format!(r#"<a href="/orders/{}" class="text-blue-600 hover:text-blue-800 text-sm">详情</a>{}"#, order.id, delete_btn)
             }
         };
 
@@ -3240,7 +3263,8 @@ pub async fn customers_page(
                 <td class="px-4 sm:px-6 py-4 text-center">{}</td>
                 <td class="px-4 sm:px-6 py-4 text-center">
                     <a href="/customers/{}" class="text-blue-600 hover:text-blue-800 text-sm mr-2">查看</a>
-                    <a href="/customers/{}/edit" class="text-green-600 hover:text-green-800 text-sm">编辑</a>
+                    <a href="/customers/{}/edit" class="text-green-600 hover:text-green-800 text-sm mr-2">编辑</a>
+                    <button onclick="deleteItem('/api/v1/customers/{}', '确认删除客户「{}」？', true)" class="text-red-600 hover:text-red-800 text-sm">删除</button>
                 </td>
             </tr>"#,
             c.customer_code,
@@ -3250,7 +3274,9 @@ pub async fn customers_page(
             status_badge,
             lead_badge,
             c.id,
-            c.id
+            c.id,
+            c.id,
+            c.name
         )
     }).collect();
 
@@ -3391,7 +3417,8 @@ pub async fn suppliers_page(
                 <td class="px-4 sm:px-6 py-4 text-center">{}</td>
                 <td class="px-4 sm:px-6 py-4 text-center">
                     <a href="/suppliers/{}" class="text-blue-600 hover:text-blue-800 text-sm mr-2">查看</a>
-                    <a href="/suppliers/{}/edit" class="text-green-600 hover:text-green-800 text-sm">编辑</a>
+                    <a href="/suppliers/{}/edit" class="text-green-600 hover:text-green-800 text-sm mr-2">编辑</a>
+                    <button onclick="deleteItem('/api/v1/suppliers/{}', '确认删除供应商「{}」？', true)" class="text-red-600 hover:text-red-800 text-sm">删除</button>
                 </td>
             </tr>"#,
             s.supplier_code,
@@ -3400,7 +3427,9 @@ pub async fn suppliers_page(
             s.contact_phone.as_deref().unwrap_or("-"),
             status_badge,
             s.id,
-            s.id
+            s.id,
+            s.id,
+            s.name
         )
     }).collect();
 
@@ -6647,7 +6676,8 @@ pub async fn purchase_page(
                 <td class="px-4 py-3 text-right">¥{:.2}</td>
                 <td class="px-4 py-3 text-center">{}</td>
                 <td class="px-4 py-3 text-center">
-                    <a href="/purchase/{}" class="text-blue-600 hover:text-blue-800 text-sm">查看</a>
+                    <a href="/purchase/{}" class="text-blue-600 hover:text-blue-800 text-sm mr-2">查看</a>
+                    <button onclick="deleteItem('/api/v1/purchases/{}', '确认删除采购单「{}」？', true)" class="text-red-600 hover:text-red-800 text-sm">删除</button>
                 </td>
             </tr>"#,
             p.order_code,
@@ -6655,7 +6685,9 @@ pub async fn purchase_page(
             p.item_count,
             p.total_amount,
             status_badge,
-            p.id
+            p.id,
+            p.id,
+            p.order_code
         )
     }).collect();
 
