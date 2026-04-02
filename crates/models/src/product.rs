@@ -237,6 +237,8 @@ pub struct ProductListItem {
     // 计算字段（platform_fee_rate 来自 product_prices，仅用于利润计算，不单独展示）
     pub profit_usd: Option<f64>,      // 利润（美金）
     pub profit_margin: Option<f64>,   // 利润比例
+    // 各平台费率汇总（如 "Ali:3.0% | AE:5.0% | Web:2.5%"）
+    pub platform_fees: Option<String>,
     //
     pub status: i64,
     pub stock_quantity: Option<i64>,

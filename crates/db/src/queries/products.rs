@@ -105,7 +105,18 @@ impl<'a> ProductQueries<'a> {
                     WHEN pp.sale_price_usd IS NOT NULL AND pp.sale_price_usd > 0
                     THEN ((pp.sale_price_usd - COALESCE(pc.cost_usd, 0) - (pp.sale_price_usd * COALESCE(pp.platform_fee_rate, 0))) / pp.sale_price_usd) * 100
                     ELSE NULL
-                END as profit_margin
+                END as profit_margin,
+                (SELECT GROUP_CONCAT(
+                    CASE platform
+                        WHEN 'alibaba' THEN 'Ali'
+                        WHEN 'aliexpress' THEN 'AE'
+                        WHEN 'website' THEN 'Web'
+                        ELSE platform
+                    END || ':' || ROUND(platform_fee_rate*100,1) || '%',
+                    ' | ')
+                 FROM product_prices
+                 WHERE product_id=p.id AND is_reference=1
+                 ORDER BY platform) as platform_fees
             FROM products p
             LEFT JOIN product_skus ps ON ps.product_id = p.id
             LEFT JOIN categories c ON c.id = p.category_id

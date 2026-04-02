@@ -749,6 +749,7 @@ pub async fn products_page(
 
         let model_display = p.model.as_deref().unwrap_or("-");
         let supplier_display = p.supplier_name.as_deref().unwrap_or("-");
+        let platform_fees_display = p.platform_fees.as_deref().unwrap_or("-");
 
         rows.push_str(&format!(
             r#"<tr class="hover:bg-gray-50 transition-colors">
@@ -761,6 +762,7 @@ pub async fn products_page(
                 <td class="px-2 py-3 text-right"><span class="text-xs font-medium text-gray-800">{}</span></td>
                 <td class="px-2 py-3 text-right"><span class="text-xs">{}</span></td>
                 <td class="px-2 py-3 text-right"><span class="text-xs">{}</span></td>
+                <td class="px-2 py-3"><span class="text-xs text-gray-500 whitespace-nowrap">{}</span></td>
                 <td class="px-2 py-3 text-right"><span class="{} text-xs">{}</span></td>
                 <td class="px-2 py-3 text-center">{}</td>
                 <td class="px-2 py-3 text-center">
@@ -779,6 +781,7 @@ pub async fn products_page(
             price_usd_display,
             profit_usd_display,
             profit_margin_display,
+            platform_fees_display,
             stock_class,
             p.stock_quantity.unwrap_or(0),
             status_badge,
@@ -788,7 +791,7 @@ pub async fn products_page(
     }
 
     if rows.is_empty() {
-        rows = r#"<tr><td colspan="12" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📦</p><p>暂无产品数据</p></div></td></tr>"#.to_string();
+        rows = r#"<tr><td colspan="13" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📦</p><p>暂无产品数据</p></div></td></tr>"#.to_string();
     }
 
     let pagination = if total_pages > 1 {
@@ -916,6 +919,7 @@ pub async fn products_page(
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">美金卖价</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">利润($)</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">利润率</th>
+                    <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700">平台费率</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">库存</th>
                     <th class="px-2 py-3 text-center text-xs font-semibold text-gray-700">状态</th>
                     <th class="px-2 py-3 text-center text-xs font-semibold text-gray-700">操作</th>
@@ -1193,14 +1197,29 @@ pub async fn product_new_page(
                            placeholder="15">
                 </div>
 
-                <!-- 平台费率 -->
-                <div>
-                    <label for="platform_fee_rate" class="block text-sm font-medium text-gray-700 mb-2">
-                        平台费率 (%)
-                    </label>
-                    <input type="number" id="platform_fee_rate" name="platform_fee_rate" step="0.01" min="0" value="2.5"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="2.5">
+                <!-- 各平台费率 -->
+                <div class="md:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">各平台费率 (%)</label>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">Alibaba</label>
+                            <input type="number" id="fee_rate_alibaba" name="fee_rate_alibaba" step="0.01" min="0" value="3.0"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                   placeholder="3.0">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">AliExpress</label>
+                            <input type="number" id="fee_rate_aliexpress" name="fee_rate_aliexpress" step="0.01" min="0" value="5.0"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                   placeholder="5.0">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">网站/其他</label>
+                            <input type="number" id="fee_rate_website" name="fee_rate_website" step="0.01" min="0" value="2.5"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                   placeholder="2.5">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 售价备注 -->
@@ -1272,7 +1291,13 @@ pub struct ProductForm {
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     profit_margin: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    platform_fee_rate: Option<f64>,
+    fee_rate_alibaba: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    fee_rate_aliexpress: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    fee_rate_website: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    platform_fee_rate: Option<f64>,  // backward-compat
     price_notes: Option<String>,
 }
 
@@ -1338,25 +1363,71 @@ pub async fn product_create_handler(
                 }
             }
 
-            // 如果有参考售价，创建价格记录
+            // 如果有参考售价，创建价格记录（website、alibaba、aliexpress 三个平台）
             if let Some(sale_price_cny) = form.sale_price_cny {
                 if sale_price_cny > 0.0 {
                     let price_queries = ProductPriceQueries::new(state.db.pool());
+                    let exchange_rate = form.price_exchange_rate.unwrap_or(7.2);
+                    let profit_margin = form.profit_margin.map(|v| v / 100.0).or(Some(0.15));
+
+                    // Website fee rate: use fee_rate_website, fall back to platform_fee_rate, default 2.5%
+                    let website_fee = form.fee_rate_website
+                        .or(form.platform_fee_rate)
+                        .map(|v| v / 100.0)
+                        .unwrap_or(0.025);
                     let price_req = CreateProductPriceRequest {
                         product_id: product.id,
-                        platform: form.price_platform.clone().or(Some("website".to_string())),
+                        platform: Some("website".to_string()),
                         sale_price_cny,
                         sale_price_usd: form.sale_price_usd,
-                        exchange_rate: form.price_exchange_rate.or(Some(7.2)),
-                        profit_margin: form.profit_margin.map(|v| v / 100.0).or(Some(0.15)),
-                        platform_fee_rate: form.platform_fee_rate.map(|v| v / 100.0).or(Some(0.025)),
+                        exchange_rate: Some(exchange_rate),
+                        profit_margin,
+                        platform_fee_rate: Some(website_fee),
                         platform_fee: None,
                         is_reference: Some(true),
                         effective_date: None,
                         notes: form.price_notes.clone(),
                     };
                     if let Err(e) = price_queries.create(&price_req).await {
-                        info!("Failed to create reference price: {}", e);
+                        info!("Failed to create website price: {}", e);
+                    }
+
+                    // Alibaba fee rate (default 3%)
+                    let ali_fee = form.fee_rate_alibaba.map(|v| v / 100.0).unwrap_or(0.03);
+                    let ali_req = CreateProductPriceRequest {
+                        product_id: product.id,
+                        platform: Some("alibaba".to_string()),
+                        sale_price_cny,
+                        sale_price_usd: form.sale_price_usd,
+                        exchange_rate: Some(exchange_rate),
+                        profit_margin,
+                        platform_fee_rate: Some(ali_fee),
+                        platform_fee: None,
+                        is_reference: Some(true),
+                        effective_date: None,
+                        notes: None,
+                    };
+                    if let Err(e) = price_queries.create(&ali_req).await {
+                        info!("Failed to create alibaba price: {}", e);
+                    }
+
+                    // AliExpress fee rate (default 5%)
+                    let ae_fee = form.fee_rate_aliexpress.map(|v| v / 100.0).unwrap_or(0.05);
+                    let ae_req = CreateProductPriceRequest {
+                        product_id: product.id,
+                        platform: Some("aliexpress".to_string()),
+                        sale_price_cny,
+                        sale_price_usd: form.sale_price_usd,
+                        exchange_rate: Some(exchange_rate),
+                        profit_margin,
+                        platform_fee_rate: Some(ae_fee),
+                        platform_fee: None,
+                        is_reference: Some(true),
+                        effective_date: None,
+                        notes: None,
+                    };
+                    if let Err(e) = price_queries.create(&ae_req).await {
+                        info!("Failed to create aliexpress price: {}", e);
                     }
                 }
             }
@@ -1772,9 +1843,11 @@ pub async fn product_edit_page(
     let cost_queries = ProductCostQueries::new(state.db.pool());
     let product_cost = cost_queries.get_reference_cost(id).await.unwrap_or(None);
 
-    // 获取价格信息
+    // 获取价格信息（三个平台）
     let price_queries = ProductPriceQueries::new(state.db.pool());
     let product_price = price_queries.get_reference_price(id, "website").await.unwrap_or(None);
+    let price_alibaba = price_queries.get_reference_price(id, "alibaba").await.unwrap_or(None);
+    let price_aliexpress = price_queries.get_reference_price(id, "aliexpress").await.unwrap_or(None);
 
     // 状态选中
     let status_options = format!(
@@ -1997,14 +2070,29 @@ pub async fn product_edit_page(
                            placeholder="15">
                 </div>
 
-                <!-- 平台费率 -->
-                <div>
-                    <label for="platform_fee_rate" class="block text-sm font-medium text-gray-700 mb-2">
-                        平台费率 (%)
-                    </label>
-                    <input type="number" id="platform_fee_rate" name="platform_fee_rate" step="0.01" min="0" value="{}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="2.5">
+                <!-- 各平台费率 -->
+                <div class="md:col-span-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">各平台费率 (%)</label>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">Alibaba</label>
+                            <input type="number" id="fee_rate_alibaba" name="fee_rate_alibaba" step="0.01" min="0" value="{}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                   placeholder="3.0">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">AliExpress</label>
+                            <input type="number" id="fee_rate_aliexpress" name="fee_rate_aliexpress" step="0.01" min="0" value="{}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                   placeholder="5.0">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">网站/其他</label>
+                            <input type="number" id="fee_rate_website" name="fee_rate_website" step="0.01" min="0" value="{}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                   placeholder="2.5">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 售价备注 -->
@@ -2053,6 +2141,9 @@ pub async fn product_edit_page(
         product_price.as_ref().and_then(|p| p.sale_price_usd.map(|v| format!("{:.2}", v))).unwrap_or_default(),
         product_price.as_ref().map(|p| format!("{:.2}", p.exchange_rate)).unwrap_or_else(|| "7.2".to_string()),
         product_price.as_ref().map(|p| format!("{:.1}", p.profit_margin * 100.0)).unwrap_or_else(|| "15".to_string()),
+        // 三个平台费率：Alibaba, AliExpress, Website
+        price_alibaba.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "3.0".to_string()),
+        price_aliexpress.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "5.0".to_string()),
         product_price.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "2.5".to_string()),
         product_price.as_ref().and_then(|p| p.notes.clone()).unwrap_or_default(),
         product.id
@@ -2094,11 +2185,15 @@ pub struct ProductEditForm {
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     profit_margin: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    platform_fee_rate: Option<f64>,
+    fee_rate_alibaba: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    fee_rate_aliexpress: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    fee_rate_website: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    platform_fee_rate: Option<f64>,  // backward-compat
     price_notes: Option<String>,
 }
-
-/// 更新产品处理
 pub async fn product_update_handler(
     State(state): State<AppState>,
     Path(id): Path<i64>,
@@ -2185,38 +2280,35 @@ pub async fn product_update_handler(
         }
     }
 
-    // 更新参考售价（如果有）
+    // 更新参考售价（三个平台）
     if let Some(sale_price_cny) = form.sale_price_cny {
         if sale_price_cny > 0.0 {
             let price_queries = ProductPriceQueries::new(state.db.pool());
-            let platform = form.price_platform.clone().unwrap_or_else(|| "website".to_string());
-            // 尝试更新现有参考售价，如果不存在则创建
-            if let Err(_) = price_queries.update_reference_price(
-                id,
-                &platform,
-                sale_price_cny,
-                form.sale_price_usd,
-                form.price_exchange_rate.unwrap_or(7.2),
-                form.profit_margin.map(|v| v / 100.0),
-                form.platform_fee_rate.map(|v| v / 100.0),
-                form.price_notes.clone(),
-            ).await {
-                // 更新失败，尝试创建新的
-                let price_req = CreateProductPriceRequest {
-                    product_id: id,
-                    platform: form.price_platform.clone(),
-                    sale_price_cny,
-                    sale_price_usd: form.sale_price_usd,
-                    exchange_rate: form.price_exchange_rate.or(Some(7.2)),
-                    profit_margin: form.profit_margin.map(|v| v / 100.0).or(Some(0.15)),
-                    platform_fee_rate: form.platform_fee_rate.map(|v| v / 100.0).or(Some(0.025)),
-                    platform_fee: None,
-                    is_reference: Some(true),
-                    effective_date: None,
-                    notes: form.price_notes.clone(),
-                };
-                let _ = price_queries.create(&price_req).await;
-            }
+            let exchange_rate = form.price_exchange_rate.unwrap_or(7.2);
+            let profit_margin = form.profit_margin.map(|v| v / 100.0);
+
+            // Website
+            let website_fee = form.fee_rate_website
+                .or(form.platform_fee_rate)
+                .map(|v| v / 100.0);
+            let _ = price_queries.update_reference_price(
+                id, "website", sale_price_cny, form.sale_price_usd,
+                exchange_rate, profit_margin, website_fee, form.price_notes.clone(),
+            ).await;
+
+            // Alibaba
+            let ali_fee = form.fee_rate_alibaba.map(|v| v / 100.0);
+            let _ = price_queries.update_reference_price(
+                id, "alibaba", sale_price_cny, form.sale_price_usd,
+                exchange_rate, profit_margin, ali_fee, None,
+            ).await;
+
+            // AliExpress
+            let ae_fee = form.fee_rate_aliexpress.map(|v| v / 100.0);
+            let _ = price_queries.update_reference_price(
+                id, "aliexpress", sale_price_cny, form.sale_price_usd,
+                exchange_rate, profit_margin, ae_fee, None,
+            ).await;
         }
     }
 
