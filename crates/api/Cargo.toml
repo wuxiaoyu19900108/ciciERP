@@ -33,6 +33,7 @@ sha2 = { workspace = true }
 hex = { workspace = true }
 futures = { workspace = true }
 rust_xlsxwriter = "0.64"
+csv = { workspace = true }
 
 cicierp-db = { workspace = true }
 cicierp-models = { workspace = true }

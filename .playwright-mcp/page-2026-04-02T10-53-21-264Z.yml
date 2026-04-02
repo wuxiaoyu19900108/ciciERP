@@ -1,0 +1,391 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - button [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+          - heading "订单管理" [level=2] [ref=e45]
+        - generic [ref=e46]:
+          - generic [ref=e47]: admin
+          - button "退出" [ref=e49] [cursor=pointer]
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - heading "订单管理" [level=1] [ref=e53]
+          - paragraph [ref=e54]: 以订单为核心，PI/CI 为可下载文件
+        - generic [ref=e55]:
+          - link "📥 导入AE订单" [ref=e56] [cursor=pointer]:
+            - /url: /orders/import/ae
+            - generic [ref=e57]: 📥
+            - generic [ref=e58]: 导入AE订单
+          - link "+ 新建订单" [ref=e59] [cursor=pointer]:
+            - /url: /orders/new
+            - generic [ref=e60]: +
+            - generic [ref=e61]: 新建订单
+          - link "📥 导出CSV" [ref=e62] [cursor=pointer]:
+            - /url: /orders/export
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - generic [ref=e65]: "169"
+          - generic [ref=e66]: 订单总数
+        - generic [ref=e67]:
+          - generic [ref=e68]: "46864.87"
+          - generic [ref=e69]: 总销售额
+        - generic [ref=e70]:
+          - generic [ref=e71]: "11679.06"
+          - generic [ref=e72]: 总毛利 ⚠️4单亏损
+        - generic [ref=e73]:
+          - generic [ref=e74]: 24.9%
+          - generic [ref=e75]: 平均毛利率
+      - generic [ref=e77]:
+        - generic [ref=e78]: "状态说明:"
+        - generic [ref=e79]:
+          - strong [ref=e80]: 未成交/价格锁定
+          - text: → 可下载 PI（形式发票）
+        - generic [ref=e81]:
+          - strong [ref=e82]: 已付款/已发货/已收货
+          - text: → 可下载 CI（商业发票）
+      - generic [ref=e84]:
+        - generic [ref=e85]: "平台:"
+        - generic [ref=e86]:
+          - link "全部 (169)" [ref=e87] [cursor=pointer]:
+            - /url: /orders
+          - link "Alibaba" [ref=e88] [cursor=pointer]:
+            - /url: /orders?platform=alibaba
+          - link "AliExpress" [ref=e89] [cursor=pointer]:
+            - /url: /orders?platform=aliexpress
+          - link "其他 (169)" [ref=e90] [cursor=pointer]:
+            - /url: /orders?platform=other
+      - generic [ref=e92]:
+        - generic [ref=e93]: "币种:"
+        - generic [ref=e94]:
+          - link "全部" [ref=e95] [cursor=pointer]:
+            - /url: /orders
+          - link "USD" [ref=e96] [cursor=pointer]:
+            - /url: /orders?currency=USD
+          - link "CNY" [ref=e97] [cursor=pointer]:
+            - /url: /orders?currency=CNY
+      - generic [ref=e99]:
+        - generic [ref=e100]: "状态:"
+        - generic [ref=e101]:
+          - link "全部" [ref=e102] [cursor=pointer]:
+            - /url: /orders
+          - link "未成交" [ref=e103] [cursor=pointer]:
+            - /url: /orders?status=1
+          - link "价格锁定" [ref=e104] [cursor=pointer]:
+            - /url: /orders?status=2
+          - link "已付款" [ref=e105] [cursor=pointer]:
+            - /url: /orders?status=3
+          - link "已发货" [ref=e106] [cursor=pointer]:
+            - /url: /orders?status=4
+          - link "已收货" [ref=e107] [cursor=pointer]:
+            - /url: /orders?status=5
+      - generic [ref=e108]:
+        - table [ref=e110]:
+          - rowgroup [ref=e111]:
+            - row "订单号 来源 客户 金额 毛利 状态 操作" [ref=e112]:
+              - columnheader "订单号" [ref=e113]
+              - columnheader "来源" [ref=e114]
+              - columnheader "客户" [ref=e115]
+              - columnheader "金额" [ref=e116]
+              - columnheader "毛利" [ref=e117]
+              - columnheader "状态" [ref=e118]
+              - columnheader "操作" [ref=e119]
+          - rowgroup [ref=e120]:
+            - row "ORD-20260401-0035 manual Update Test 10.00 10.00 (100.0%) 已取消 详情" [ref=e121]:
+              - cell "ORD-20260401-0035" [ref=e122]
+              - cell "manual" [ref=e123]
+              - cell "Update Test" [ref=e124]
+              - cell "10.00" [ref=e125]
+              - cell "10.00 (100.0%)" [ref=e126]
+              - cell "已取消" [ref=e127]
+              - cell "详情" [ref=e128]:
+                - link "详情" [ref=e130] [cursor=pointer]:
+                  - /url: /orders/224
+            - row "ORD-20260401-0034 manual Cancel Test 30.00 30.00 (100.0%) 已取消 详情" [ref=e131]:
+              - cell "ORD-20260401-0034" [ref=e132]
+              - cell "manual" [ref=e133]
+              - cell "Cancel Test" [ref=e134]
+              - cell "30.00" [ref=e135]
+              - cell "30.00 (100.0%)" [ref=e136]
+              - cell "已取消" [ref=e137]
+              - cell "详情" [ref=e138]:
+                - link "详情" [ref=e140] [cursor=pointer]:
+                  - /url: /orders/223
+            - row "ORD-20260401-0033 manual E2E 运费测试 110.00 100.00 (90.9%) 已取消 详情" [ref=e141]:
+              - cell "ORD-20260401-0033" [ref=e142]
+              - cell "manual" [ref=e143]
+              - cell "E2E 运费测试" [ref=e144]
+              - cell "110.00" [ref=e145]
+              - cell "100.00 (90.9%)" [ref=e146]
+              - cell "已取消" [ref=e147]
+              - cell "详情" [ref=e148]:
+                - link "详情" [ref=e150] [cursor=pointer]:
+                  - /url: /orders/222
+            - row "ORD-20260401-0032 manual E2E 测试客户 117.00 117.00 (100.0%) 已发货 详情 下载CI" [ref=e151]:
+              - cell "ORD-20260401-0032" [ref=e152]
+              - cell "manual" [ref=e153]
+              - cell "E2E 测试客户" [ref=e154]
+              - cell "117.00" [ref=e155]
+              - cell "117.00 (100.0%)" [ref=e156]
+              - cell "已发货" [ref=e157]
+              - cell "详情 下载CI" [ref=e158]:
+                - generic [ref=e159]:
+                  - link "详情" [ref=e160] [cursor=pointer]:
+                    - /url: /orders/221
+                  - link "下载CI" [ref=e161] [cursor=pointer]:
+                    - /url: /api/v1/orders/221/download-ci
+            - row "ORD-20260401-0031 manual UI Edit Test 50.00 50.00 (100.0%) 未成交 详情 编辑 下载PI" [ref=e162]:
+              - cell "ORD-20260401-0031" [ref=e163]
+              - cell "manual" [ref=e164]
+              - cell "UI Edit Test" [ref=e165]
+              - cell "50.00" [ref=e166]
+              - cell "50.00 (100.0%)" [ref=e167]
+              - cell "未成交" [ref=e168]
+              - cell "详情 编辑 下载PI" [ref=e169]:
+                - generic [ref=e170]:
+                  - link "详情" [ref=e171] [cursor=pointer]:
+                    - /url: /orders/220
+                  - link "编辑" [ref=e172] [cursor=pointer]:
+                    - /url: /orders/220/edit
+                  - link "下载PI" [ref=e173] [cursor=pointer]:
+                    - /url: /api/v1/orders/220/download-pi
+            - row "ORD-20260401-0030 manual UI 测试客户 99.00 99.00 (100.0%) 未成交 详情 编辑 下载PI" [ref=e174]:
+              - cell "ORD-20260401-0030" [ref=e175]
+              - cell "manual" [ref=e176]
+              - cell "UI 测试客户" [ref=e177]
+              - cell "99.00" [ref=e178]
+              - cell "99.00 (100.0%)" [ref=e179]
+              - cell "未成交" [ref=e180]
+              - cell "详情 编辑 下载PI" [ref=e181]:
+                - generic [ref=e182]:
+                  - link "详情" [ref=e183] [cursor=pointer]:
+                    - /url: /orders/219
+                  - link "编辑" [ref=e184] [cursor=pointer]:
+                    - /url: /orders/219/edit
+                  - link "下载PI" [ref=e185] [cursor=pointer]:
+                    - /url: /api/v1/orders/219/download-pi
+            - row "ORD-20260401-0029 manual Update Test 10.00 10.00 (100.0%) 已取消 详情" [ref=e186]:
+              - cell "ORD-20260401-0029" [ref=e187]
+              - cell "manual" [ref=e188]
+              - cell "Update Test" [ref=e189]
+              - cell "10.00" [ref=e190]
+              - cell "10.00 (100.0%)" [ref=e191]
+              - cell "已取消" [ref=e192]
+              - cell "详情" [ref=e193]:
+                - link "详情" [ref=e195] [cursor=pointer]:
+                  - /url: /orders/218
+            - row "ORD-20260401-0028 manual Cancel Test 30.00 30.00 (100.0%) 已取消 详情" [ref=e196]:
+              - cell "ORD-20260401-0028" [ref=e197]
+              - cell "manual" [ref=e198]
+              - cell "Cancel Test" [ref=e199]
+              - cell "30.00" [ref=e200]
+              - cell "30.00 (100.0%)" [ref=e201]
+              - cell "已取消" [ref=e202]
+              - cell "详情" [ref=e203]:
+                - link "详情" [ref=e205] [cursor=pointer]:
+                  - /url: /orders/217
+            - row "ORD-20260401-0027 manual E2E 运费测试 110.00 100.00 (90.9%) 已取消 详情" [ref=e206]:
+              - cell "ORD-20260401-0027" [ref=e207]
+              - cell "manual" [ref=e208]
+              - cell "E2E 运费测试" [ref=e209]
+              - cell "110.00" [ref=e210]
+              - cell "100.00 (90.9%)" [ref=e211]
+              - cell "已取消" [ref=e212]
+              - cell "详情" [ref=e213]:
+                - link "详情" [ref=e215] [cursor=pointer]:
+                  - /url: /orders/216
+            - row "ORD-20260401-0026 manual E2E 测试客户 117.00 117.00 (100.0%) 已发货 详情 下载CI" [ref=e216]:
+              - cell "ORD-20260401-0026" [ref=e217]
+              - cell "manual" [ref=e218]
+              - cell "E2E 测试客户" [ref=e219]
+              - cell "117.00" [ref=e220]
+              - cell "117.00 (100.0%)" [ref=e221]
+              - cell "已发货" [ref=e222]
+              - cell "详情 下载CI" [ref=e223]:
+                - generic [ref=e224]:
+                  - link "详情" [ref=e225] [cursor=pointer]:
+                    - /url: /orders/215
+                  - link "下载CI" [ref=e226] [cursor=pointer]:
+                    - /url: /api/v1/orders/215/download-ci
+            - row "ORD-20260401-0025 manual UI Edit Test 50.00 50.00 (100.0%) 未成交 详情 编辑 下载PI" [ref=e227]:
+              - cell "ORD-20260401-0025" [ref=e228]
+              - cell "manual" [ref=e229]
+              - cell "UI Edit Test" [ref=e230]
+              - cell "50.00" [ref=e231]
+              - cell "50.00 (100.0%)" [ref=e232]
+              - cell "未成交" [ref=e233]
+              - cell "详情 编辑 下载PI" [ref=e234]:
+                - generic [ref=e235]:
+                  - link "详情" [ref=e236] [cursor=pointer]:
+                    - /url: /orders/214
+                  - link "编辑" [ref=e237] [cursor=pointer]:
+                    - /url: /orders/214/edit
+                  - link "下载PI" [ref=e238] [cursor=pointer]:
+                    - /url: /api/v1/orders/214/download-pi
+            - row "ORD-20260401-0024 manual UI 测试客户 99.00 99.00 (100.0%) 未成交 详情 编辑 下载PI" [ref=e239]:
+              - cell "ORD-20260401-0024" [ref=e240]
+              - cell "manual" [ref=e241]
+              - cell "UI 测试客户" [ref=e242]
+              - cell "99.00" [ref=e243]
+              - cell "99.00 (100.0%)" [ref=e244]
+              - cell "未成交" [ref=e245]
+              - cell "详情 编辑 下载PI" [ref=e246]:
+                - generic [ref=e247]:
+                  - link "详情" [ref=e248] [cursor=pointer]:
+                    - /url: /orders/213
+                  - link "编辑" [ref=e249] [cursor=pointer]:
+                    - /url: /orders/213/edit
+                  - link "下载PI" [ref=e250] [cursor=pointer]:
+                    - /url: /api/v1/orders/213/download-pi
+            - row "ORD-20260401-0023 manual UI Edit Test 50.00 50.00 (100.0%) 未成交 详情 编辑 下载PI" [ref=e251]:
+              - cell "ORD-20260401-0023" [ref=e252]
+              - cell "manual" [ref=e253]
+              - cell "UI Edit Test" [ref=e254]
+              - cell "50.00" [ref=e255]
+              - cell "50.00 (100.0%)" [ref=e256]
+              - cell "未成交" [ref=e257]
+              - cell "详情 编辑 下载PI" [ref=e258]:
+                - generic [ref=e259]:
+                  - link "详情" [ref=e260] [cursor=pointer]:
+                    - /url: /orders/212
+                  - link "编辑" [ref=e261] [cursor=pointer]:
+                    - /url: /orders/212/edit
+                  - link "下载PI" [ref=e262] [cursor=pointer]:
+                    - /url: /api/v1/orders/212/download-pi
+            - row "ORD-20260401-0022 manual UI 测试客户 99.00 99.00 (100.0%) 未成交 详情 编辑 下载PI" [ref=e263]:
+              - cell "ORD-20260401-0022" [ref=e264]
+              - cell "manual" [ref=e265]
+              - cell "UI 测试客户" [ref=e266]
+              - cell "99.00" [ref=e267]
+              - cell "99.00 (100.0%)" [ref=e268]
+              - cell "未成交" [ref=e269]
+              - cell "详情 编辑 下载PI" [ref=e270]:
+                - generic [ref=e271]:
+                  - link "详情" [ref=e272] [cursor=pointer]:
+                    - /url: /orders/211
+                  - link "编辑" [ref=e273] [cursor=pointer]:
+                    - /url: /orders/211/edit
+                  - link "下载PI" [ref=e274] [cursor=pointer]:
+                    - /url: /api/v1/orders/211/download-pi
+            - row "ORD-20260401-0021 manual Update Test 10.00 10.00 (100.0%) 已取消 详情" [ref=e275]:
+              - cell "ORD-20260401-0021" [ref=e276]
+              - cell "manual" [ref=e277]
+              - cell "Update Test" [ref=e278]
+              - cell "10.00" [ref=e279]
+              - cell "10.00 (100.0%)" [ref=e280]
+              - cell "已取消" [ref=e281]
+              - cell "详情" [ref=e282]:
+                - link "详情" [ref=e284] [cursor=pointer]:
+                  - /url: /orders/210
+            - row "ORD-20260401-0020 manual Cancel Test 30.00 30.00 (100.0%) 已取消 详情" [ref=e285]:
+              - cell "ORD-20260401-0020" [ref=e286]
+              - cell "manual" [ref=e287]
+              - cell "Cancel Test" [ref=e288]
+              - cell "30.00" [ref=e289]
+              - cell "30.00 (100.0%)" [ref=e290]
+              - cell "已取消" [ref=e291]
+              - cell "详情" [ref=e292]:
+                - link "详情" [ref=e294] [cursor=pointer]:
+                  - /url: /orders/209
+            - row "ORD-20260401-0019 manual E2E 运费测试 110.00 100.00 (90.9%) 已取消 详情" [ref=e295]:
+              - cell "ORD-20260401-0019" [ref=e296]
+              - cell "manual" [ref=e297]
+              - cell "E2E 运费测试" [ref=e298]
+              - cell "110.00" [ref=e299]
+              - cell "100.00 (90.9%)" [ref=e300]
+              - cell "已取消" [ref=e301]
+              - cell "详情" [ref=e302]:
+                - link "详情" [ref=e304] [cursor=pointer]:
+                  - /url: /orders/208
+            - row "ORD-20260401-0018 manual E2E 测试客户 117.00 117.00 (100.0%) 已发货 详情 下载CI" [ref=e305]:
+              - cell "ORD-20260401-0018" [ref=e306]
+              - cell "manual" [ref=e307]
+              - cell "E2E 测试客户" [ref=e308]
+              - cell "117.00" [ref=e309]
+              - cell "117.00 (100.0%)" [ref=e310]
+              - cell "已发货" [ref=e311]
+              - cell "详情 下载CI" [ref=e312]:
+                - generic [ref=e313]:
+                  - link "详情" [ref=e314] [cursor=pointer]:
+                    - /url: /orders/207
+                  - link "下载CI" [ref=e315] [cursor=pointer]:
+                    - /url: /api/v1/orders/207/download-ci
+            - row "ORD-20260401-0017 manual UI Edit Test 50.00 50.00 (100.0%) 未成交 详情 编辑 下载PI" [ref=e316]:
+              - cell "ORD-20260401-0017" [ref=e317]
+              - cell "manual" [ref=e318]
+              - cell "UI Edit Test" [ref=e319]
+              - cell "50.00" [ref=e320]
+              - cell "50.00 (100.0%)" [ref=e321]
+              - cell "未成交" [ref=e322]
+              - cell "详情 编辑 下载PI" [ref=e323]:
+                - generic [ref=e324]:
+                  - link "详情" [ref=e325] [cursor=pointer]:
+                    - /url: /orders/206
+                  - link "编辑" [ref=e326] [cursor=pointer]:
+                    - /url: /orders/206/edit
+                  - link "下载PI" [ref=e327] [cursor=pointer]:
+                    - /url: /api/v1/orders/206/download-pi
+            - row "ORD-20260401-0016 manual UI 测试客户 99.00 99.00 (100.0%) 未成交 详情 编辑 下载PI" [ref=e328]:
+              - cell "ORD-20260401-0016" [ref=e329]
+              - cell "manual" [ref=e330]
+              - cell "UI 测试客户" [ref=e331]
+              - cell "99.00" [ref=e332]
+              - cell "99.00 (100.0%)" [ref=e333]
+              - cell "未成交" [ref=e334]
+              - cell "详情 编辑 下载PI" [ref=e335]:
+                - generic [ref=e336]:
+                  - link "详情" [ref=e337] [cursor=pointer]:
+                    - /url: /orders/205
+                  - link "编辑" [ref=e338] [cursor=pointer]:
+                    - /url: /orders/205/edit
+                  - link "下载PI" [ref=e339] [cursor=pointer]:
+                    - /url: /api/v1/orders/205/download-pi
+        - generic [ref=e340]:
+          - paragraph [ref=e341]: 共 169 条记录，第 1/9 页
+          - link "下一页" [ref=e343] [cursor=pointer]:
+            - /url: /orders?page=2

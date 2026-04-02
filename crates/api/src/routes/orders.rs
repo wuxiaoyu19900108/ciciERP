@@ -21,6 +21,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/orders", get(list_orders))
         .route("/orders", post(create_order))
+        .route("/orders/export", get(export_orders))
         .route("/orders/:id", get(get_order))
         .route("/orders/:id", put(update_order))
         .route("/orders/:id/status", post(update_order_status))
@@ -237,6 +238,85 @@ pub async fn update_order_status(
 
     info!("Order status updated: id={}, status={}", id, req.status);
     Ok(Json(ApiResponse::success(order)))
+}
+
+/// @api GET /api/v1/orders/export
+/// @desc 导出订单为 Excel 文件
+/// @query platform: string (平台筛选，可选)
+/// @query order_status: number (状态筛选，可选)
+/// @query date_from: string (开始日期，可选)
+/// @query date_to: string (结束日期，可选)
+/// @example curl -X GET "http://localhost:3000/api/v1/orders/export" -o orders.xlsx
+#[instrument(skip(state))]
+pub async fn export_orders(
+    State(state): State<AppState>,
+    Query(query): Query<OrderQuery>,
+) -> AppResult<Response> {
+    info!("Exporting orders");
+    let queries = OrderQueries::new(state.db.pool());
+    let result = queries.list(
+        1, 2000,
+        query.order_status,
+        query.payment_status,
+        query.customer_id,
+        query.platform.as_deref(),
+        query.date_from.as_deref(),
+        query.date_to.as_deref(),
+        query.keyword.as_deref(),
+        query.currency.as_deref(),
+    ).await?;
+
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+    worksheet.set_name("订单列表").ok();
+
+    let header_fmt = Format::new()
+        .set_bold()
+        .set_background_color(rust_xlsxwriter::Color::RGB(0x4472C4))
+        .set_font_color(rust_xlsxwriter::Color::White);
+
+    let headers = ["订单编码", "平台", "客户名", "总金额", "币种", "利润", "订单状态", "支付状态", "发货状态", "创建日期"];
+    for (col, h) in headers.iter().enumerate() {
+        worksheet.write_string_with_format(0, col as u16, *h, &header_fmt).ok();
+    }
+    worksheet.set_column_width(0, 22).ok();
+    worksheet.set_column_width(1, 12).ok();
+    worksheet.set_column_width(2, 20).ok();
+    worksheet.set_column_width(7, 12).ok();
+    worksheet.set_column_width(9, 18).ok();
+
+    for (row, o) in result.items.iter().enumerate() {
+        let r = (row + 1) as u32;
+        let status_str = match o.order_status {
+            1 => "待审核", 2 => "待发货", 3 => "部分发货", 4 => "已发货",
+            5 => "已完成", 6 => "已取消", _ => "售后中"
+        };
+        let pay_str = match o.payment_status {
+            1 => "未支付", 2 => "部分支付", 3 => "已支付",
+            4 => "已退款", _ => "部分退款"
+        };
+        let fulfill_str = match o.fulfillment_status {
+            1 => "未发货", 2 => "部分发货", 3 => "已发货", _ => "已签收"
+        };
+        worksheet.write_string(r, 0, &o.order_code).ok();
+        worksheet.write_string(r, 1, &o.platform).ok();
+        worksheet.write_string(r, 2, o.customer_name.as_deref().unwrap_or("")).ok();
+        worksheet.write_number(r, 3, o.total_amount).ok();
+        worksheet.write_string(r, 4, &o.currency).ok();
+        worksheet.write_number(r, 5, o.profit_amount.unwrap_or(0.0)).ok();
+        worksheet.write_string(r, 6, status_str).ok();
+        worksheet.write_string(r, 7, pay_str).ok();
+        worksheet.write_string(r, 8, fulfill_str).ok();
+        worksheet.write_string(r, 9, &o.created_at.format("%Y-%m-%d %H:%M").to_string()).ok();
+    }
+
+    let buf = workbook.save_to_buffer()
+        .map_err(|e| AppError::InternalError(anyhow::anyhow!("Excel error: {}", e)))?;
+
+    Ok(([
+        ("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        ("Content-Disposition", "attachment; filename=\"orders.xlsx\""),
+    ], buf).into_response())
 }
 
 /// @api GET /api/v1/orders/:id/download-pi

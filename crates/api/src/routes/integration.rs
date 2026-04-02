@@ -697,6 +697,8 @@ pub async fn sync_customer(
         status: Some(1),
         lead_status: None,
         notes: None,
+        next_followup_date: None,
+        followup_notes: None,
         source: Some(req.source.unwrap_or_else(|| "integration".to_string())),
     };
 

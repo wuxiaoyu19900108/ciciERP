@@ -16,3 +16,4 @@ pub mod api_clients;
 pub mod webhooks;
 pub mod proforma_invoices;
 pub mod commercial_invoices;
+pub mod operation_logs;

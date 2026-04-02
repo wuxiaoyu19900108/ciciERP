@@ -46,6 +46,8 @@ pub struct Customer {
     pub status: i64,
     pub lead_status: i64,
     pub notes: Option<String>,
+    pub next_followup_date: Option<String>,
+    pub followup_notes: Option<String>,
     pub last_login_at: Option<DateTime<Utc>>,
     pub last_order_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
@@ -107,6 +109,8 @@ pub struct CreateCustomerRequest {
     pub status: Option<i64>,
     pub lead_status: Option<i64>,
     pub notes: Option<String>,
+    pub next_followup_date: Option<String>,
+    pub followup_notes: Option<String>,
     pub source: Option<String>,
 }
 
@@ -122,6 +126,8 @@ pub struct UpdateCustomerRequest {
     pub status: Option<i64>,
     pub lead_status: Option<i64>,
     pub notes: Option<String>,
+    pub next_followup_date: Option<String>,
+    pub followup_notes: Option<String>,
 }
 
 /// 客户查询参数

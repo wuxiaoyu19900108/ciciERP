@@ -193,6 +193,7 @@ impl Database {
             ("008_pi_ci_flow", include_str!("../migrations/008_pi_ci_flow.sql")),
             ("009_order_terms", include_str!("../migrations/009_order_terms.sql")),
             ("010_product_model", include_str!("../migrations/010_product_model.sql")),
+            ("011_followup_profit_logs", include_str!("../migrations/011_followup_profit_logs.sql")),
         ];
 
         for (name, sql) in migrations {

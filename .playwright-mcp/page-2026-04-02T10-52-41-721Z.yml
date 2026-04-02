@@ -1,0 +1,101 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - button [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+          - heading "仪表板" [level=2] [ref=e45]
+        - generic [ref=e46]:
+          - generic [ref=e47]: admin
+          - button "退出" [ref=e49] [cursor=pointer]
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - heading "仪表板" [level=1] [ref=e52]
+        - paragraph [ref=e53]: 2026年04月02日
+      - generic [ref=e54]:
+        - heading "📋 今天要做什么" [level=2] [ref=e55]
+        - generic [ref=e56]:
+          - link "1 待跟进客户" [ref=e57] [cursor=pointer]:
+            - /url: /customers?lead_status=2
+            - generic [ref=e58]: "1"
+            - generic [ref=e59]: 待跟进客户
+          - link "0 待发货订单" [ref=e60] [cursor=pointer]:
+            - /url: /orders?status=2
+            - generic [ref=e61]: "0"
+            - generic [ref=e62]: 待发货订单
+          - link "0 低库存产品" [ref=e63] [cursor=pointer]:
+            - /url: /inventory
+            - generic [ref=e64]: "0"
+            - generic [ref=e65]: 低库存产品
+          - link "35 本月订单数" [ref=e66] [cursor=pointer]:
+            - /url: /orders
+            - generic [ref=e67]: "35"
+            - generic [ref=e68]: 本月订单数
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - generic [ref=e71]: 本月销售额 (CNY)
+          - generic [ref=e72]: ¥2211.00
+        - generic [ref=e73]:
+          - generic [ref=e74]: 本月销售额 (USD)
+          - generic [ref=e75]: $0.00
+      - generic [ref=e76]:
+        - heading "🔔 今日待跟进客户" [level=3] [ref=e78]
+        - table [ref=e80]:
+          - rowgroup [ref=e81]:
+            - row "姓名 跟进日期 阶段 操作" [ref=e82]:
+              - columnheader "姓名" [ref=e83]
+              - columnheader "跟进日期" [ref=e84]
+              - columnheader "阶段" [ref=e85]
+              - columnheader "操作" [ref=e86]
+          - rowgroup [ref=e87]:
+            - row "测试跟进客户 2026-04-02 跟进中 跟进" [ref=e88]:
+              - cell "测试跟进客户" [ref=e89]
+              - cell "2026-04-02" [ref=e90]
+              - cell "跟进中" [ref=e91]
+              - cell "跟进" [ref=e92]:
+                - link "跟进" [ref=e93] [cursor=pointer]:
+                  - /url: /customers/179/edit

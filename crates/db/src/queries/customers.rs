@@ -157,9 +157,9 @@ impl<'a> CustomerQueries<'a> {
         let result = sqlx::query(
             r#"
             INSERT INTO customers (
-                customer_code, name, mobile, email, status, lead_status, notes, source,
+                customer_code, name, mobile, email, status, lead_status, notes, next_followup_date, followup_notes, source,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#
         )
         .bind(&customer_code)
@@ -169,6 +169,8 @@ impl<'a> CustomerQueries<'a> {
         .bind(status)
         .bind(lead_status)
         .bind(&req.notes)
+        .bind(&req.next_followup_date)
+        .bind(&req.followup_notes)
         .bind(&source)
         .bind(&now)
         .bind(&now)
@@ -212,6 +214,14 @@ impl<'a> CustomerQueries<'a> {
         if let Some(ref notes) = req.notes {
             updates.push("notes = ?");
             bindings.push(notes.clone());
+        }
+        if let Some(ref nfd) = req.next_followup_date {
+            updates.push("next_followup_date = ?");
+            bindings.push(nfd.clone());
+        }
+        if let Some(ref fn_) = req.followup_notes {
+            updates.push("followup_notes = ?");
+            bindings.push(fn_.clone());
         }
 
         let sql = format!(
@@ -340,6 +350,31 @@ impl<'a> CustomerQueries<'a> {
         .await?;
 
         Ok(result.rows_affected() > 0)
+    }
+
+    /// 获取今日待跟进客户数量
+    pub async fn today_followup_count(&self) -> Result<i64> {
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let row: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL AND next_followup_date <= ? AND lead_status != 3"
+        )
+        .bind(&today)
+        .fetch_one(self.pool)
+        .await?;
+        Ok(row.0)
+    }
+
+    /// 获取今日待跟进客户列表
+    pub async fn today_followup_list(&self, limit: i64) -> Result<Vec<Customer>> {
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        let items: Vec<Customer> = sqlx::query_as(
+            "SELECT * FROM customers WHERE deleted_at IS NULL AND next_followup_date <= ? AND lead_status != 3 ORDER BY next_followup_date ASC LIMIT ?"
+        )
+        .bind(&today)
+        .bind(limit)
+        .fetch_all(self.pool)
+        .await?;
+        Ok(items)
     }
 }
 

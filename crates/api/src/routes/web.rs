@@ -541,122 +541,215 @@ pub async fn dashboard_page(
 ) -> Html<String> {
     let user = get_user_from_extension(&auth_user);
 
-    // 获取统计数据
-    let product_queries = ProductQueries::new(state.db.pool());
     let order_queries = OrderQueries::new(state.db.pool());
+    let customer_queries = CustomerQueries::new(state.db.pool());
+    let inventory_queries = InventoryQueries::new(state.db.pool());
 
-    let total_products = product_queries.count().await.unwrap_or(0);
-    let total_orders = order_queries.count().await.unwrap_or(0);
+    // 今日日期
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let year = chrono::Local::now().year();
+    let month = chrono::Local::now().month() as i32;
 
-    let stats = DashboardStats {
-        total_orders,
-        pending_orders: 0,
-        today_sales: 0.0,
-        low_stock_count: 0,
-        total_customers: 0,
-        total_products,
+    // 并行查询各项数据
+    let (
+        pending_ship_count,
+        today_followup_count,
+        low_stock_count,
+        this_month_stats,
+    ) = tokio::join!(
+        async {
+            // 待发货订单（order_status=2 待发货，或 3 部分发货）
+            let row: (i64,) = sqlx::query_as(
+                "SELECT COUNT(*) FROM orders WHERE order_status IN (2, 3)"
+            )
+            .fetch_one(state.db.pool())
+            .await
+            .unwrap_or((0,));
+            row.0
+        },
+        customer_queries.today_followup_count(),
+        async {
+            let alerts = inventory_queries.get_alerts().await.unwrap_or_default();
+            alerts.len() as i64
+        },
+        order_queries.get_analytics(year, month),
+    );
+
+    let today_followup_count = today_followup_count.unwrap_or(0);
+    let this_month_stats = this_month_stats.unwrap_or_else(|_| cicierp_db::queries::orders::AnalyticsReport {
+        sales_by_currency: vec![],
+        top_products: vec![],
+        platform_distribution: vec![],
+    });
+
+    // 本月销售额和利润
+    let (month_sales_cny, month_sales_usd, month_profit_cny) = this_month_stats.sales_by_currency.iter().fold(
+        (0.0f64, 0.0f64, 0.0f64),
+        |(cny, usd, profit), row| {
+            if row.currency == "CNY" {
+                (cny + row.total_sales, usd, profit + row.total_profit)
+            } else if row.currency == "USD" {
+                (cny, usd + row.total_sales, profit + row.total_profit)
+            } else {
+                (cny, usd, profit)
+            }
+        }
+    );
+
+    // 今日待跟进客户列表
+    let followup_customers = customer_queries.today_followup_list(5).await.unwrap_or_default();
+    let followup_rows: String = followup_customers.iter().map(|c| {
+        let date_str = c.next_followup_date.as_deref().unwrap_or("-");
+        let is_overdue = c.next_followup_date.as_deref().map(|d| d < today.as_str()).unwrap_or(false);
+        let date_color = if is_overdue { "text-red-600 font-semibold" } else { "text-orange-600" };
+        format!(r#"<div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+            <div>
+                <span class="font-medium text-gray-800">{}</span>
+                <span class="text-xs text-gray-500 ml-2">{}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs {} ">{}</span>
+                <a href="/customers/{}/edit" class="text-xs text-blue-600 hover:underline">跟进</a>
+            </div>
+        </div>"#,
+            c.name,
+            c.mobile.as_deref().unwrap_or(""),
+            date_color,
+            date_str,
+            c.id,
+        )
+    }).collect();
+
+    let followup_section = if followup_customers.is_empty() {
+        r#"<p class="text-gray-500 text-sm text-center py-4">🎉 今日无待跟进客户</p>"#.to_string()
+    } else {
+        followup_rows
     };
+
+    // 平台分布
+    let platform_rows: String = this_month_stats.platform_distribution.iter().map(|p| {
+        format!(r#"<div class="flex justify-between items-center py-1">
+            <span class="text-sm text-gray-600">{}</span>
+            <span class="text-sm font-medium">{} 单</span>
+        </div>"#, p.platform, p.order_count)
+    }).collect();
 
     let content = format!(
         r#"<!-- 欢迎区域 -->
-<div class="mb-6 sm:mb-8">
-    <h1 class="text-xl sm:text-2xl font-bold text-gray-800">欢迎回来!</h1>
-    <p class="text-gray-600 mt-1 text-sm sm:text-base">这是您的业务概览</p>
+<div class="mb-6">
+    <h1 class="text-xl sm:text-2xl font-bold text-gray-800">今天要做什么？</h1>
+    <p class="text-gray-500 mt-1 text-sm">{}</p>
 </div>
 
-<!-- 统计卡片 -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-gray-500 text-xs sm:text-sm">订单总数</p>
-                <p class="text-2xl sm:text-3xl font-bold text-gray-800 mt-1">{}</p>
-            </div>
-            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span class="text-xl sm:text-2xl">📋</span>
-            </div>
+<!-- 行动卡片 -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+    <a href="/orders?order_status=2" class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-blue-300 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">📦</span>
+            <span class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">待处理</span>
         </div>
-    </div>
+        <p class="text-2xl font-bold text-gray-800">{}</p>
+        <p class="text-xs text-gray-500 mt-1">待发货订单</p>
+    </a>
 
-    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-gray-500 text-xs sm:text-sm">今日销售额</p>
-                <p class="text-2xl sm:text-3xl font-bold text-gray-800 mt-1">¥{:.2}</p>
-            </div>
-            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <span class="text-xl sm:text-2xl">💰</span>
-            </div>
+    <a href="/customers?lead_status=2" class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-orange-300 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">👤</span>
+            <span class="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">今日</span>
         </div>
-    </div>
+        <p class="text-2xl font-bold text-gray-800">{}</p>
+        <p class="text-xs text-gray-500 mt-1">待跟进客户</p>
+    </a>
 
-    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-gray-500 text-xs sm:text-sm">库存预警</p>
-                <p class="text-2xl sm:text-3xl font-bold text-gray-800 mt-1">{}</p>
-            </div>
-            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <span class="text-xl sm:text-2xl">⚠️</span>
-            </div>
+    <a href="/inventory?low_stock=true" class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-yellow-300 transition-colors">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">⚠️</span>
+            <span class="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">预警</span>
         </div>
-    </div>
+        <p class="text-2xl font-bold text-gray-800">{}</p>
+        <p class="text-xs text-gray-500 mt-1">低库存 SKU</p>
+    </a>
 
-    <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-gray-500 text-xs sm:text-sm">产品总数</p>
-                <p class="text-2xl sm:text-3xl font-bold text-gray-800 mt-1">{}</p>
-            </div>
-            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span class="text-xl sm:text-2xl">📦</span>
-            </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">💰</span>
+            <span class="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">本月</span>
         </div>
+        <p class="text-lg font-bold text-gray-800">¥{:.0}</p>
+        <p class="text-xs text-gray-500 mt-1">本月利润（CNY）</p>
     </div>
 </div>
 
-<!-- 快捷入口 -->
+<!-- 本月销售概览 + 今日待跟进 -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+
+    <!-- 本月销售 -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-semibold text-gray-800">📊 本月销售概览</h3>
+            <a href="/orders" class="text-xs text-blue-600 hover:underline">查看全部</a>
+        </div>
+        <div class="p-4 space-y-3">
+            <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">销售额（CNY）</span>
+                <span class="font-semibold text-gray-800">¥{:.2}</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">销售额（USD）</span>
+                <span class="font-semibold text-gray-800">${:.2}</span>
+            </div>
+            <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+                <span class="text-sm text-gray-600">平台分布</span>
+            </div>
+            {}
+        </div>
+    </div>
+
+    <!-- 今日待跟进 -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-semibold text-gray-800">📞 今日待跟进客户</h3>
+            <a href="/customers?lead_status=2" class="text-xs text-blue-600 hover:underline">查看全部</a>
+        </div>
+        <div class="p-4">
+            {}
+        </div>
+    </div>
+</div>
+
+<!-- 快捷操作 -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-    <div class="p-4 sm:p-6 border-b border-gray-100">
-        <h3 class="text-base sm:text-lg font-semibold text-gray-800">快捷操作</h3>
+    <div class="p-4 border-b border-gray-100">
+        <h3 class="font-semibold text-gray-800">⚡ 快捷操作</h3>
     </div>
-    <div class="p-4 sm:p-6">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <a href="/products" class="flex items-center gap-3 p-3 sm:p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                <span class="text-xl sm:text-2xl">📦</span>
-                <div>
-                    <p class="font-medium text-gray-800 text-sm sm:text-base">产品管理</p>
-                    <p class="text-xs sm:text-sm text-gray-500">管理产品信息</p>
-                </div>
-            </a>
-            <a href="/orders" class="flex items-center gap-3 p-3 sm:p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                <span class="text-xl sm:text-2xl">📋</span>
-                <div>
-                    <p class="font-medium text-gray-800 text-sm sm:text-base">订单管理</p>
-                    <p class="text-xs sm:text-sm text-gray-500">处理订单</p>
-                </div>
-            </a>
-            <a href="/inventory" class="flex items-center gap-3 p-3 sm:p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
-                <span class="text-xl sm:text-2xl">📊</span>
-                <div>
-                    <p class="font-medium text-gray-800 text-sm sm:text-base">库存管理</p>
-                    <p class="text-xs sm:text-sm text-gray-500">查看库存</p>
-                </div>
-            </a>
-            <a href="/customers" class="flex items-center gap-3 p-3 sm:p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                <span class="text-xl sm:text-2xl">👥</span>
-                <div>
-                    <p class="font-medium text-gray-800 text-sm sm:text-base">客户管理</p>
-                    <p class="text-xs sm:text-sm text-gray-500">管理客户</p>
-                </div>
-            </a>
-        </div>
+    <div class="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <a href="/orders/new" class="flex flex-col items-center p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+            <span class="text-xl mb-1">📝</span>
+            <span class="text-xs text-gray-700">新建订单</span>
+        </a>
+        <a href="/customers/new" class="flex flex-col items-center p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+            <span class="text-xl mb-1">👤</span>
+            <span class="text-xs text-gray-700">新增客户</span>
+        </a>
+        <a href="/purchases/new" class="flex flex-col items-center p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+            <span class="text-xl mb-1">🛒</span>
+            <span class="text-xs text-gray-700">新建采购</span>
+        </a>
+        <a href="/inventory" class="flex flex-col items-center p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+            <span class="text-xl mb-1">📊</span>
+            <span class="text-xs text-gray-700">库存管理</span>
+        </a>
     </div>
 </div>"#,
-        stats.total_orders,
-        stats.today_sales,
-        stats.low_stock_count,
-        stats.total_products
+        today,
+        pending_ship_count,
+        today_followup_count,
+        low_stock_count,
+        month_profit_cny,
+        month_sales_cny,
+        month_sales_usd,
+        if platform_rows.is_empty() { "<p class='text-xs text-gray-400'>暂无数据</p>".to_string() } else { platform_rows },
+        followup_section,
     );
 
     render_layout("仪表板", "dashboard", Some(user), &content)
@@ -2635,6 +2728,9 @@ pub async fn orders_page(
         <a href="/orders/import/ae" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
             <span>📥</span><span>导入AE订单</span>
         </a>
+        <a href="/api/v1/orders/export" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+            <span>📊</span><span>导出Excel</span>
+        </a>
         <a href="/orders/new" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <span>+</span><span>新建订单</span>
         </a>
@@ -3916,6 +4012,8 @@ pub async fn order_create_handler(
                         status: Some(1),
                         lead_status: None,
                         notes: Some("Auto-created from order".to_string()),
+                        next_followup_date: None,
+                        followup_notes: None,
                         source: Some("order".to_string()),
                     };
 
@@ -5404,6 +5502,16 @@ pub async fn customer_new_page(
                 <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
                 <textarea name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="备注信息..."></textarea>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">下次跟进日期</label>
+                <input type="date" name="next_followup_date" value=""
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">跟进备注</label>
+                <textarea name="followup_notes" rows="2" placeholder="跟进情况记录..."
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
         </div>
 
         <div class="mt-6 flex items-center gap-4">
@@ -5425,6 +5533,8 @@ pub struct CustomerForm {
     status: Option<i64>,
     lead_status: Option<i64>,
     notes: Option<String>,
+    next_followup_date: Option<String>,
+    followup_notes: Option<String>,
 }
 
 /// 表单方法覆盖（用于 DELETE 等）
@@ -5447,6 +5557,8 @@ pub async fn customer_create_handler(
         status: form.status,
         lead_status: form.lead_status,
         notes: form.notes.clone(),
+        next_followup_date: form.next_followup_date.clone(),
+        followup_notes: form.followup_notes.clone(),
         source: None,
     };
 
@@ -5772,6 +5884,16 @@ pub async fn customer_edit_page(
                 <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
                 <textarea name="notes" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="备注信息...">{}</textarea>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">下次跟进日期</label>
+                <input type="date" name="next_followup_date" value="{}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">跟进备注</label>
+                <textarea name="followup_notes" rows="2" placeholder="跟进情况记录..."
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">{}</textarea>
+            </div>
         </div>
 
         <div class="mt-6 flex items-center gap-4">
@@ -5794,6 +5916,8 @@ pub async fn customer_edit_page(
         lead_selected_3,
         lead_selected_4,
         customer.notes.unwrap_or_default(),
+        customer.next_followup_date.unwrap_or_default(),
+        customer.followup_notes.unwrap_or_default(),
         id
     );
 
@@ -5815,6 +5939,8 @@ pub async fn customer_update_handler(
         status: form.status,
         lead_status: form.lead_status,
         notes: form.notes.clone(),
+        next_followup_date: form.next_followup_date.clone(),
+        followup_notes: form.followup_notes.clone(),
     };
 
     match queries.update(id, &req).await {
