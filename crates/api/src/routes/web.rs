@@ -3638,14 +3638,18 @@ async function updateItemPrice(select) {{
 // 添加商品行
 function addItem() {{
     const container = document.getElementById('itemsContainer');
+    // 从第一行获取完整选项列表（_allOpts 保证包含所有产品）
+    const firstSel = container.querySelector('.item-row select');
+    const allOpts = (firstSel._allOpts || Array.from(firstSel.options)).map(o => o.cloneNode(true));
+
     const row = container.querySelector('.item-row').cloneNode(true);
-    // 清空值
     const searchInput = row.querySelector('.product-search');
     if (searchInput) {{ searchInput.value = ''; }}
     const sel = row.querySelector('select');
+    sel.innerHTML = '';
+    allOpts.forEach(o => sel.appendChild(o.cloneNode(true)));
     sel.value = '';
-    // 恢复所有被隐藏的选项（搜索重置）
-    for (let opt of sel.options) opt.hidden = false;
+    sel._allOpts = allOpts.map(o => o.cloneNode(true));
     row.querySelector('input[name="item_quantity[]"]').value = '1';
     row.querySelector('input[name="item_price[]"]').value = '';
     row.querySelector('input[name="item_subtotal[]"]').value = '';
@@ -3716,22 +3720,39 @@ async function showHistoryPrice(btn) {{
     }}
 }}
 
-// 客户搜索过滤
+// 客户搜索过滤（重建 DOM，兼容 Chrome）
+let _custAllOpts = null;
 function filterCustomers(q) {{
     const sel = document.getElementById('customerSelect');
-    const lower = q.toLowerCase().trim();
-    for (let i = 1; i < sel.options.length; i++) {{
-        sel.options[i].hidden = lower.length > 0 && !sel.options[i].text.toLowerCase().includes(lower);
+    if (!_custAllOpts) {{
+        _custAllOpts = Array.from(sel.options).map(o => o.cloneNode(true));
     }}
+    const lower = q.toLowerCase().trim();
+    const cur = sel.value;
+    sel.innerHTML = '';
+    _custAllOpts.forEach(opt => {{
+        if (!lower || opt.text.toLowerCase().includes(lower)) {{
+            sel.appendChild(opt.cloneNode(true));
+        }}
+    }});
+    sel.value = cur;
 }}
 
-// 商品搜索过滤（每行独立）
+// 商品搜索过滤（重建 DOM，兼容 Chrome；每行独立）
 function filterProductSelect(input) {{
     const q = input.value.toLowerCase().trim();
     const select = input.nextElementSibling;
-    for (let i = 1; i < select.options.length; i++) {{
-        select.options[i].hidden = q.length > 0 && !select.options[i].text.toLowerCase().includes(q);
+    if (!select._allOpts) {{
+        select._allOpts = Array.from(select.options).map(o => o.cloneNode(true));
     }}
+    const cur = select.value;
+    select.innerHTML = '';
+    select._allOpts.forEach(opt => {{
+        if (!q || opt.text.toLowerCase().includes(q)) {{
+            select.appendChild(opt.cloneNode(true));
+        }}
+    }});
+    select.value = cur;
 }}
 </script>"#,
         customer_options,
@@ -4431,12 +4452,17 @@ function updateItemPrice(select) {{
 
 function addItem() {{
     const container = document.getElementById('itemsContainer');
+    const firstSel = container.querySelector('.item-row select');
+    const allOpts = (firstSel._allOpts || Array.from(firstSel.options)).map(o => o.cloneNode(true));
+
     const row = container.querySelector('.item-row').cloneNode(true);
     const searchInput = row.querySelector('.product-search');
     if (searchInput) {{ searchInput.value = ''; }}
     const sel = row.querySelector('select');
+    sel.innerHTML = '';
+    allOpts.forEach(o => sel.appendChild(o.cloneNode(true)));
     sel.value = '';
-    for (let opt of sel.options) opt.hidden = false;
+    sel._allOpts = allOpts.map(o => o.cloneNode(true));
     row.querySelector('input[name="item_quantity[]"]').value = '1';
     row.querySelector('input[name="item_price[]"]').value = '';
     row.querySelector('input[name="item_subtotal[]"]').value = '';
@@ -4474,18 +4500,34 @@ calculateTotal();
 
 function filterCustomers(q) {{
     const sel = document.getElementById('customerSelect');
-    const lower = q.toLowerCase().trim();
-    for (let i = 1; i < sel.options.length; i++) {{
-        sel.options[i].hidden = lower.length > 0 && !sel.options[i].text.toLowerCase().includes(lower);
+    if (!sel._allOpts) {{
+        sel._allOpts = Array.from(sel.options).map(o => o.cloneNode(true));
     }}
+    const lower = q.toLowerCase().trim();
+    const cur = sel.value;
+    sel.innerHTML = '';
+    sel._allOpts.forEach(opt => {{
+        if (!lower || opt.text.toLowerCase().includes(lower)) {{
+            sel.appendChild(opt.cloneNode(true));
+        }}
+    }});
+    sel.value = cur;
 }}
 
 function filterProductSelect(input) {{
     const q = input.value.toLowerCase().trim();
     const select = input.nextElementSibling;
-    for (let i = 1; i < select.options.length; i++) {{
-        select.options[i].hidden = q.length > 0 && !select.options[i].text.toLowerCase().includes(q);
+    if (!select._allOpts) {{
+        select._allOpts = Array.from(select.options).map(o => o.cloneNode(true));
     }}
+    const cur = select.value;
+    select.innerHTML = '';
+    select._allOpts.forEach(opt => {{
+        if (!q || opt.text.toLowerCase().includes(q)) {{
+            select.appendChild(opt.cloneNode(true));
+        }}
+    }});
+    select.value = cur;
 }}
 </script>"#,
         order.order.id,
