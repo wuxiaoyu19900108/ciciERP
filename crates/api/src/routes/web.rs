@@ -1511,17 +1511,6 @@ pub async fn product_new_page(
                 </div>
             </div>
 
-            <!-- 自动计算按钮 -->
-            <div class="mt-3 flex gap-2">
-                <button type="button" id="btn_auto_calc_ae" onclick="autoCalcAE()"
-                        class="text-xs px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200">
-                    💡 AE自动计算 (15%利润率)
-                </button>
-                <button type="button" id="btn_auto_calc_ali" onclick="autoCalcALI()"
-                        class="text-xs px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200">
-                    💡 ALI自动计算 (15%利润率)
-                </button>
-            </div>
         </div>
 
         <!-- 提交按钮 -->
@@ -1665,30 +1654,6 @@ pub async fn product_new_page(
                 'w-full p-2 rounded-lg border text-xs ' +
                 (profit > 0 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700');
         }}
-    }}
-
-    function autoCalcAE() {{
-        const cost = costCnyVal();
-        if (cost <= 0) {{ alert('请先填写成本(CNY)'); return; }}
-        const fee = (parseFloat(document.getElementById('ae_fee_rate')?.value) || 12) / 100;
-        const margin = 0.15;
-        const denom = 1 - margin - fee;
-        if (denom <= 0) return;
-        const price = cost / denom;
-        const el = document.getElementById('ae_sale_price_cny');
-        if (el) {{ el.value = price.toFixed(2); calcAEPrices(); }}
-    }}
-
-    function autoCalcALI() {{
-        const cost = costCnyVal();
-        if (cost <= 0) {{ alert('请先填写成本(CNY)'); return; }}
-        const fee = (parseFloat(document.getElementById('ali_fee_rate')?.value) || 2.5) / 100;
-        const margin = 0.15;
-        const denom = 1 - margin - fee;
-        if (denom <= 0) return;
-        const priceUsd = (cost / denom) / rate();
-        const el = document.getElementById('ali_sale_price_usd');
-        if (el) {{ el.value = Math.max(priceUsd, 1.0).toFixed(2); calcALIPrices(); }}
     }}
 
     document.getElementById('ae_sale_price_cny')?.addEventListener('input', calcAEPrices);
@@ -3147,17 +3112,6 @@ pub async fn product_edit_page(
                 </div>
             </div>
 
-            <!-- 自动计算按钮 -->
-            <div class="mt-3 flex gap-2">
-                <button type="button" onclick="autoCalcAE()"
-                        class="text-xs px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200">
-                    💡 AE自动计算 (15%利润率)
-                </button>
-                <button type="button" onclick="autoCalcALI()"
-                        class="text-xs px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200">
-                    💡 ALI自动计算 (15%利润率)
-                </button>
-            </div>
         </div>
 
         <!-- 提交按钮 -->
@@ -3344,30 +3298,6 @@ pub async fn product_edit_page(
                 'w-full p-2 rounded-lg border text-xs ' +
                 (profit > 0 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700');
         }}
-    }}
-
-    function autoCalcAE() {{
-        const cost = costCnyVal();
-        if (cost <= 0) {{ alert('请先填写成本(CNY)'); return; }}
-        const fee = (parseFloat(document.getElementById('ae_fee_rate')?.value) || 12) / 100;
-        const margin = 0.15;
-        const denom = 1 - margin - fee;
-        if (denom <= 0) return;
-        const price = cost / denom;
-        const el = document.getElementById('ae_sale_price_cny');
-        if (el) {{ el.value = price.toFixed(2); calcAEPrices(); }}
-    }}
-
-    function autoCalcALI() {{
-        const cost = costCnyVal();
-        if (cost <= 0) {{ alert('请先填写成本(CNY)'); return; }}
-        const fee = (parseFloat(document.getElementById('ali_fee_rate')?.value) || 2.5) / 100;
-        const margin = 0.15;
-        const denom = 1 - margin - fee;
-        if (denom <= 0) return;
-        const priceUsd = (cost / denom) / rate();
-        const el = document.getElementById('ali_sale_price_usd');
-        if (el) {{ el.value = Math.max(priceUsd, 1.0).toFixed(2); calcALIPrices(); }}
     }}
 
     document.getElementById('ae_sale_price_cny')?.addEventListener('input', calcAEPrices);
