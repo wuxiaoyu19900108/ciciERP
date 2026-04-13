@@ -1382,7 +1382,7 @@ pub async fn product_new_page(
                     <span class="text-sm font-semibold text-orange-700">🛒 AliExpress</span>
                     <span class="text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">主输入: RMB</span>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
                         <input type="number" id="ae_fee_rate" name="ae_fee_rate" step="0.01" min="0" value="12.0"
@@ -1394,12 +1394,6 @@ pub async fn product_new_page(
                         <input type="number" id="ae_sale_price_cny" name="ae_sale_price_cny" step="0.01" min="0" value=""
                                class="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
                                placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
-                        <input type="number" id="ae_sale_price_usd" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
-                               readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
                         <div id="ae_profit_preview" class="w-full p-2 rounded-lg bg-white border border-orange-200 text-xs text-gray-600">
@@ -1416,7 +1410,7 @@ pub async fn product_new_page(
                     <span class="text-sm font-semibold text-yellow-700">🏪 Alibaba</span>
                     <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">主输入: USD</span>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
                         <input type="number" id="ali_fee_rate" name="ali_fee_rate" step="0.01" min="0" value="2.5"
@@ -1428,12 +1422,6 @@ pub async fn product_new_page(
                         <input type="number" id="ali_sale_price_usd" name="ali_sale_price_usd" step="0.01" min="0" value=""
                                class="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
                                placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
-                        <input type="number" id="ali_sale_price_cny" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
-                               readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
                         <div id="ali_profit_preview" class="w-full p-2 rounded-lg bg-white border border-yellow-200 text-xs text-gray-600">
@@ -1570,9 +1558,6 @@ pub async fn product_new_page(
 
     function calcAEPrices() {{
         const cny = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
-        const r = rate();
-        const usdEl = document.getElementById('ae_sale_price_usd');
-        if (usdEl && cny > 0) usdEl.value = (cny / r).toFixed(2);
         updateAEProfit();
     }}
 
@@ -1593,9 +1578,6 @@ pub async fn product_new_page(
 
     function calcALIPrices() {{
         const usd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
-        const r = rate();
-        const cnyEl = document.getElementById('ali_sale_price_cny');
-        if (cnyEl && usd > 0) cnyEl.value = (usd * r).toFixed(2);
         updateALIProfit();
     }}
 
@@ -1980,22 +1962,6 @@ pub struct ProductForm {
     // 全局汇率
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     price_exchange_rate: Option<f64>,
-    // 遗留字段（向后兼容，已废弃）
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    sale_price_cny: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    sale_price_usd: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    profit_margin: Option<f64>,
-    price_notes: Option<String>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    platform_fee_rate: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    fee_rate_website: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    fee_rate_alibaba: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    fee_rate_aliexpress: Option<f64>,
 }
 
 #[derive(Debug, Clone)]
@@ -2203,6 +2169,19 @@ fn desired_price_count(pricing: &ProductPricingInput, exchange_rate: f64) -> usi
     .count()
 }
 
+fn validate_platform_pricing(pricing: &ProductPricingInput) -> Option<&'static str> {
+    if matches!(pricing.ae_sale_price_cny, Some(value) if value < 0.0) {
+        return Some("AliExpress 售价不能为负数");
+    }
+    if matches!(pricing.ali_sale_price_usd, Some(value) if value < 0.0) {
+        return Some("Alibaba 售价不能为负数");
+    }
+    if matches!(pricing.web_sale_price_cny, Some(value) if value < 0.0) {
+        return Some("Website 售价不能为负数");
+    }
+    None
+}
+
 async fn sync_reference_pricing(
     tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     product_id: i64,
@@ -2281,7 +2260,9 @@ pub async fn product_create_handler(
     // BUG-027: 数值校验
     if let Some(r) = form.cost_exchange_rate { if r <= 0.0 { return Err(render_product_form_error("汇率必须大于0", &form)); } }
     if let Some(r) = form.price_exchange_rate { if r <= 0.0 { return Err(render_product_form_error("汇率必须大于0", &form)); } }
-    if let Some(p) = form.sale_price_usd { if p < 0.0 { return Err(render_product_form_error("售价不能为负数", &form)); } }
+    if let Some(message) = validate_platform_pricing(&pricing_input) {
+        return Err(render_product_form_error(message, &form));
+    }
 
     // BUG-030/036: 无售价时强制草稿状态
     let effective_status = {
@@ -2364,60 +2345,50 @@ fn render_product_form_error(error: &str, form: &ProductForm) -> Html<String> {
     <h1 class="text-xl sm:text-2xl font-bold text-gray-800">新增产品</h1>
 </div>
 
-<!-- 错误提示 -->
 <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
     <p class="text-red-600 text-sm">{}</p>
 </div>
 
-<!-- 产品表单（简化版，用于错误回显） -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-    <form action="/products/new" method="POST" class="p-4 sm:p-6">
+    <form action="/products/new" method="POST" class="p-4 sm:p-6 space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <!-- 产品名称 -->
             <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-                    产品名称 <span class="text-red-500">*</span>
-                </label>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">产品名称 <span class="text-red-500">*</span></label>
                 <input type="text" id="name" name="name" value="{}" required
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                       placeholder="请输入产品名称">
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
-
-            <!-- 英文名称 -->
             <div>
-                <label for="name_en" class="block text-sm font-medium text-gray-700 mb-2">
-                    英文名称
-                </label>
+                <label for="name_en" class="block text-sm font-medium text-gray-700 mb-2">英文名称</label>
                 <input type="text" id="name_en" name="name_en" value="{}"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                       placeholder="English Name">
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
-
-            <!-- 参考成本 -->
             <div>
-                <label for="cost_cny" class="block text-sm font-medium text-gray-700 mb-2">
-                    参考成本 (CNY)
-                </label>
+                <label for="cost_cny" class="block text-sm font-medium text-gray-700 mb-2">成本 (CNY)</label>
                 <input type="number" id="cost_cny" name="cost_cny" value="{}" step="0.01" min="0"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                       placeholder="0.00">
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
-
-            <!-- 参考售价 -->
             <div>
-                <label for="sale_price_cny" class="block text-sm font-medium text-gray-700 mb-2">
-                    参考售价 (CNY)
-                </label>
-                <input type="number" id="sale_price_cny" name="sale_price_cny" value="{}" step="0.01" min="0"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                       placeholder="0.00">
+                <label for="price_exchange_rate" class="block text-sm font-medium text-gray-700 mb-2">参考汇率 (USD/CNY)</label>
+                <input type="number" id="price_exchange_rate" name="price_exchange_rate" value="{}" step="0.01" min="0"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
-
-            <!-- 状态 -->
             <div>
-                <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
-                    状态
-                </label>
+                <label for="ae_sale_price_cny" class="block text-sm font-medium text-gray-700 mb-2">AliExpress 售价 (CNY)</label>
+                <input type="number" id="ae_sale_price_cny" name="ae_sale_price_cny" value="{}" step="0.01" min="0"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label for="ali_sale_price_usd" class="block text-sm font-medium text-gray-700 mb-2">Alibaba 售价 (USD)</label>
+                <input type="number" id="ali_sale_price_usd" name="ali_sale_price_usd" value="{}" step="0.01" min="0"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label for="web_sale_price_cny" class="block text-sm font-medium text-gray-700 mb-2">Website 售价 (CNY)</label>
+                <input type="number" id="web_sale_price_cny" name="web_sale_price_cny" value="{}" step="0.01" min="0"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-2">状态</label>
                 <select id="status" name="status"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="3" {}>草稿</option>
@@ -2427,25 +2398,15 @@ fn render_product_form_error(error: &str, form: &ProductForm) -> Html<String> {
             </div>
         </div>
 
-        <!-- 描述 -->
-        <div class="mt-6">
-            <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-                产品描述
-            </label>
+        <div>
+            <label for="description" class="block text-sm font-medium text-gray-700 mb-2">产品描述</label>
             <textarea id="description" name="description" rows="4"
-                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="请输入产品描述...">{}</textarea>
+                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">{}</textarea>
         </div>
 
-        <!-- 提交按钮 -->
-        <div class="mt-6 flex items-center gap-4">
-            <button type="submit"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                保存产品
-            </button>
-            <a href="/products" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                取消
-            </a>
+        <div class="flex items-center gap-4">
+            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">保存产品</button>
+            <a href="/products" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">取消</a>
         </div>
     </form>
 </div>"#,
@@ -2453,7 +2414,10 @@ fn render_product_form_error(error: &str, form: &ProductForm) -> Html<String> {
         form.name,
         form.name_en.as_deref().unwrap_or(""),
         form.cost_cny.unwrap_or(0.0),
-        form.sale_price_cny.unwrap_or(0.0),
+        form.price_exchange_rate.unwrap_or(0.0),
+        form.ae_sale_price_cny.unwrap_or(0.0),
+        form.ali_sale_price_usd.unwrap_or(0.0),
+        form.web_sale_price_cny.unwrap_or(0.0),
         if form.status == Some(3) { "selected" } else { "" },
         if form.status == Some(1) || form.status.is_none() { "selected" } else { "" },
         if form.status == Some(2) { "selected" } else { "" },
@@ -2531,16 +2495,14 @@ pub async fn product_detail_page(
         r#"<span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">新品</span>"#
     } else { "" };
 
-    // 帮助函数：格式化平台价格区块（platform: "ae"=只CNY, "ali"=USD主+CNY副, 其他=只CNY）
+    // 帮助函数：格式化平台价格区块（AliExpress 只显示 CNY，Alibaba 只显示 USD，其他只显示 CNY）
     let fmt_platform_price = |platform_label: &str, platform: &str, price: Option<&cicierp_models::product::ProductPrice>| -> String {
         if let Some(p) = price {
             let price_rows = if platform == "ali" {
-                // Alibaba: USD 为主，CNY 为辅
+                // Alibaba: 只显示 USD 主售价
                 format!(
-                    r#"<div><p class="text-xs text-gray-400">售价(USD) ★</p><p class="font-medium">{}</p></div>
-        <div><p class="text-xs text-gray-400">售价(CNY)</p><p class="font-medium">¥{:.2}</p></div>"#,
+                    r#"<div class="col-span-2"><p class="text-xs text-gray-400">售价(USD)</p><p class="font-medium">{}</p></div>"#,
                     p.sale_price_usd.map(|v| format!("${:.2}", v)).unwrap_or("-".to_string()),
-                    p.sale_price_cny,
                 )
             } else {
                 // AliExpress / Website: 只显示 CNY
@@ -3056,7 +3018,7 @@ pub async fn product_edit_page(
                     <span class="text-sm font-semibold text-orange-700">🛒 AliExpress</span>
                     <span class="text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">主输入: RMB</span>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
                         <input type="number" id="ae_fee_rate" name="ae_fee_rate" step="0.01" min="0" value="{ae_fee}"
@@ -3068,12 +3030,6 @@ pub async fn product_edit_page(
                         <input type="number" id="ae_sale_price_cny" name="ae_sale_price_cny" step="0.01" min="0" value="{ae_price_cny}"
                                class="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
                                placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
-                        <input type="number" id="ae_sale_price_usd" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
-                               readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
                         <div id="ae_profit_preview" class="w-full p-2 rounded-lg bg-white border border-orange-200 text-xs text-gray-600">
@@ -3090,7 +3046,7 @@ pub async fn product_edit_page(
                     <span class="text-sm font-semibold text-yellow-700">🏪 Alibaba</span>
                     <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">主输入: USD</span>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
                         <input type="number" id="ali_fee_rate" name="ali_fee_rate" step="0.01" min="0" value="{ali_fee}"
@@ -3102,12 +3058,6 @@ pub async fn product_edit_page(
                         <input type="number" id="ali_sale_price_usd" name="ali_sale_price_usd" step="0.01" min="0" value="{ali_price_usd}"
                                class="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
                                placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
-                        <input type="number" id="ali_sale_price_cny" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
-                               readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
                         <div id="ali_profit_preview" class="w-full p-2 rounded-lg bg-white border border-yellow-200 text-xs text-gray-600">
@@ -3287,9 +3237,6 @@ pub async fn product_edit_page(
 
     function calcAEPrices() {{
         const cny = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
-        const r = rate();
-        const usdEl = document.getElementById('ae_sale_price_usd');
-        if (usdEl && cny > 0) usdEl.value = (cny / r).toFixed(2);
         updateAEProfit();
     }}
 
@@ -3310,9 +3257,6 @@ pub async fn product_edit_page(
 
     function calcALIPrices() {{
         const usd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
-        const r = rate();
-        const cnyEl = document.getElementById('ali_sale_price_cny');
-        if (cnyEl && usd > 0) cnyEl.value = (usd * r).toFixed(2);
         updateALIProfit();
     }}
 
@@ -3563,22 +3507,6 @@ pub struct ProductEditForm {
     // 全局汇率
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     price_exchange_rate: Option<f64>,
-    // 遗留字段（向后兼容，已废弃）
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    sale_price_cny: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    sale_price_usd: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    profit_margin: Option<f64>,
-    price_notes: Option<String>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    platform_fee_rate: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    fee_rate_website: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    fee_rate_alibaba: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    fee_rate_aliexpress: Option<f64>,
 }
 pub async fn product_update_handler(
     State(state): State<AppState>,
@@ -3633,10 +3561,10 @@ pub async fn product_update_handler(
         let e = Html(format!(r#"<div class="text-center py-12"><p class="text-4xl mb-4">❌</p><p class="text-gray-600 mb-4">汇率必须大于0</p><a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a></div>"#, id));
         return Err(e);
     }}
-    if let Some(p) = form.sale_price_usd { if p < 0.0 {
-        let e = Html(format!(r#"<div class="text-center py-12"><p class="text-4xl mb-4">❌</p><p class="text-gray-600 mb-4">售价不能为负数</p><a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a></div>"#, id));
+    if let Some(message) = validate_platform_pricing(&pricing_input) {
+        let e = Html(format!(r#"<div class="text-center py-12"><p class="text-4xl mb-4">❌</p><p class="text-gray-600 mb-4">{}</p><a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a></div>"#, message, id));
         return Err(e);
-    }}
+    }
 
     // BUG-036: 上架状态需要有售价（检查新三平台字段）
     let buffered_rate = {
