@@ -1380,7 +1380,7 @@ pub async fn product_new_page(
             <div class="mb-4 p-4 border border-orange-200 rounded-xl bg-orange-50">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="text-sm font-semibold text-orange-700">🛒 AliExpress</span>
-                    <span class="text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">主输入: RMB</span>
+                    <span class="text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">固定利润率 40%</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
@@ -1390,10 +1390,10 @@ pub async fn product_new_page(
                                placeholder="5.0">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-orange-600">★</span></label>
-                        <input type="number" id="ae_sale_price_cny" name="ae_sale_price_cny" step="0.01" min="0" value=""
-                               class="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
-                               placeholder="0.00">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="ae_sale_price_cny" step="0.01" min="0" value=""
+                               class="w-full px-3 py-2 border border-orange-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
+                               readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
                         <div id="ae_profit_preview" class="w-full p-2 rounded-lg bg-white border border-orange-200 text-xs text-gray-600">
@@ -1408,7 +1408,7 @@ pub async fn product_new_page(
             <div class="mb-4 p-4 border border-yellow-200 rounded-xl bg-yellow-50">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="text-sm font-semibold text-yellow-700">🏪 Alibaba</span>
-                    <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">主输入: USD</span>
+                    <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">固定利润率 15%</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
@@ -1418,10 +1418,10 @@ pub async fn product_new_page(
                                placeholder="3.0">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-yellow-600">★</span></label>
-                        <input type="number" id="ali_sale_price_usd" name="ali_sale_price_usd" step="0.01" min="0" value=""
-                               class="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
-                               placeholder="0.00">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="ali_sale_price_usd" step="0.01" min="0" value=""
+                               class="w-full px-3 py-2 border border-yellow-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
+                               readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
                         <div id="ali_profit_preview" class="w-full p-2 rounded-lg bg-white border border-yellow-200 text-xs text-gray-600">
@@ -1436,9 +1436,9 @@ pub async fn product_new_page(
             <div class="p-4 border border-blue-200 rounded-xl bg-blue-50">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="text-sm font-semibold text-blue-700">🌐 Website</span>
-                    <span class="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded-full">独立站</span>
+                    <span class="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded-full">固定利润率 40%</span>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
                         <input type="number" id="web_fee_rate" name="web_fee_rate" step="0.01" min="0" value="0.0"
@@ -1446,28 +1446,15 @@ pub async fn product_new_page(
                                placeholder="2.5">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">定价模式</label>
-                        <select id="web_mode" name="web_mode"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                onchange="updateWebModeUI()">
-                            <option value="independent" selected>独立定价</option>
-                            <option value="follow_ae">跟随 AE 价格</option>
-                            <option value="follow_ali">跟随 ALI 价格</option>
-                        </select>
-                    </div>
-                </div>
-                <!-- 独立定价输入 -->
-                <div id="web_independent_section" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-blue-600">★</span></label>
-                        <input type="number" id="web_sale_price_cny" name="web_sale_price_cny" step="0.01" min="0" value=""
-                               class="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                               placeholder="0.00">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="web_sale_price_cny" step="0.01" min="0" value=""
+                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
+                               readonly placeholder="0.00">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
                         <input type="number" id="web_sale_price_usd" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
                                readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
@@ -1475,38 +1462,6 @@ pub async fn product_new_page(
                             <div>利润: <span id="web_profit_val" class="font-medium">-</span></div>
                             <div>利润率: <span id="web_profit_pct" class="font-medium">-</span></div>
                         </div>
-                    </div>
-                </div>
-                <!-- 跟随模式调整 -->
-                <div id="web_follow_section" class="hidden grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">参考平台价格 (CNY)</label>
-                        <input type="number" id="web_ref_price_cny" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
-                               readonly placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">调整方式</label>
-                        <select id="web_adj_type" name="web_adj_type"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                onchange="calcWebFollowPrice()">
-                            <option value="fixed_add">固定加价 (+CNY)</option>
-                            <option value="fixed_sub">固定减价 (-CNY)</option>
-                            <option value="percent_up">百分比上调 (+%)</option>
-                            <option value="percent_down">百分比下调 (-%)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">调整值</label>
-                        <input type="number" id="web_adj_value" name="web_adj_value" step="0.01" min="0" value=""
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                               placeholder="0" oninput="calcWebFollowPrice()">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">计算结果 (CNY)</label>
-                        <input type="number" id="web_follow_result_cny" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-blue-100 text-blue-800 cursor-not-allowed"
-                               readonly placeholder="0.00">
                     </div>
                 </div>
             </div>
@@ -1540,13 +1495,23 @@ pub async fn product_new_page(
         }}
     }}
 
-    // === 新定价系统 ===
+    const aeMargin = 0.40;
+    const aliMargin = 0.15;
+    const webMargin = 0.40;
     const rate = () => parseFloat(document.getElementById('price_exchange_rate')?.value) || {buffered_rate};
     const costCnyVal = () => parseFloat(document.getElementById('cost_cny')?.value) || 0;
     const costUsdVal = () => costCnyVal() / rate();
+    function calcSalePrice(cost, feeRate, margin) {{
+        const denominator = 1 - feeRate - margin;
+        if (cost <= 0 || denominator <= 0) return 0;
+        return cost / denominator;
+    }}
 
     function calcAEPrices() {{
-        const cny = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+        const fee = (parseFloat(document.getElementById('ae_fee_rate')?.value) || 12) / 100;
+        const cny = calcSalePrice(costCnyVal(), fee, aeMargin);
+        const priceEl = document.getElementById('ae_sale_price_cny');
+        if (priceEl) priceEl.value = cny > 0 ? cny.toFixed(2) : '';
         updateAEProfit();
     }}
 
@@ -1566,7 +1531,10 @@ pub async fn product_new_page(
     }}
 
     function calcALIPrices() {{
-        const usd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+        const fee = (parseFloat(document.getElementById('ali_fee_rate')?.value) || 2.5) / 100;
+        const usd = calcSalePrice(costUsdVal(), fee, aliMargin);
+        const priceEl = document.getElementById('ali_sale_price_usd');
+        if (priceEl) priceEl.value = usd > 0 ? usd.toFixed(2) : '';
         updateALIProfit();
     }}
 
@@ -1585,64 +1553,19 @@ pub async fn product_new_page(
         }}
     }}
 
-    function updateWebModeUI() {{
-        const mode = document.getElementById('web_mode')?.value;
-        const indSection = document.getElementById('web_independent_section');
-        const followSection = document.getElementById('web_follow_section');
-        if (mode === 'independent') {{
-            indSection?.classList.remove('hidden');
-            followSection?.classList.add('hidden');
-        }} else {{
-            indSection?.classList.add('hidden');
-            followSection?.classList.remove('hidden');
-            updateWebRefPrice();
-        }}
-        updateWebProfit();
-    }}
-
-    function updateWebRefPrice() {{
-        const mode = document.getElementById('web_mode')?.value;
-        const refEl = document.getElementById('web_ref_price_cny');
-        if (!refEl) return;
-        if (mode === 'follow_ae') {{
-            const aePrice = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
-            refEl.value = aePrice > 0 ? aePrice.toFixed(2) : '';
-        }} else if (mode === 'follow_ali') {{
-            const aliUsd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
-            refEl.value = aliUsd > 0 ? (aliUsd * rate()).toFixed(2) : '';
-        }}
-        calcWebFollowPrice();
-    }}
-
-    function calcWebFollowPrice() {{
-        const refCny = parseFloat(document.getElementById('web_ref_price_cny')?.value) || 0;
-        const adjType = document.getElementById('web_adj_type')?.value || 'fixed_add';
-        const adjVal = parseFloat(document.getElementById('web_adj_value')?.value) || 0;
-        let result = refCny;
-        if (adjType === 'fixed_add') result = refCny + adjVal;
-        else if (adjType === 'fixed_sub') result = refCny - adjVal;
-        else if (adjType === 'percent_up') result = refCny * (1 + adjVal / 100);
-        else if (adjType === 'percent_down') result = refCny * (1 - adjVal / 100);
-        const resultEl = document.getElementById('web_follow_result_cny');
-        if (resultEl) resultEl.value = result > 0 ? result.toFixed(2) : '';
-        updateWebProfit();
-    }}
-
-    function calcWebIndependentPrices() {{
-        const cny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
+    function calcWebPrices() {{
+        const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
+        const cny = calcSalePrice(costCnyVal(), fee, webMargin);
+        const cnyEl = document.getElementById('web_sale_price_cny');
         const usdEl = document.getElementById('web_sale_price_usd');
+        if (cnyEl) cnyEl.value = cny > 0 ? cny.toFixed(2) : '';
         if (usdEl && cny > 0) usdEl.value = (cny / rate()).toFixed(2);
+        else if (usdEl) usdEl.value = '';
         updateWebProfit();
     }}
 
     function updateWebProfit() {{
-        const mode = document.getElementById('web_mode')?.value || 'independent';
-        let priceCny = 0;
-        if (mode === 'independent') {{
-            priceCny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
-        }} else {{
-            priceCny = parseFloat(document.getElementById('web_follow_result_cny')?.value) || 0;
-        }}
+        const priceCny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
         const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
         const cost = costCnyVal();
         if (priceCny > 0 && cost > 0) {{
@@ -1657,28 +1580,26 @@ pub async fn product_new_page(
     }}
 
     document.getElementById('ae_sale_price_cny')?.addEventListener('input', calcAEPrices);
-    document.getElementById('ae_fee_rate')?.addEventListener('input', updateAEProfit);
+    document.getElementById('ae_fee_rate')?.addEventListener('input', calcAEPrices);
     document.getElementById('ali_sale_price_usd')?.addEventListener('input', calcALIPrices);
-    document.getElementById('ali_fee_rate')?.addEventListener('input', updateALIProfit);
-    document.getElementById('web_sale_price_cny')?.addEventListener('input', calcWebIndependentPrices);
-    document.getElementById('web_fee_rate')?.addEventListener('input', updateWebProfit);
+    document.getElementById('ali_fee_rate')?.addEventListener('input', calcALIPrices);
+    document.getElementById('web_fee_rate')?.addEventListener('input', calcWebPrices);
     document.getElementById('price_exchange_rate')?.addEventListener('input', function() {{
         calcCostUsd();
         calcAEPrices();
         calcALIPrices();
-        calcWebIndependentPrices();
+        calcWebPrices();
     }});
     document.getElementById('cost_cny')?.addEventListener('input', function() {{
         calcCostUsd();
-        updateAEProfit();
-        updateALIProfit();
-        updateWebProfit();
+        calcAEPrices();
+        calcALIPrices();
+        calcWebPrices();
     }});
 
-    updateWebModeUI();
     calcAEPrices();
     calcALIPrices();
-    calcWebIndependentPrices();
+    calcWebPrices();
 
     document.getElementById('status')?.addEventListener('change', function() {{
         if (this.value === '1') {{
@@ -1903,25 +1824,11 @@ pub struct ProductForm {
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_exchange_rate: Option<f64>,
     cost_notes: Option<String>,
-    // 参考售价 - 新三平台独立定价
-    price_platform: Option<String>,
-    // AliExpress (主输入: CNY)
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    ae_sale_price_cny: Option<f64>,
+    // 参考售价
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     ae_fee_rate: Option<f64>,
-    // Alibaba (主输入: USD)
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    ali_sale_price_usd: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     ali_fee_rate: Option<f64>,
-    // Website
-    web_mode: Option<String>,
-    web_adj_type: Option<String>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    web_adj_value: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    web_sale_price_cny: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     web_fee_rate: Option<f64>,
     // 全局汇率
@@ -1934,14 +1841,8 @@ struct ProductPricingInput {
     supplier_id: Option<i64>,
     cost_cny: Option<f64>,
     cost_notes: Option<String>,
-    ae_sale_price_cny: Option<f64>,
     ae_fee_rate: Option<f64>,
-    ali_sale_price_usd: Option<f64>,
     ali_fee_rate: Option<f64>,
-    web_mode: Option<String>,
-    web_adj_type: Option<String>,
-    web_adj_value: Option<f64>,
-    web_sale_price_cny: Option<f64>,
     web_fee_rate: Option<f64>,
     price_exchange_rate: Option<f64>,
 }
@@ -1952,14 +1853,8 @@ impl From<&ProductForm> for ProductPricingInput {
             supplier_id: form.supplier_id,
             cost_cny: form.cost_cny,
             cost_notes: form.cost_notes.clone(),
-            ae_sale_price_cny: form.ae_sale_price_cny,
             ae_fee_rate: form.ae_fee_rate,
-            ali_sale_price_usd: form.ali_sale_price_usd,
             ali_fee_rate: form.ali_fee_rate,
-            web_mode: form.web_mode.clone(),
-            web_adj_type: form.web_adj_type.clone(),
-            web_adj_value: form.web_adj_value,
-            web_sale_price_cny: form.web_sale_price_cny,
             web_fee_rate: form.web_fee_rate,
             price_exchange_rate: form.price_exchange_rate,
         }
@@ -1972,14 +1867,8 @@ impl From<&ProductEditForm> for ProductPricingInput {
             supplier_id: form.supplier_id,
             cost_cny: form.cost_cny,
             cost_notes: form.cost_notes.clone(),
-            ae_sale_price_cny: form.ae_sale_price_cny,
             ae_fee_rate: form.ae_fee_rate,
-            ali_sale_price_usd: form.ali_sale_price_usd,
             ali_fee_rate: form.ali_fee_rate,
-            web_mode: form.web_mode.clone(),
-            web_adj_type: form.web_adj_type.clone(),
-            web_adj_value: form.web_adj_value,
-            web_sale_price_cny: form.web_sale_price_cny,
             web_fee_rate: form.web_fee_rate,
             price_exchange_rate: form.price_exchange_rate,
         }
@@ -1989,7 +1878,18 @@ impl From<&ProductEditForm> for ProductPricingInput {
 const AE_DEFAULT_FEE_RATE: f64 = 0.12;
 const ALI_DEFAULT_FEE_RATE: f64 = 0.025;
 const WEB_DEFAULT_FEE_RATE: f64 = 0.0;
-const DEFAULT_PROFIT_MARGIN: f64 = 0.15;
+const AE_FIXED_PROFIT_MARGIN: f64 = 0.40;
+const ALI_FIXED_PROFIT_MARGIN: f64 = 0.15;
+const WEB_FIXED_PROFIT_MARGIN: f64 = 0.40;
+
+fn compute_sale_price(cost: f64, fee_rate: f64, profit_margin: f64) -> Option<f64> {
+    let denominator = 1.0 - fee_rate - profit_margin;
+    if cost > 0.0 && denominator > 0.0 {
+        Some(cost / denominator)
+    } else {
+        None
+    }
+}
 
 fn build_reference_cost_write(
     product_id: i64,
@@ -2012,15 +1912,17 @@ fn build_aliexpress_price_write(
     pricing: &ProductPricingInput,
     exchange_rate: f64,
 ) -> Option<ReferencePriceWrite> {
-    let sale_price_cny = pricing.ae_sale_price_cny.filter(|v| *v > 0.0)?;
+    let cost_cny = pricing.cost_cny.filter(|v| *v > 0.0)?;
+    let fee_rate = pricing.ae_fee_rate.map(|v| v / 100.0).unwrap_or(AE_DEFAULT_FEE_RATE);
+    let sale_price_cny = compute_sale_price(cost_cny, fee_rate, AE_FIXED_PROFIT_MARGIN)?;
     Some(ReferencePriceWrite {
         product_id,
         platform: "aliexpress".to_string(),
         sale_price_cny,
         sale_price_usd: Some(sale_price_cny / exchange_rate),
         exchange_rate,
-        profit_margin: Some(DEFAULT_PROFIT_MARGIN),
-        platform_fee_rate: Some(pricing.ae_fee_rate.map(|v| v / 100.0).unwrap_or(AE_DEFAULT_FEE_RATE)),
+        profit_margin: Some(AE_FIXED_PROFIT_MARGIN),
+        platform_fee_rate: Some(fee_rate),
         notes: None,
         pricing_mode: Some("margin".to_string()),
         input_currency: Some("CNY".to_string()),
@@ -2035,15 +1937,18 @@ fn build_alibaba_price_write(
     pricing: &ProductPricingInput,
     exchange_rate: f64,
 ) -> Option<ReferencePriceWrite> {
-    let sale_price_usd = pricing.ali_sale_price_usd.filter(|v| *v > 0.0)?;
+    let cost_cny = pricing.cost_cny.filter(|v| *v > 0.0)?;
+    let cost_usd = cost_cny / exchange_rate;
+    let fee_rate = pricing.ali_fee_rate.map(|v| v / 100.0).unwrap_or(ALI_DEFAULT_FEE_RATE);
+    let sale_price_usd = compute_sale_price(cost_usd, fee_rate, ALI_FIXED_PROFIT_MARGIN)?;
     Some(ReferencePriceWrite {
         product_id,
         platform: "alibaba".to_string(),
         sale_price_cny: sale_price_usd * exchange_rate,
         sale_price_usd: Some(sale_price_usd),
         exchange_rate,
-        profit_margin: Some(DEFAULT_PROFIT_MARGIN),
-        platform_fee_rate: Some(pricing.ali_fee_rate.map(|v| v / 100.0).unwrap_or(ALI_DEFAULT_FEE_RATE)),
+        profit_margin: Some(ALI_FIXED_PROFIT_MARGIN),
+        platform_fee_rate: Some(fee_rate),
         notes: None,
         pricing_mode: Some("markup".to_string()),
         input_currency: Some("USD".to_string()),
@@ -2058,41 +1963,9 @@ fn build_website_price_write(
     pricing: &ProductPricingInput,
     exchange_rate: f64,
 ) -> Option<ReferencePriceWrite> {
-    let web_mode = pricing.web_mode.as_deref().unwrap_or("independent");
-    let sale_price_cny = match web_mode {
-        "follow_ae" => {
-            let ae_cny = pricing.ae_sale_price_cny?;
-            if ae_cny <= 0.0 {
-                return None;
-            }
-            let adj_type = pricing.web_adj_type.as_deref().unwrap_or("fixed_add");
-            let adj_val = pricing.web_adj_value.unwrap_or(0.0);
-            match adj_type {
-                "fixed_add" => ae_cny + adj_val,
-                "fixed_sub" => (ae_cny - adj_val).max(0.01),
-                "percent_up" => ae_cny * (1.0 + adj_val / 100.0),
-                "percent_down" => (ae_cny * (1.0 - adj_val / 100.0)).max(0.01),
-                _ => ae_cny,
-            }
-        }
-        "follow_ali" => {
-            let ali_usd = pricing.ali_sale_price_usd?;
-            if ali_usd <= 0.0 {
-                return None;
-            }
-            let ali_cny = ali_usd * exchange_rate;
-            let adj_type = pricing.web_adj_type.as_deref().unwrap_or("fixed_add");
-            let adj_val = pricing.web_adj_value.unwrap_or(0.0);
-            match adj_type {
-                "fixed_add" => ali_cny + adj_val,
-                "fixed_sub" => (ali_cny - adj_val).max(0.01),
-                "percent_up" => ali_cny * (1.0 + adj_val / 100.0),
-                "percent_down" => (ali_cny * (1.0 - adj_val / 100.0)).max(0.01),
-                _ => ali_cny,
-            }
-        }
-        _ => pricing.web_sale_price_cny.filter(|v| *v > 0.0)?,
-    };
+    let cost_cny = pricing.cost_cny.filter(|v| *v > 0.0)?;
+    let fee_rate = pricing.web_fee_rate.map(|v| v / 100.0).unwrap_or(WEB_DEFAULT_FEE_RATE);
+    let sale_price_cny = compute_sale_price(cost_cny, fee_rate, WEB_FIXED_PROFIT_MARGIN)?;
 
     Some(ReferencePriceWrite {
         product_id,
@@ -2100,26 +1973,14 @@ fn build_website_price_write(
         sale_price_cny,
         sale_price_usd: Some(sale_price_cny / exchange_rate),
         exchange_rate,
-        profit_margin: Some(DEFAULT_PROFIT_MARGIN),
-        platform_fee_rate: Some(pricing.web_fee_rate.map(|v| v / 100.0).unwrap_or(WEB_DEFAULT_FEE_RATE)),
+        profit_margin: Some(WEB_FIXED_PROFIT_MARGIN),
+        platform_fee_rate: Some(fee_rate),
         notes: None,
-        pricing_mode: Some(if web_mode == "independent" { "margin".to_string() } else { "reference".to_string() }),
+        pricing_mode: Some("margin".to_string()),
         input_currency: Some("CNY".to_string()),
-        reference_platform: match web_mode {
-            "follow_ae" => Some("aliexpress".to_string()),
-            "follow_ali" => Some("alibaba".to_string()),
-            _ => None,
-        },
-        adjustment_type: if web_mode == "independent" {
-            None
-        } else {
-            Some(pricing.web_adj_type.clone().unwrap_or_else(|| "fixed_add".to_string()))
-        },
-        adjustment_value: if web_mode == "independent" {
-            None
-        } else {
-            Some(pricing.web_adj_value.unwrap_or(0.0))
-        },
+        reference_platform: None,
+        adjustment_type: None,
+        adjustment_value: None,
     })
 }
 
@@ -2134,15 +1995,29 @@ fn desired_price_count(pricing: &ProductPricingInput, exchange_rate: f64) -> usi
     .count()
 }
 
-fn validate_platform_pricing(pricing: &ProductPricingInput) -> Option<&'static str> {
-    if matches!(pricing.ae_sale_price_cny, Some(value) if value < 0.0) {
-        return Some("AliExpress 售价不能为负数");
+fn validate_pricing_configuration(pricing: &ProductPricingInput) -> Option<&'static str> {
+    if matches!(pricing.ae_fee_rate, Some(value) if value < 0.0) {
+        return Some("AliExpress 平台费率不能为负数");
     }
-    if matches!(pricing.ali_sale_price_usd, Some(value) if value < 0.0) {
-        return Some("Alibaba 售价不能为负数");
+    if matches!(pricing.ali_fee_rate, Some(value) if value < 0.0) {
+        return Some("Alibaba 平台费率不能为负数");
     }
-    if matches!(pricing.web_sale_price_cny, Some(value) if value < 0.0) {
-        return Some("Website 售价不能为负数");
+    if matches!(pricing.web_fee_rate, Some(value) if value < 0.0) {
+        return Some("Website 平台费率不能为负数");
+    }
+    if matches!(pricing.cost_cny, Some(value) if value > 0.0) {
+        let ae_fee_rate = pricing.ae_fee_rate.map(|v| v / 100.0).unwrap_or(AE_DEFAULT_FEE_RATE);
+        let ali_fee_rate = pricing.ali_fee_rate.map(|v| v / 100.0).unwrap_or(ALI_DEFAULT_FEE_RATE);
+        let web_fee_rate = pricing.web_fee_rate.map(|v| v / 100.0).unwrap_or(WEB_DEFAULT_FEE_RATE);
+        if 1.0 - AE_FIXED_PROFIT_MARGIN - ae_fee_rate <= 0.0 {
+            return Some("AliExpress 平台费率过高，无法计算售价");
+        }
+        if 1.0 - ALI_FIXED_PROFIT_MARGIN - ali_fee_rate <= 0.0 {
+            return Some("Alibaba 平台费率过高，无法计算售价");
+        }
+        if 1.0 - WEB_FIXED_PROFIT_MARGIN - web_fee_rate <= 0.0 {
+            return Some("Website 平台费率过高，无法计算售价");
+        }
     }
     None
 }
@@ -2225,7 +2100,7 @@ pub async fn product_create_handler(
     // BUG-027: 数值校验
     if let Some(r) = form.cost_exchange_rate { if r <= 0.0 { return Err(render_product_form_error("汇率必须大于0", &form)); } }
     if let Some(r) = form.price_exchange_rate { if r <= 0.0 { return Err(render_product_form_error("汇率必须大于0", &form)); } }
-    if let Some(message) = validate_platform_pricing(&pricing_input) {
+    if let Some(message) = validate_pricing_configuration(&pricing_input) {
         return Err(render_product_form_error(message, &form));
     }
 
@@ -2338,18 +2213,18 @@ fn render_product_form_error(error: &str, form: &ProductForm) -> Html<String> {
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
             <div>
-                <label for="ae_sale_price_cny" class="block text-sm font-medium text-gray-700 mb-2">AliExpress 售价 (CNY)</label>
-                <input type="number" id="ae_sale_price_cny" name="ae_sale_price_cny" value="{}" step="0.01" min="0"
+                <label for="ae_fee_rate" class="block text-sm font-medium text-gray-700 mb-2">AliExpress 平台费率 (%)</label>
+                <input type="number" id="ae_fee_rate" name="ae_fee_rate" value="{}" step="0.01" min="0"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
             <div>
-                <label for="ali_sale_price_usd" class="block text-sm font-medium text-gray-700 mb-2">Alibaba 售价 (USD)</label>
-                <input type="number" id="ali_sale_price_usd" name="ali_sale_price_usd" value="{}" step="0.01" min="0"
+                <label for="ali_fee_rate" class="block text-sm font-medium text-gray-700 mb-2">Alibaba 平台费率 (%)</label>
+                <input type="number" id="ali_fee_rate" name="ali_fee_rate" value="{}" step="0.01" min="0"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
             <div>
-                <label for="web_sale_price_cny" class="block text-sm font-medium text-gray-700 mb-2">Website 售价 (CNY)</label>
-                <input type="number" id="web_sale_price_cny" name="web_sale_price_cny" value="{}" step="0.01" min="0"
+                <label for="web_fee_rate" class="block text-sm font-medium text-gray-700 mb-2">Website 平台费率 (%)</label>
+                <input type="number" id="web_fee_rate" name="web_fee_rate" value="{}" step="0.01" min="0"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
             <div>
@@ -2380,9 +2255,9 @@ fn render_product_form_error(error: &str, form: &ProductForm) -> Html<String> {
         form.name_en.as_deref().unwrap_or(""),
         form.cost_cny.unwrap_or(0.0),
         form.price_exchange_rate.unwrap_or(0.0),
-        form.ae_sale_price_cny.unwrap_or(0.0),
-        form.ali_sale_price_usd.unwrap_or(0.0),
-        form.web_sale_price_cny.unwrap_or(0.0),
+        form.ae_fee_rate.unwrap_or(12.0),
+        form.ali_fee_rate.unwrap_or(2.5),
+        form.web_fee_rate.unwrap_or(0.0),
         if form.status == Some(3) { "selected" } else { "" },
         if form.status == Some(1) || form.status.is_none() { "selected" } else { "" },
         if form.status == Some(2) { "selected" } else { "" },
@@ -2733,15 +2608,8 @@ pub async fn product_edit_page(
     let ali_price_usd = price_alibaba.as_ref().map(|p| p.sale_price_usd.map(|v| format!("{:.2}", v)).unwrap_or_default()).unwrap_or_default();
     let ali_fee = price_alibaba.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "2.5".to_string());
     let web_price_cny = product_price.as_ref().map(|p| format!("{:.2}", p.sale_price_cny)).unwrap_or_default();
+    let web_price_usd = product_price.as_ref().and_then(|p| p.sale_price_usd).map(|v| format!("{:.2}", v)).unwrap_or_default();
     let web_fee = product_price.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "0.0".to_string());
-    let web_mode_str = product_price.as_ref()
-        .and_then(|p| p.reference_platform.as_ref())
-        .map(|rp| if rp == "alibaba" { "follow_ali".to_string() } else { "follow_ae".to_string() })
-        .unwrap_or_else(|| "independent".to_string());
-    let web_sel_ind: &str = if web_mode_str == "independent" { "selected" } else { "" };
-    let web_sel_ae: &str = if web_mode_str == "follow_ae" { "selected" } else { "" };
-    let web_sel_ali: &str = if web_mode_str == "follow_ali" { "selected" } else { "" };
-    let web_adj_val = product_price.as_ref().and_then(|p| p.adjustment_value).map(|v| format!("{:.2}", v)).unwrap_or_default();
     let rate_val = product_price.as_ref()
         .or(price_alibaba.as_ref())
         .or(price_aliexpress.as_ref())
@@ -2981,7 +2849,7 @@ pub async fn product_edit_page(
             <div class="mb-4 p-4 border border-orange-200 rounded-xl bg-orange-50">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="text-sm font-semibold text-orange-700">🛒 AliExpress</span>
-                    <span class="text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">主输入: RMB</span>
+                    <span class="text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">固定利润率 40%</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
@@ -2991,10 +2859,10 @@ pub async fn product_edit_page(
                                placeholder="5.0">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-orange-600">★</span></label>
-                        <input type="number" id="ae_sale_price_cny" name="ae_sale_price_cny" step="0.01" min="0" value="{ae_price_cny}"
-                               class="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
-                               placeholder="0.00">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="ae_sale_price_cny" step="0.01" min="0" value="{ae_price_cny}"
+                               class="w-full px-3 py-2 border border-orange-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
+                               readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
                         <div id="ae_profit_preview" class="w-full p-2 rounded-lg bg-white border border-orange-200 text-xs text-gray-600">
@@ -3009,7 +2877,7 @@ pub async fn product_edit_page(
             <div class="mb-4 p-4 border border-yellow-200 rounded-xl bg-yellow-50">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="text-sm font-semibold text-yellow-700">🏪 Alibaba</span>
-                    <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">主输入: USD</span>
+                    <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">固定利润率 15%</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
@@ -3019,10 +2887,10 @@ pub async fn product_edit_page(
                                placeholder="3.0">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-yellow-600">★</span></label>
-                        <input type="number" id="ali_sale_price_usd" name="ali_sale_price_usd" step="0.01" min="0" value="{ali_price_usd}"
-                               class="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
-                               placeholder="0.00">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="ali_sale_price_usd" step="0.01" min="0" value="{ali_price_usd}"
+                               class="w-full px-3 py-2 border border-yellow-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
+                               readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
                         <div id="ali_profit_preview" class="w-full p-2 rounded-lg bg-white border border-yellow-200 text-xs text-gray-600">
@@ -3037,9 +2905,9 @@ pub async fn product_edit_page(
             <div class="p-4 border border-blue-200 rounded-xl bg-blue-50">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="text-sm font-semibold text-blue-700">🌐 Website</span>
-                    <span class="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded-full">独立站</span>
+                    <span class="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded-full">固定利润率 40%</span>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
                         <input type="number" id="web_fee_rate" name="web_fee_rate" step="0.01" min="0" value="{web_fee}"
@@ -3047,28 +2915,15 @@ pub async fn product_edit_page(
                                placeholder="2.5">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">定价模式</label>
-                        <select id="web_mode" name="web_mode"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                onchange="updateWebModeUI()">
-                            <option value="independent" {web_sel_ind}>独立定价</option>
-                            <option value="follow_ae" {web_sel_ae}>跟随 AE 价格</option>
-                            <option value="follow_ali" {web_sel_ali}>跟随 ALI 价格</option>
-                        </select>
-                    </div>
-                </div>
-                <!-- 独立定价输入 -->
-                <div id="web_independent_section" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-blue-600">★</span></label>
-                        <input type="number" id="web_sale_price_cny" name="web_sale_price_cny" step="0.01" min="0" value="{web_price_cny}"
-                               class="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                               placeholder="0.00">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="web_sale_price_cny" step="0.01" min="0" value="{web_price_cny}"
+                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
+                               readonly placeholder="0.00">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
-                        <input type="number" id="web_sale_price_usd" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                        <input type="number" id="web_sale_price_usd" step="0.01" min="0" value="{web_price_usd}"
+                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
                                readonly placeholder="0.00">
                     </div>
                     <div class="flex items-end">
@@ -3076,38 +2931,6 @@ pub async fn product_edit_page(
                             <div>利润: <span id="web_profit_val" class="font-medium">-</span></div>
                             <div>利润率: <span id="web_profit_pct" class="font-medium">-</span></div>
                         </div>
-                    </div>
-                </div>
-                <!-- 跟随模式调整 -->
-                <div id="web_follow_section" class="hidden grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">参考平台价格 (CNY)</label>
-                        <input type="number" id="web_ref_price_cny" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
-                               readonly placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">调整方式</label>
-                        <select id="web_adj_type" name="web_adj_type"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                                onchange="calcWebFollowPrice()">
-                            <option value="fixed_add">固定加价 (+CNY)</option>
-                            <option value="fixed_sub">固定减价 (-CNY)</option>
-                            <option value="percent_up">百分比上调 (+%)</option>
-                            <option value="percent_down">百分比下调 (-%)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">调整值</label>
-                        <input type="number" id="web_adj_value" name="web_adj_value" step="0.01" min="0" value="{web_adj_val}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                               placeholder="0" oninput="calcWebFollowPrice()">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">计算结果 (CNY)</label>
-                        <input type="number" id="web_follow_result_cny" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-blue-100 text-blue-800 cursor-not-allowed"
-                               readonly placeholder="0.00">
                     </div>
                 </div>
             </div>
@@ -3184,13 +3007,23 @@ pub async fn product_edit_page(
         }}
     }}
 
-    // === 新定价系统 ===
+    const aeMargin = 0.40;
+    const aliMargin = 0.15;
+    const webMargin = 0.40;
     const rate = () => parseFloat(document.getElementById('price_exchange_rate')?.value) || {buffered_rate_str};
     const costCnyVal = () => parseFloat(document.getElementById('cost_cny')?.value) || 0;
     const costUsdVal = () => costCnyVal() / rate();
+    function calcSalePrice(cost, feeRate, margin) {{
+        const denominator = 1 - feeRate - margin;
+        if (cost <= 0 || denominator <= 0) return 0;
+        return cost / denominator;
+    }}
 
     function calcAEPrices() {{
-        const cny = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+        const fee = (parseFloat(document.getElementById('ae_fee_rate')?.value) || 12) / 100;
+        const cny = calcSalePrice(costCnyVal(), fee, aeMargin);
+        const priceEl = document.getElementById('ae_sale_price_cny');
+        if (priceEl) priceEl.value = cny > 0 ? cny.toFixed(2) : '';
         updateAEProfit();
     }}
 
@@ -3210,7 +3043,10 @@ pub async fn product_edit_page(
     }}
 
     function calcALIPrices() {{
-        const usd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+        const fee = (parseFloat(document.getElementById('ali_fee_rate')?.value) || 2.5) / 100;
+        const usd = calcSalePrice(costUsdVal(), fee, aliMargin);
+        const priceEl = document.getElementById('ali_sale_price_usd');
+        if (priceEl) priceEl.value = usd > 0 ? usd.toFixed(2) : '';
         updateALIProfit();
     }}
 
@@ -3229,64 +3065,19 @@ pub async fn product_edit_page(
         }}
     }}
 
-    function updateWebModeUI() {{
-        const mode = document.getElementById('web_mode')?.value;
-        const indSection = document.getElementById('web_independent_section');
-        const followSection = document.getElementById('web_follow_section');
-        if (mode === 'independent') {{
-            indSection?.classList.remove('hidden');
-            followSection?.classList.add('hidden');
-        }} else {{
-            indSection?.classList.add('hidden');
-            followSection?.classList.remove('hidden');
-            updateWebRefPrice();
-        }}
-        updateWebProfit();
-    }}
-
-    function updateWebRefPrice() {{
-        const mode = document.getElementById('web_mode')?.value;
-        const refEl = document.getElementById('web_ref_price_cny');
-        if (!refEl) return;
-        if (mode === 'follow_ae') {{
-            const aePrice = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
-            refEl.value = aePrice > 0 ? aePrice.toFixed(2) : '';
-        }} else if (mode === 'follow_ali') {{
-            const aliUsd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
-            refEl.value = aliUsd > 0 ? (aliUsd * rate()).toFixed(2) : '';
-        }}
-        calcWebFollowPrice();
-    }}
-
-    function calcWebFollowPrice() {{
-        const refCny = parseFloat(document.getElementById('web_ref_price_cny')?.value) || 0;
-        const adjType = document.getElementById('web_adj_type')?.value || 'fixed_add';
-        const adjVal = parseFloat(document.getElementById('web_adj_value')?.value) || 0;
-        let result = refCny;
-        if (adjType === 'fixed_add') result = refCny + adjVal;
-        else if (adjType === 'fixed_sub') result = refCny - adjVal;
-        else if (adjType === 'percent_up') result = refCny * (1 + adjVal / 100);
-        else if (adjType === 'percent_down') result = refCny * (1 - adjVal / 100);
-        const resultEl = document.getElementById('web_follow_result_cny');
-        if (resultEl) resultEl.value = result > 0 ? result.toFixed(2) : '';
-        updateWebProfit();
-    }}
-
-    function calcWebIndependentPrices() {{
-        const cny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
+    function calcWebPrices() {{
+        const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
+        const cny = calcSalePrice(costCnyVal(), fee, webMargin);
+        const cnyEl = document.getElementById('web_sale_price_cny');
         const usdEl = document.getElementById('web_sale_price_usd');
+        if (cnyEl) cnyEl.value = cny > 0 ? cny.toFixed(2) : '';
         if (usdEl && cny > 0) usdEl.value = (cny / rate()).toFixed(2);
+        else if (usdEl) usdEl.value = '';
         updateWebProfit();
     }}
 
     function updateWebProfit() {{
-        const mode = document.getElementById('web_mode')?.value || 'independent';
-        let priceCny = 0;
-        if (mode === 'independent') {{
-            priceCny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
-        }} else {{
-            priceCny = parseFloat(document.getElementById('web_follow_result_cny')?.value) || 0;
-        }}
+        const priceCny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
         const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
         const cost = costCnyVal();
         if (priceCny > 0 && cost > 0) {{
@@ -3301,28 +3092,26 @@ pub async fn product_edit_page(
     }}
 
     document.getElementById('ae_sale_price_cny')?.addEventListener('input', calcAEPrices);
-    document.getElementById('ae_fee_rate')?.addEventListener('input', updateAEProfit);
+    document.getElementById('ae_fee_rate')?.addEventListener('input', calcAEPrices);
     document.getElementById('ali_sale_price_usd')?.addEventListener('input', calcALIPrices);
-    document.getElementById('ali_fee_rate')?.addEventListener('input', updateALIProfit);
-    document.getElementById('web_sale_price_cny')?.addEventListener('input', calcWebIndependentPrices);
-    document.getElementById('web_fee_rate')?.addEventListener('input', updateWebProfit);
+    document.getElementById('ali_fee_rate')?.addEventListener('input', calcALIPrices);
+    document.getElementById('web_fee_rate')?.addEventListener('input', calcWebPrices);
     document.getElementById('price_exchange_rate')?.addEventListener('input', function() {{
         calcCostUsd();
         calcAEPrices();
         calcALIPrices();
-        calcWebIndependentPrices();
+        calcWebPrices();
     }});
     document.getElementById('cost_cny')?.addEventListener('input', function() {{
         calcCostUsd();
-        updateAEProfit();
-        updateALIProfit();
-        updateWebProfit();
+        calcAEPrices();
+        calcALIPrices();
+        calcWebPrices();
     }});
 
-    updateWebModeUI();
     calcAEPrices();
     calcALIPrices();
-    calcWebIndependentPrices();
+    calcWebPrices();
 
     document.getElementById('status')?.addEventListener('change', function() {{
         if (this.value === '1') {{
@@ -3413,25 +3202,11 @@ pub struct ProductEditForm {
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_exchange_rate: Option<f64>,
     cost_notes: Option<String>,
-    // 参考售价 - 新三平台独立定价
-    price_platform: Option<String>,
-    // AliExpress (主输入: CNY)
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    ae_sale_price_cny: Option<f64>,
+    // 参考售价
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     ae_fee_rate: Option<f64>,
-    // Alibaba (主输入: USD)
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    ali_sale_price_usd: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     ali_fee_rate: Option<f64>,
-    // Website
-    web_mode: Option<String>,
-    web_adj_type: Option<String>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    web_adj_value: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    web_sale_price_cny: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     web_fee_rate: Option<f64>,
     // 全局汇率
@@ -3491,7 +3266,7 @@ pub async fn product_update_handler(
         let e = Html(format!(r#"<div class="text-center py-12"><p class="text-4xl mb-4">❌</p><p class="text-gray-600 mb-4">汇率必须大于0</p><a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a></div>"#, id));
         return Err(e);
     }}
-    if let Some(message) = validate_platform_pricing(&pricing_input) {
+    if let Some(message) = validate_pricing_configuration(&pricing_input) {
         let e = Html(format!(r#"<div class="text-center py-12"><p class="text-4xl mb-4">❌</p><p class="text-gray-600 mb-4">{}</p><a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a></div>"#, message, id));
         return Err(e);
     }
