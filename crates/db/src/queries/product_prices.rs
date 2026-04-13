@@ -1,11 +1,52 @@
 //! 产品销售价格相关数据库查询
 
 use anyhow::Result;
-use sqlx::SqlitePool;
+use sqlx::{Sqlite, SqlitePool, Transaction};
 
 use cicierp_models::product::{
     CreateProductPriceRequest, ProductPrice, ProductPriceSummary, UpdateProductPriceRequest,
 };
+
+const PRODUCT_PRICE_SELECT: &str = r#"
+    SELECT
+        id,
+        product_id,
+        platform,
+        sale_price_cny,
+        sale_price_usd,
+        exchange_rate,
+        profit_margin,
+        platform_fee_rate,
+        platform_fee,
+        is_reference,
+        effective_date,
+        notes,
+        created_at,
+        updated_at,
+        pricing_mode,
+        input_currency,
+        reference_platform,
+        adjustment_type,
+        adjustment_value
+    FROM product_prices
+"#;
+
+#[derive(Debug, Clone)]
+pub struct ReferencePriceWrite {
+    pub product_id: i64,
+    pub platform: String,
+    pub sale_price_cny: f64,
+    pub sale_price_usd: Option<f64>,
+    pub exchange_rate: f64,
+    pub profit_margin: Option<f64>,
+    pub platform_fee_rate: Option<f64>,
+    pub notes: Option<String>,
+    pub pricing_mode: Option<String>,
+    pub input_currency: Option<String>,
+    pub reference_platform: Option<String>,
+    pub adjustment_type: Option<String>,
+    pub adjustment_value: Option<f64>,
+}
 
 /// 产品销售价格查询结构体
 pub struct ProductPriceQueries<'a> {
@@ -19,9 +60,10 @@ impl<'a> ProductPriceQueries<'a> {
 
     /// 根据产品ID获取参考售价
     pub async fn get_reference_price(&self, product_id: i64, platform: &str) -> Result<Option<ProductPrice>> {
-        let price: Option<ProductPrice> = sqlx::query_as(
-            "SELECT * FROM product_prices WHERE product_id = ? AND platform = ? AND is_reference = 1 LIMIT 1"
-        )
+        let price: Option<ProductPrice> = sqlx::query_as(&format!(
+            "{} WHERE product_id = ? AND platform = ? AND is_reference = 1 LIMIT 1",
+            PRODUCT_PRICE_SELECT
+        ))
         .bind(product_id)
         .bind(platform)
         .fetch_optional(self.pool)
@@ -32,9 +74,10 @@ impl<'a> ProductPriceQueries<'a> {
 
     /// 根据产品ID获取所有平台价格
     pub async fn list_by_product(&self, product_id: i64) -> Result<Vec<ProductPrice>> {
-        let prices: Vec<ProductPrice> = sqlx::query_as(
-            "SELECT * FROM product_prices WHERE product_id = ? ORDER BY platform, created_at DESC"
-        )
+        let prices: Vec<ProductPrice> = sqlx::query_as(&format!(
+            "{} WHERE product_id = ? ORDER BY platform, created_at DESC",
+            PRODUCT_PRICE_SELECT
+        ))
         .bind(product_id)
         .fetch_all(self.pool)
         .await?;
@@ -44,9 +87,10 @@ impl<'a> ProductPriceQueries<'a> {
 
     /// 根据ID获取价格记录
     pub async fn get_by_id(&self, id: i64) -> Result<Option<ProductPrice>> {
-        let price: Option<ProductPrice> = sqlx::query_as(
-            "SELECT * FROM product_prices WHERE id = ?"
-        )
+        let price: Option<ProductPrice> = sqlx::query_as(&format!(
+            "{} WHERE id = ?",
+            PRODUCT_PRICE_SELECT
+        ))
         .bind(id)
         .fetch_optional(self.pool)
         .await?;
@@ -327,6 +371,103 @@ impl<'a> ProductPriceQueries<'a> {
             };
             self.create(&req).await
         }
+    }
+
+    pub async fn upsert_reference_price_full_tx(
+        tx: &mut Transaction<'_, Sqlite>,
+        data: &ReferencePriceWrite,
+    ) -> Result<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        let existing_id: Option<i64> = sqlx::query_scalar(
+            "SELECT id FROM product_prices WHERE product_id = ? AND platform = ? AND is_reference = 1 LIMIT 1"
+        )
+        .bind(data.product_id)
+        .bind(&data.platform)
+        .fetch_optional(&mut **tx)
+        .await?;
+
+        if let Some(id) = existing_id {
+            sqlx::query(
+                r#"
+                UPDATE product_prices SET
+                    sale_price_cny = ?,
+                    sale_price_usd = ?,
+                    exchange_rate = ?,
+                    profit_margin = ?,
+                    platform_fee_rate = ?,
+                    platform_fee = NULL,
+                    is_reference = 1,
+                    effective_date = NULL,
+                    notes = ?,
+                    pricing_mode = ?,
+                    input_currency = ?,
+                    reference_platform = ?,
+                    adjustment_type = ?,
+                    adjustment_value = ?,
+                    updated_at = ?
+                WHERE id = ?
+                "#
+            )
+            .bind(data.sale_price_cny)
+            .bind(data.sale_price_usd)
+            .bind(data.exchange_rate)
+            .bind(data.profit_margin.unwrap_or(0.15))
+            .bind(data.platform_fee_rate.unwrap_or(0.0))
+            .bind(&data.notes)
+            .bind(&data.pricing_mode)
+            .bind(&data.input_currency)
+            .bind(&data.reference_platform)
+            .bind(&data.adjustment_type)
+            .bind(data.adjustment_value)
+            .bind(&now)
+            .bind(id)
+            .execute(&mut **tx)
+            .await?;
+        } else {
+            sqlx::query(
+                r#"
+                INSERT INTO product_prices (
+                    product_id, platform, sale_price_cny, sale_price_usd, exchange_rate,
+                    profit_margin, platform_fee_rate, platform_fee, is_reference,
+                    effective_date, notes, pricing_mode, input_currency,
+                    reference_platform, adjustment_type, adjustment_value,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 1, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
+                "#
+            )
+            .bind(data.product_id)
+            .bind(&data.platform)
+            .bind(data.sale_price_cny)
+            .bind(data.sale_price_usd)
+            .bind(data.exchange_rate)
+            .bind(data.profit_margin.unwrap_or(0.15))
+            .bind(data.platform_fee_rate.unwrap_or(0.0))
+            .bind(&data.notes)
+            .bind(&data.pricing_mode)
+            .bind(&data.input_currency)
+            .bind(&data.reference_platform)
+            .bind(&data.adjustment_type)
+            .bind(data.adjustment_value)
+            .bind(&now)
+            .bind(&now)
+            .execute(&mut **tx)
+            .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_reference_price_tx(
+        tx: &mut Transaction<'_, Sqlite>,
+        product_id: i64,
+        platform: &str,
+    ) -> Result<()> {
+        sqlx::query("DELETE FROM product_prices WHERE product_id = ? AND platform = ? AND is_reference = 1")
+            .bind(product_id)
+            .bind(platform)
+            .execute(&mut **tx)
+            .await?;
+        Ok(())
     }
 
     /// 计算建议售价

@@ -1,11 +1,44 @@
 //! 产品成本相关数据库查询
 
 use anyhow::Result;
-use sqlx::SqlitePool;
+use sqlx::{Sqlite, SqlitePool, Transaction};
 
 use cicierp_models::product::{
     CreateProductCostRequest, ProductCost, UpdateProductCostRequest,
 };
+
+const PRODUCT_COST_SELECT: &str = r#"
+    SELECT
+        id,
+        product_id,
+        supplier_id,
+        cost_cny,
+        cost_usd,
+        currency,
+        exchange_rate,
+        profit_margin,
+        platform_fee_rate,
+        platform_fee,
+        sale_price_usd,
+        quantity,
+        purchase_order_id,
+        is_reference,
+        effective_date,
+        notes,
+        created_at,
+        updated_at
+    FROM product_costs
+"#;
+
+#[derive(Debug, Clone)]
+pub struct ReferenceCostWrite {
+    pub product_id: i64,
+    pub supplier_id: Option<i64>,
+    pub cost_cny: f64,
+    pub cost_usd: Option<f64>,
+    pub exchange_rate: f64,
+    pub notes: Option<String>,
+}
 
 /// 产品成本查询结构体
 pub struct ProductCostQueries<'a> {
@@ -19,9 +52,10 @@ impl<'a> ProductCostQueries<'a> {
 
     /// 根据产品ID获取参考成本记录
     pub async fn get_reference_cost(&self, product_id: i64) -> Result<Option<ProductCost>> {
-        let cost: Option<ProductCost> = sqlx::query_as(
-            "SELECT * FROM product_costs WHERE product_id = ? AND is_reference = 1 LIMIT 1"
-        )
+        let cost: Option<ProductCost> = sqlx::query_as(&format!(
+            "{} WHERE product_id = ? AND is_reference = 1 LIMIT 1",
+            PRODUCT_COST_SELECT
+        ))
         .bind(product_id)
         .fetch_optional(self.pool)
         .await?;
@@ -31,9 +65,10 @@ impl<'a> ProductCostQueries<'a> {
 
     /// 根据产品ID获取最新成本记录
     pub async fn get_by_product_id(&self, product_id: i64) -> Result<Option<ProductCost>> {
-        let cost: Option<ProductCost> = sqlx::query_as(
-            "SELECT * FROM product_costs WHERE product_id = ? ORDER BY created_at DESC LIMIT 1"
-        )
+        let cost: Option<ProductCost> = sqlx::query_as(&format!(
+            "{} WHERE product_id = ? ORDER BY created_at DESC LIMIT 1",
+            PRODUCT_COST_SELECT
+        ))
         .bind(product_id)
         .fetch_optional(self.pool)
         .await?;
@@ -43,9 +78,10 @@ impl<'a> ProductCostQueries<'a> {
 
     /// 根据ID获取成本记录
     pub async fn get_by_id(&self, id: i64) -> Result<Option<ProductCost>> {
-        let cost: Option<ProductCost> = sqlx::query_as(
-            "SELECT * FROM product_costs WHERE id = ?"
-        )
+        let cost: Option<ProductCost> = sqlx::query_as(&format!(
+            "{} WHERE id = ?",
+            PRODUCT_COST_SELECT
+        ))
         .bind(id)
         .fetch_optional(self.pool)
         .await?;
@@ -55,9 +91,10 @@ impl<'a> ProductCostQueries<'a> {
 
     /// 获取产品的所有成本历史
     pub async fn list_by_product(&self, product_id: i64) -> Result<Vec<ProductCost>> {
-        let costs: Vec<ProductCost> = sqlx::query_as(
-            "SELECT * FROM product_costs WHERE product_id = ? ORDER BY created_at DESC"
-        )
+        let costs: Vec<ProductCost> = sqlx::query_as(&format!(
+            "{} WHERE product_id = ? ORDER BY created_at DESC",
+            PRODUCT_COST_SELECT
+        ))
         .bind(product_id)
         .fetch_all(self.pool)
         .await?;
@@ -196,6 +233,15 @@ impl<'a> ProductCostQueries<'a> {
         Ok(result.rows_affected())
     }
 
+    pub async fn delete_reference_cost(&self, product_id: i64) -> Result<u64> {
+        let result = sqlx::query("DELETE FROM product_costs WHERE product_id = ? AND is_reference = 1")
+            .bind(product_id)
+            .execute(self.pool)
+            .await?;
+
+        Ok(result.rows_affected())
+    }
+
     /// 更新或创建参考成本
     pub async fn update_reference_cost(
         &self,
@@ -251,5 +297,93 @@ impl<'a> ProductCostQueries<'a> {
             };
             self.create(&req).await
         }
+    }
+
+    pub async fn sync_reference_cost_tx(
+        tx: &mut Transaction<'_, Sqlite>,
+        product_id: i64,
+        data: Option<&ReferenceCostWrite>,
+    ) -> Result<()> {
+        if let Some(data) = data {
+            let now = chrono::Utc::now().to_rfc3339();
+            let existing_id: Option<i64> = sqlx::query_scalar(
+                "SELECT id FROM product_costs WHERE product_id = ? AND is_reference = 1 LIMIT 1"
+            )
+            .bind(data.product_id)
+            .fetch_optional(&mut **tx)
+            .await?;
+
+            if let Some(id) = existing_id {
+                sqlx::query(
+                    r#"
+                    UPDATE product_costs SET
+                        supplier_id = ?,
+                        cost_cny = ?,
+                        cost_usd = ?,
+                        currency = 'CNY',
+                        exchange_rate = ?,
+                        profit_margin = 0.15,
+                        platform_fee_rate = 0.025,
+                        platform_fee = NULL,
+                        sale_price_usd = NULL,
+                        quantity = 1,
+                        purchase_order_id = NULL,
+                        is_reference = 1,
+                        effective_date = NULL,
+                        notes = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                    "#
+                )
+                .bind(data.supplier_id)
+                .bind(data.cost_cny)
+                .bind(data.cost_usd)
+                .bind(data.exchange_rate)
+                .bind(&data.notes)
+                .bind(&now)
+                .bind(id)
+                .execute(&mut **tx)
+                .await?;
+            } else {
+                sqlx::query(
+                    r#"
+                    INSERT INTO product_costs (
+                        product_id, supplier_id, cost_cny, cost_usd, currency,
+                        exchange_rate, profit_margin, platform_fee_rate, platform_fee,
+                        sale_price_usd, quantity, purchase_order_id, is_reference,
+                        effective_date, notes, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, 'CNY', ?, 0.15, 0.025, NULL, NULL, 1, NULL, 1, NULL, ?, ?, ?)
+                    "#
+                )
+                .bind(data.product_id)
+                .bind(data.supplier_id)
+                .bind(data.cost_cny)
+                .bind(data.cost_usd)
+                .bind(data.exchange_rate)
+                .bind(&data.notes)
+                .bind(&now)
+                .bind(&now)
+                .execute(&mut **tx)
+                .await?;
+            }
+        } else {
+            sqlx::query("DELETE FROM product_costs WHERE product_id = ? AND is_reference = 1")
+                .bind(product_id)
+                .execute(&mut **tx)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_reference_cost_tx(
+        tx: &mut Transaction<'_, Sqlite>,
+        product_id: i64,
+    ) -> Result<()> {
+        sqlx::query("DELETE FROM product_costs WHERE product_id = ? AND is_reference = 1")
+            .bind(product_id)
+            .execute(&mut **tx)
+            .await?;
+        Ok(())
     }
 }

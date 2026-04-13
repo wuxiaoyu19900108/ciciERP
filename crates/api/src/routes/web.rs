@@ -151,8 +151,8 @@ use cicierp_db::queries::{
     logistics::{LogisticsCompanyQueries, ShipmentQueries},
     orders::{OrderQueries, OrderFilterStats},
     product_content::ProductContentQueries,
-    product_costs::ProductCostQueries,
-    product_prices::ProductPriceQueries,
+    product_costs::{ProductCostQueries, ReferenceCostWrite},
+    product_prices::{ProductPriceQueries, ReferencePriceWrite},
     products::ProductQueries,
     purchases::PurchaseQueries,
     suppliers::SupplierQueries,
@@ -163,7 +163,7 @@ use cicierp_models::common::PagedResponse;
 use cicierp_models::customer::{CreateCustomerRequest, CustomerAddress, UpdateCustomerRequest};
 use cicierp_models::inventory::UpdateInventoryRequest;
 use cicierp_models::order::{CreateOrderRequest, OrderItemRequest};
-use cicierp_models::product::{CreateProductCostRequest, CreateProductPriceRequest, CreateProductRequest, UpdateProductRequest};
+use cicierp_models::product::{CreateProductCostRequest, CreateProductRequest, UpdateProductRequest};
 use cicierp_models::supplier::{CreateSupplierRequest, UpdateSupplierRequest};
 
 /// 创建公开路由（无需认证）
@@ -1998,12 +1998,248 @@ pub struct ProductForm {
     fee_rate_aliexpress: Option<f64>,
 }
 
+#[derive(Debug, Clone)]
+struct ProductPricingInput {
+    supplier_id: Option<i64>,
+    cost_cny: Option<f64>,
+    cost_notes: Option<String>,
+    ae_sale_price_cny: Option<f64>,
+    ae_fee_rate: Option<f64>,
+    ali_sale_price_usd: Option<f64>,
+    ali_fee_rate: Option<f64>,
+    web_mode: Option<String>,
+    web_adj_type: Option<String>,
+    web_adj_value: Option<f64>,
+    web_sale_price_cny: Option<f64>,
+    web_fee_rate: Option<f64>,
+    price_exchange_rate: Option<f64>,
+}
+
+impl From<&ProductForm> for ProductPricingInput {
+    fn from(form: &ProductForm) -> Self {
+        Self {
+            supplier_id: form.supplier_id,
+            cost_cny: form.cost_cny,
+            cost_notes: form.cost_notes.clone(),
+            ae_sale_price_cny: form.ae_sale_price_cny,
+            ae_fee_rate: form.ae_fee_rate,
+            ali_sale_price_usd: form.ali_sale_price_usd,
+            ali_fee_rate: form.ali_fee_rate,
+            web_mode: form.web_mode.clone(),
+            web_adj_type: form.web_adj_type.clone(),
+            web_adj_value: form.web_adj_value,
+            web_sale_price_cny: form.web_sale_price_cny,
+            web_fee_rate: form.web_fee_rate,
+            price_exchange_rate: form.price_exchange_rate,
+        }
+    }
+}
+
+impl From<&ProductEditForm> for ProductPricingInput {
+    fn from(form: &ProductEditForm) -> Self {
+        Self {
+            supplier_id: form.supplier_id,
+            cost_cny: form.cost_cny,
+            cost_notes: form.cost_notes.clone(),
+            ae_sale_price_cny: form.ae_sale_price_cny,
+            ae_fee_rate: form.ae_fee_rate,
+            ali_sale_price_usd: form.ali_sale_price_usd,
+            ali_fee_rate: form.ali_fee_rate,
+            web_mode: form.web_mode.clone(),
+            web_adj_type: form.web_adj_type.clone(),
+            web_adj_value: form.web_adj_value,
+            web_sale_price_cny: form.web_sale_price_cny,
+            web_fee_rate: form.web_fee_rate,
+            price_exchange_rate: form.price_exchange_rate,
+        }
+    }
+}
+
+const AE_DEFAULT_FEE_RATE: f64 = 0.12;
+const ALI_DEFAULT_FEE_RATE: f64 = 0.025;
+const WEB_DEFAULT_FEE_RATE: f64 = 0.0;
+const DEFAULT_PROFIT_MARGIN: f64 = 0.15;
+
+fn build_reference_cost_write(
+    product_id: i64,
+    pricing: &ProductPricingInput,
+    exchange_rate: f64,
+) -> Option<ReferenceCostWrite> {
+    let cost_cny = pricing.cost_cny.filter(|v| *v > 0.0)?;
+    Some(ReferenceCostWrite {
+        product_id,
+        supplier_id: pricing.supplier_id,
+        cost_cny,
+        cost_usd: Some(cost_cny / exchange_rate),
+        exchange_rate,
+        notes: pricing.cost_notes.clone(),
+    })
+}
+
+fn build_aliexpress_price_write(
+    product_id: i64,
+    pricing: &ProductPricingInput,
+    exchange_rate: f64,
+) -> Option<ReferencePriceWrite> {
+    let sale_price_cny = pricing.ae_sale_price_cny.filter(|v| *v > 0.0)?;
+    Some(ReferencePriceWrite {
+        product_id,
+        platform: "aliexpress".to_string(),
+        sale_price_cny,
+        sale_price_usd: Some(sale_price_cny / exchange_rate),
+        exchange_rate,
+        profit_margin: Some(DEFAULT_PROFIT_MARGIN),
+        platform_fee_rate: Some(pricing.ae_fee_rate.map(|v| v / 100.0).unwrap_or(AE_DEFAULT_FEE_RATE)),
+        notes: None,
+        pricing_mode: Some("margin".to_string()),
+        input_currency: Some("CNY".to_string()),
+        reference_platform: None,
+        adjustment_type: None,
+        adjustment_value: None,
+    })
+}
+
+fn build_alibaba_price_write(
+    product_id: i64,
+    pricing: &ProductPricingInput,
+    exchange_rate: f64,
+) -> Option<ReferencePriceWrite> {
+    let sale_price_usd = pricing.ali_sale_price_usd.filter(|v| *v > 0.0)?;
+    Some(ReferencePriceWrite {
+        product_id,
+        platform: "alibaba".to_string(),
+        sale_price_cny: sale_price_usd * exchange_rate,
+        sale_price_usd: Some(sale_price_usd),
+        exchange_rate,
+        profit_margin: Some(DEFAULT_PROFIT_MARGIN),
+        platform_fee_rate: Some(pricing.ali_fee_rate.map(|v| v / 100.0).unwrap_or(ALI_DEFAULT_FEE_RATE)),
+        notes: None,
+        pricing_mode: Some("markup".to_string()),
+        input_currency: Some("USD".to_string()),
+        reference_platform: None,
+        adjustment_type: None,
+        adjustment_value: None,
+    })
+}
+
+fn build_website_price_write(
+    product_id: i64,
+    pricing: &ProductPricingInput,
+    exchange_rate: f64,
+) -> Option<ReferencePriceWrite> {
+    let web_mode = pricing.web_mode.as_deref().unwrap_or("independent");
+    let sale_price_cny = match web_mode {
+        "follow_ae" => {
+            let ae_cny = pricing.ae_sale_price_cny?;
+            if ae_cny <= 0.0 {
+                return None;
+            }
+            let adj_type = pricing.web_adj_type.as_deref().unwrap_or("fixed_add");
+            let adj_val = pricing.web_adj_value.unwrap_or(0.0);
+            match adj_type {
+                "fixed_add" => ae_cny + adj_val,
+                "fixed_sub" => (ae_cny - adj_val).max(0.01),
+                "percent_up" => ae_cny * (1.0 + adj_val / 100.0),
+                "percent_down" => (ae_cny * (1.0 - adj_val / 100.0)).max(0.01),
+                _ => ae_cny,
+            }
+        }
+        "follow_ali" => {
+            let ali_usd = pricing.ali_sale_price_usd?;
+            if ali_usd <= 0.0 {
+                return None;
+            }
+            let ali_cny = ali_usd * exchange_rate;
+            let adj_type = pricing.web_adj_type.as_deref().unwrap_or("fixed_add");
+            let adj_val = pricing.web_adj_value.unwrap_or(0.0);
+            match adj_type {
+                "fixed_add" => ali_cny + adj_val,
+                "fixed_sub" => (ali_cny - adj_val).max(0.01),
+                "percent_up" => ali_cny * (1.0 + adj_val / 100.0),
+                "percent_down" => (ali_cny * (1.0 - adj_val / 100.0)).max(0.01),
+                _ => ali_cny,
+            }
+        }
+        _ => pricing.web_sale_price_cny.filter(|v| *v > 0.0)?,
+    };
+
+    Some(ReferencePriceWrite {
+        product_id,
+        platform: "website".to_string(),
+        sale_price_cny,
+        sale_price_usd: Some(sale_price_cny / exchange_rate),
+        exchange_rate,
+        profit_margin: Some(DEFAULT_PROFIT_MARGIN),
+        platform_fee_rate: Some(pricing.web_fee_rate.map(|v| v / 100.0).unwrap_or(WEB_DEFAULT_FEE_RATE)),
+        notes: None,
+        pricing_mode: Some(if web_mode == "independent" { "margin".to_string() } else { "reference".to_string() }),
+        input_currency: Some("CNY".to_string()),
+        reference_platform: match web_mode {
+            "follow_ae" => Some("aliexpress".to_string()),
+            "follow_ali" => Some("alibaba".to_string()),
+            _ => None,
+        },
+        adjustment_type: if web_mode == "independent" {
+            None
+        } else {
+            Some(pricing.web_adj_type.clone().unwrap_or_else(|| "fixed_add".to_string()))
+        },
+        adjustment_value: if web_mode == "independent" {
+            None
+        } else {
+            Some(pricing.web_adj_value.unwrap_or(0.0))
+        },
+    })
+}
+
+fn desired_price_count(pricing: &ProductPricingInput, exchange_rate: f64) -> usize {
+    [
+        build_aliexpress_price_write(0, pricing, exchange_rate).is_some(),
+        build_alibaba_price_write(0, pricing, exchange_rate).is_some(),
+        build_website_price_write(0, pricing, exchange_rate).is_some(),
+    ]
+    .into_iter()
+    .filter(|exists| *exists)
+    .count()
+}
+
+async fn sync_reference_pricing(
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    product_id: i64,
+    pricing: &ProductPricingInput,
+    exchange_rate: f64,
+) -> anyhow::Result<()> {
+    let cost = build_reference_cost_write(product_id, pricing, exchange_rate);
+    ProductCostQueries::sync_reference_cost_tx(tx, product_id, cost.as_ref()).await?;
+
+    if let Some(price) = build_aliexpress_price_write(product_id, pricing, exchange_rate) {
+        ProductPriceQueries::upsert_reference_price_full_tx(tx, &price).await?;
+    } else {
+        ProductPriceQueries::delete_reference_price_tx(tx, product_id, "aliexpress").await?;
+    }
+
+    if let Some(price) = build_alibaba_price_write(product_id, pricing, exchange_rate) {
+        ProductPriceQueries::upsert_reference_price_full_tx(tx, &price).await?;
+    } else {
+        ProductPriceQueries::delete_reference_price_tx(tx, product_id, "alibaba").await?;
+    }
+
+    if let Some(price) = build_website_price_write(product_id, pricing, exchange_rate) {
+        ProductPriceQueries::upsert_reference_price_full_tx(tx, &price).await?;
+    } else {
+        ProductPriceQueries::delete_reference_price_tx(tx, product_id, "website").await?;
+    }
+
+    Ok(())
+}
+
 /// 创建产品处理
 pub async fn product_create_handler(
     State(state): State<AppState>,
     Form(form): Form<ProductForm>,
 ) -> Result<impl IntoResponse, Html<String>> {
     let queries = ProductQueries::new(state.db.pool());
+    let pricing_input = ProductPricingInput::from(&form);
 
     // 如果 brand_id 为空但填写了 brand_name，自动创建品牌
     let resolved_brand_id = if form.brand_id.is_none() {
@@ -2049,9 +2285,8 @@ pub async fn product_create_handler(
 
     // BUG-030/036: 无售价时强制草稿状态
     let effective_status = {
-        let has_price = form.ae_sale_price_cny.map(|v| v > 0.0).unwrap_or(false)
-            || form.ali_sale_price_usd.map(|v| v > 0.0).unwrap_or(false)
-            || form.web_sale_price_cny.map(|v| v > 0.0).unwrap_or(false);
+        let exchange_rate = pricing_input.price_exchange_rate.unwrap_or(buffered_rate);
+        let has_price = desired_price_count(&pricing_input, exchange_rate) > 0;
         if !has_price {
             Some(3) // 草稿
         } else {
@@ -2084,169 +2319,33 @@ pub async fn product_create_handler(
         unit: form.unit.clone(),
     };
 
-    match queries.create(&req).await {
-        Ok(product) => {
-            info!("Product created: id={}, code={}", product.id, product.product_code);
+    match state.db.pool().begin().await {
+        Ok(mut tx) => match queries.create_in_tx(&mut tx, &req).await {
+            Ok(product) => {
+                info!("Product created: id={}, code={}", product.id, product.product_code);
 
-            // 如果有参考成本，创建成本记录
-            if let Some(cost_cny) = form.cost_cny {
-                if cost_cny > 0.0 {
-                    let cost_queries = ProductCostQueries::new(state.db.pool());
-                    let cost_req = CreateProductCostRequest {
-                        product_id: product.id,
-                        supplier_id: form.supplier_id,
-                        cost_cny,
-                        cost_usd: Some(cost_cny / buffered_rate),  // 始终用当前缓冲汇率计算
-                        currency: Some("CNY".to_string()),
-                        exchange_rate: Some(buffered_rate),  // 始终存储当前缓冲汇率
-                        profit_margin: Some(0.15),
-                        platform_fee_rate: Some(0.025),
-                        platform_fee: None,
-                        sale_price_usd: None,
-                        quantity: Some(1),
-                        purchase_order_id: None,
-                        is_reference: Some(true),
-                        effective_date: None,
-                        notes: form.cost_notes.clone(),
-                    };
-                    if let Err(e) = cost_queries.create(&cost_req).await {
-                        info!("Failed to create reference cost: {}", e);
-                    }
+                let exchange_rate = pricing_input.price_exchange_rate.unwrap_or(buffered_rate);
+                if let Err(e) = sync_reference_pricing(&mut tx, product.id, &pricing_input, exchange_rate).await {
+                    info!("Failed to create product pricing data: {}", e);
+                    let _ = tx.rollback().await;
+                    return Err(render_product_form_error("创建产品价格/成本失败，请检查输入信息", &form));
                 }
-            }
 
-            // === 保存三平台独立售价 ===
-            let price_queries = ProductPriceQueries::new(state.db.pool());
-            let exchange_rate = form.price_exchange_rate.unwrap_or(buffered_rate);
-
-            // AliExpress: 主输入CNY
-            if let Some(ae_cny) = form.ae_sale_price_cny {
-                if ae_cny > 0.0 {
-                    let ae_usd = ae_cny / exchange_rate;
-                    let ae_fee = form.ae_fee_rate.map(|v| v / 100.0);
-                    let req = CreateProductPriceRequest {
-                        product_id: product.id,
-                        platform: Some("aliexpress".to_string()),
-                        sale_price_cny: ae_cny,
-                        sale_price_usd: Some(ae_usd),
-                        exchange_rate: Some(exchange_rate),
-                        profit_margin: Some(0.15),
-                        platform_fee_rate: ae_fee.or(Some(0.05)),
-                        platform_fee: None,
-                        is_reference: Some(true),
-                        effective_date: None,
-                        notes: None,
-                        pricing_mode: Some("margin".to_string()),
-                        input_currency: Some("CNY".to_string()),
-                        reference_platform: None,
-                        adjustment_type: None,
-                        adjustment_value: None,
-                    };
-                    if let Err(e) = price_queries.create(&req).await {
-                        info!("Failed to create aliexpress price: {}", e);
-                    }
+                if let Err(e) = tx.commit().await {
+                    info!("Failed to commit product create transaction: {}", e);
+                    return Err(render_product_form_error("创建产品失败，请稍后重试", &form));
                 }
+
+                Ok(Redirect::to(&format!("/products/{}", product.id)))
             }
-
-            // Alibaba: 主输入USD
-            if let Some(ali_usd) = form.ali_sale_price_usd {
-                if ali_usd > 0.0 {
-                    let ali_cny = ali_usd * exchange_rate;
-                    let ali_fee = form.ali_fee_rate.map(|v| v / 100.0);
-                    let req = CreateProductPriceRequest {
-                        product_id: product.id,
-                        platform: Some("alibaba".to_string()),
-                        sale_price_cny: ali_cny,
-                        sale_price_usd: Some(ali_usd),
-                        exchange_rate: Some(exchange_rate),
-                        profit_margin: Some(0.15),
-                        platform_fee_rate: ali_fee.or(Some(0.03)),
-                        platform_fee: None,
-                        is_reference: Some(true),
-                        effective_date: None,
-                        notes: None,
-                        pricing_mode: Some("markup".to_string()),
-                        input_currency: Some("USD".to_string()),
-                        reference_platform: None,
-                        adjustment_type: None,
-                        adjustment_value: None,
-                    };
-                    if let Err(e) = price_queries.create(&req).await {
-                        info!("Failed to create alibaba price: {}", e);
-                    }
-                }
+            Err(e) => {
+                info!("Failed to create product: {}", e);
+                let _ = tx.rollback().await;
+                Err(render_product_form_error("创建产品失败，请检查输入信息", &form))
             }
-
-            // Website: 独立定价或跟随
-            let web_mode = form.web_mode.as_deref().unwrap_or("independent");
-            let web_cny = match web_mode {
-                "follow_ae" => {
-                    let ae_cny = form.ae_sale_price_cny.unwrap_or(0.0);
-                    if ae_cny > 0.0 {
-                        let adj_type = form.web_adj_type.as_deref().unwrap_or("fixed_add");
-                        let adj_val = form.web_adj_value.unwrap_or(0.0);
-                        Some(match adj_type {
-                            "fixed_add" => ae_cny + adj_val,
-                            "fixed_sub" => (ae_cny - adj_val).max(0.01),
-                            "percent_up" => ae_cny * (1.0 + adj_val / 100.0),
-                            "percent_down" => ae_cny * (1.0 - adj_val / 100.0).max(0.01),
-                            _ => ae_cny,
-                        })
-                    } else { None }
-                },
-                "follow_ali" => {
-                    let ali_usd = form.ali_sale_price_usd.unwrap_or(0.0);
-                    if ali_usd > 0.0 {
-                        let ali_cny = ali_usd * exchange_rate;
-                        let adj_type = form.web_adj_type.as_deref().unwrap_or("fixed_add");
-                        let adj_val = form.web_adj_value.unwrap_or(0.0);
-                        Some(match adj_type {
-                            "fixed_add" => ali_cny + adj_val,
-                            "fixed_sub" => (ali_cny - adj_val).max(0.01),
-                            "percent_up" => ali_cny * (1.0 + adj_val / 100.0),
-                            "percent_down" => ali_cny * (1.0 - adj_val / 100.0).max(0.01),
-                            _ => ali_cny,
-                        })
-                    } else { None }
-                },
-                _ => form.web_sale_price_cny.filter(|&v| v > 0.0),
-            };
-
-            if let Some(web_cny) = web_cny {
-                let web_usd = web_cny / exchange_rate;
-                let web_fee = form.web_fee_rate.map(|v| v / 100.0);
-                let ref_platform = match web_mode {
-                    "follow_ae" => Some("aliexpress".to_string()),
-                    "follow_ali" => Some("alibaba".to_string()),
-                    _ => None,
-                };
-                let req = CreateProductPriceRequest {
-                    product_id: product.id,
-                    platform: Some("website".to_string()),
-                    sale_price_cny: web_cny,
-                    sale_price_usd: Some(web_usd),
-                    exchange_rate: Some(exchange_rate),
-                    profit_margin: Some(0.15),
-                    platform_fee_rate: web_fee.or(Some(0.025)),
-                    platform_fee: None,
-                    is_reference: Some(true),
-                    effective_date: None,
-                    notes: None,
-                    pricing_mode: Some(if web_mode == "independent" { "margin".to_string() } else { "reference".to_string() }),
-                    input_currency: Some("CNY".to_string()),
-                    reference_platform: ref_platform,
-                    adjustment_type: form.web_adj_type.clone(),
-                    adjustment_value: form.web_adj_value,
-                };
-                if let Err(e) = price_queries.create(&req).await {
-                    info!("Failed to create website price: {}", e);
-                }
-            }
-
-            Ok(Redirect::to(&format!("/products/{}", product.id)))
-        }
+        },
         Err(e) => {
-            info!("Failed to create product: {}", e);
+            info!("Failed to start product create transaction: {}", e);
             Err(render_product_form_error("创建产品失败，请检查输入信息", &form))
         }
     }
@@ -2716,7 +2815,12 @@ pub async fn product_edit_page(
     let web_sel_ae: &str = if web_mode_str == "follow_ae" { "selected" } else { "" };
     let web_sel_ali: &str = if web_mode_str == "follow_ali" { "selected" } else { "" };
     let web_adj_val = product_price.as_ref().and_then(|p| p.adjustment_value).map(|v| format!("{:.2}", v)).unwrap_or_default();
-    let rate_val = product_price.as_ref().map(|p| format!("{:.2}", p.exchange_rate)).unwrap_or_else(|| buffered_rate_str.clone());
+    let rate_val = product_price.as_ref()
+        .or(price_alibaba.as_ref())
+        .or(price_aliexpress.as_ref())
+        .map(|p| format!("{:.2}", p.exchange_rate))
+        .or_else(|| product_cost.as_ref().map(|c| format!("{:.2}", c.exchange_rate)))
+        .unwrap_or_else(|| buffered_rate_str.clone());
 
     let content = format!(
         r#"<!-- 页面标题 -->
@@ -3393,11 +3497,7 @@ pub async fn product_edit_page(
         product.description.as_deref().unwrap_or(""),
         product.notes.as_deref().unwrap_or(""),
         product_cost.as_ref().map(|c| format!("{:.2}", c.cost_cny)).unwrap_or_default(),
-        // 成本USD：始终用当前缓冲汇率从CNY重新计算（采购只用RMB结算，USD仅供参考）
-        product_cost.as_ref().map(|c| {
-            let rate: f64 = buffered_rate_str.parse().unwrap_or(6.84);
-            format!("{:.2}", c.cost_cny / rate)
-        }).unwrap_or_default(),
+        product_cost.as_ref().and_then(|c| c.cost_usd).map(|v| format!("{:.2}", v)).unwrap_or_default(),
         product_cost.as_ref().and_then(|c| c.notes.clone()).unwrap_or_default(),
     );
 
@@ -3486,6 +3586,7 @@ pub async fn product_update_handler(
     Form(form): Form<ProductEditForm>,
 ) -> Result<impl IntoResponse, Html<String>> {
     let queries = ProductQueries::new(state.db.pool());
+    let pricing_input = ProductPricingInput::from(&form);
 
     // 检查产品是否存在
     if queries.get_by_id(id).await.unwrap_or(None).is_none() {
@@ -3538,10 +3639,16 @@ pub async fn product_update_handler(
     }}
 
     // BUG-036: 上架状态需要有售价（检查新三平台字段）
+    let buffered_rate = {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        let rate = eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
+        ((rate - 0.05) * 100.0).round() / 100.0
+    };
+
     let effective_status = if form.status == Some(1) {
-        let has_form_price = form.ae_sale_price_cny.map(|v| v > 0.0).unwrap_or(false)
-            || form.ali_sale_price_usd.map(|v| v > 0.0).unwrap_or(false)
-            || form.web_sale_price_cny.map(|v| v > 0.0).unwrap_or(false);
+        let exchange_rate = pricing_input.price_exchange_rate.unwrap_or(buffered_rate);
+        let has_form_price = desired_price_count(&pricing_input, exchange_rate) > 0;
         if !has_form_price {
             let price_queries = ProductPriceQueries::new(state.db.pool());
             let has_db_price = price_queries.get_reference_price(id, "aliexpress").await
@@ -3585,152 +3692,54 @@ pub async fn product_update_handler(
         unit: form.unit.clone(),
     };
 
-    if let Err(e) = queries.update(id, &update_req).await {
-        info!("Failed to update product: {}", e);
-        let error_content = format!(r#"<div class="text-center py-12">
-            <p class="text-4xl mb-4">❌</p>
-            <p class="text-gray-600 mb-4">更新产品失败：{}</p>
-            <a href="/products/{}" class="text-blue-600 hover:text-blue-800">返回产品详情</a>
-        </div>"#, e, id);
-        return Err(Html(error_content));
-    }
-
-    info!("Product updated: id={}", id);
-
-    // 获取缓冲汇率作为默认值
-    let buffered_rate = {
-        let eq = ExchangeRateQueries::new(state.db.pool());
-        let rate = eq.get_latest_rate("USD", "CNY").await
-            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
-        ((rate - 0.05) * 100.0).round() / 100.0
-    };
-
-    // 更新参考成本（如果有）
-    if let Some(cost_cny) = form.cost_cny {
-        if cost_cny > 0.0 {
-            let cost_queries = ProductCostQueries::new(state.db.pool());
-            let cost_usd = Some(cost_cny / buffered_rate);  // 始终用当前缓冲汇率
-            // 尝试更新现有参考成本，如果不存在则创建
-            if let Err(_) = cost_queries.update_reference_cost(
-                id,
-                cost_cny,
-                cost_usd,
-                buffered_rate,  // 始终存储当前缓冲汇率
-                form.cost_notes.clone(),
-            ).await {
-                // 更新失败，尝试创建新的
-                let cost_req = CreateProductCostRequest {
-                    product_id: id,
-                    supplier_id: None,
-                    cost_cny,
-                    cost_usd,
-                    currency: Some("CNY".to_string()),
-                    exchange_rate: Some(buffered_rate),
-                    profit_margin: Some(0.15),
-                    platform_fee_rate: Some(0.025),
-                    platform_fee: None,
-                    sale_price_usd: None,
-                    quantity: Some(1),
-                    purchase_order_id: None,
-                    is_reference: Some(true),
-                    effective_date: None,
-                    notes: form.cost_notes.clone(),
-                };
-                let _ = cost_queries.create(&cost_req).await;
+    match state.db.pool().begin().await {
+        Ok(mut tx) => {
+            let exchange_rate = pricing_input.price_exchange_rate.unwrap_or(buffered_rate);
+            if let Err(e) = queries.update_in_tx(&mut tx, id, &update_req).await {
+                info!("Failed to update product: {}", e);
+                let _ = tx.rollback().await;
+                let error_content = format!(r#"<div class="text-center py-12">
+                    <p class="text-4xl mb-4">❌</p>
+                    <p class="text-gray-600 mb-4">更新产品失败：{}</p>
+                    <a href="/products/{}" class="text-blue-600 hover:text-blue-800">返回产品详情</a>
+                </div>"#, e, id);
+                return Err(Html(error_content));
             }
+
+            if let Err(e) = sync_reference_pricing(&mut tx, id, &pricing_input, exchange_rate).await {
+                info!("Failed to update product pricing data: {}", e);
+                let _ = tx.rollback().await;
+                let error_content = format!(r#"<div class="text-center py-12">
+                    <p class="text-4xl mb-4">❌</p>
+                    <p class="text-gray-600 mb-4">更新价格/成本失败：{}</p>
+                    <a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a>
+                </div>"#, e, id);
+                return Err(Html(error_content));
+            }
+
+            if let Err(e) = tx.commit().await {
+                info!("Failed to commit product update transaction: {}", e);
+                let error_content = format!(r#"<div class="text-center py-12">
+                    <p class="text-4xl mb-4">❌</p>
+                    <p class="text-gray-600 mb-4">更新产品失败：{}</p>
+                    <a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a>
+                </div>"#, e, id);
+                return Err(Html(error_content));
+            }
+
+            info!("Product updated: id={}", id);
+            Ok(Redirect::to(&format!("/products/{}", id)))
+        }
+        Err(e) => {
+            info!("Failed to start product update transaction: {}", e);
+            let error_content = format!(r#"<div class="text-center py-12">
+                <p class="text-4xl mb-4">❌</p>
+                <p class="text-gray-600 mb-4">更新产品失败：{}</p>
+                <a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a>
+            </div>"#, e, id);
+            Err(Html(error_content))
         }
     }
-
-    // === 保存三平台独立售价 ===
-    {
-        let price_queries = ProductPriceQueries::new(state.db.pool());
-        let exchange_rate = form.price_exchange_rate.unwrap_or(buffered_rate);
-
-        // AliExpress: 主输入CNY
-        if let Some(ae_cny) = form.ae_sale_price_cny {
-            if ae_cny > 0.0 {
-                let ae_usd = ae_cny / exchange_rate;
-                let ae_fee = form.ae_fee_rate.map(|v| v / 100.0);
-                let _ = price_queries.update_reference_price_full(
-                    id, "aliexpress", ae_cny, Some(ae_usd), exchange_rate,
-                    Some(0.15), ae_fee,
-                    Some("margin".to_string()), Some("CNY".to_string()),
-                    None, None, None, None,
-                ).await;
-            }
-        }
-
-        // Alibaba: 主输入USD
-        if let Some(ali_usd) = form.ali_sale_price_usd {
-            if ali_usd > 0.0 {
-                let ali_cny = ali_usd * exchange_rate;
-                let ali_fee = form.ali_fee_rate.map(|v| v / 100.0);
-                let _ = price_queries.update_reference_price_full(
-                    id, "alibaba", ali_cny, Some(ali_usd), exchange_rate,
-                    Some(0.15), ali_fee,
-                    Some("markup".to_string()), Some("USD".to_string()),
-                    None, None, None, None,
-                ).await;
-            }
-        }
-
-        // Website: 独立定价或跟随
-        let web_mode = form.web_mode.as_deref().unwrap_or("independent");
-        let web_cny = match web_mode {
-            "follow_ae" => {
-                let ae_cny = form.ae_sale_price_cny.unwrap_or(0.0);
-                if ae_cny > 0.0 {
-                    let adj_type = form.web_adj_type.as_deref().unwrap_or("fixed_add");
-                    let adj_val = form.web_adj_value.unwrap_or(0.0);
-                    Some(match adj_type {
-                        "fixed_add" => ae_cny + adj_val,
-                        "fixed_sub" => (ae_cny - adj_val).max(0.01),
-                        "percent_up" => ae_cny * (1.0 + adj_val / 100.0),
-                        "percent_down" => ae_cny * (1.0 - adj_val / 100.0).max(0.01),
-                        _ => ae_cny,
-                    })
-                } else { None }
-            },
-            "follow_ali" => {
-                let ali_usd = form.ali_sale_price_usd.unwrap_or(0.0);
-                if ali_usd > 0.0 {
-                    let ali_cny = ali_usd * exchange_rate;
-                    let adj_type = form.web_adj_type.as_deref().unwrap_or("fixed_add");
-                    let adj_val = form.web_adj_value.unwrap_or(0.0);
-                    Some(match adj_type {
-                        "fixed_add" => ali_cny + adj_val,
-                        "fixed_sub" => (ali_cny - adj_val).max(0.01),
-                        "percent_up" => ali_cny * (1.0 + adj_val / 100.0),
-                        "percent_down" => ali_cny * (1.0 - adj_val / 100.0).max(0.01),
-                        _ => ali_cny,
-                    })
-                } else { None }
-            },
-            _ => form.web_sale_price_cny.filter(|&v| v > 0.0),
-        };
-
-        if let Some(web_cny) = web_cny {
-            let web_usd = web_cny / exchange_rate;
-            let web_fee = form.web_fee_rate.map(|v| v / 100.0);
-            let ref_platform = match web_mode {
-                "follow_ae" => Some("aliexpress".to_string()),
-                "follow_ali" => Some("alibaba".to_string()),
-                _ => None,
-            };
-            let _ = price_queries.update_reference_price_full(
-                id, "website", web_cny, Some(web_usd), exchange_rate,
-                Some(0.15), web_fee,
-                Some(if web_mode == "independent" { "margin".to_string() } else { "reference".to_string() }),
-                Some("CNY".to_string()),
-                ref_platform,
-                form.web_adj_type.clone(),
-                form.web_adj_value,
-                None,
-            ).await;
-        }
-    }
-
-    Ok(Redirect::to(&format!("/products/{}", id)))
 }
 
 // ============================================================================
