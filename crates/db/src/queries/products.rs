@@ -84,39 +84,47 @@ impl<'a> ProductQueries<'a> {
         // 利润计算：美金售价 - 美金成本 - 平台费率*售价（platform_fee_rate 用于参考利润估算）
         let mut list_query = QueryBuilder::new(
             r#"SELECT
-                p.id, p.product_code, p.name, p.model, p.main_image, p.status,
-                p.created_at,
-                s.name as supplier_name,
-                pc.cost_cny,
-                pc.cost_usd,
-                pc.exchange_rate as cost_exchange_rate,
-                pp.sale_price_cny,
-                pp.sale_price_usd,
-                pp.exchange_rate as price_exchange_rate,
-                CAST(0 AS INTEGER) as stock_quantity,
-                c.name as category_name,
-                b.name as brand_name,
+                p.id AS id,
+                p.product_code AS product_code,
+                p.name AS name,
+                p.model AS model,
+                p.main_image AS main_image,
+                s.name AS supplier_name,
+                pc.cost_cny AS cost_cny,
+                pc.cost_usd AS cost_usd,
+                pc.exchange_rate AS cost_exchange_rate,
+                pp.sale_price_cny AS sale_price_cny,
+                pp.sale_price_usd AS sale_price_usd,
+                pp.exchange_rate AS price_exchange_rate,
                 CASE
                     WHEN pp.sale_price_usd IS NOT NULL AND pc.cost_usd IS NOT NULL
                     THEN pp.sale_price_usd - pc.cost_usd - (pp.sale_price_usd * COALESCE(pp.platform_fee_rate, 0))
                     ELSE NULL
-                END as profit_usd,
+                END AS profit_usd,
                 CASE
                     WHEN pp.sale_price_usd IS NOT NULL AND pp.sale_price_usd > 0
                     THEN ((pp.sale_price_usd - COALESCE(pc.cost_usd, 0) - (pp.sale_price_usd * COALESCE(pp.platform_fee_rate, 0))) / pp.sale_price_usd) * 100
                     ELSE NULL
-                END as profit_margin,
-                (SELECT GROUP_CONCAT(
-                    CASE platform
-                        WHEN 'alibaba' THEN 'Ali'
-                        WHEN 'aliexpress' THEN 'AE'
-                        WHEN 'website' THEN 'Web'
-                        ELSE platform
-                    END || ':' || ROUND(platform_fee_rate*100,1) || '%',
-                    ' | ')
-                 FROM product_prices
-                 WHERE product_id=p.id AND is_reference=1
-                 ORDER BY platform) as platform_fees
+                END AS profit_margin,
+                (
+                    SELECT GROUP_CONCAT(
+                        CASE platform
+                            WHEN 'alibaba' THEN 'Ali'
+                            WHEN 'aliexpress' THEN 'AE'
+                            WHEN 'website' THEN 'Web'
+                            ELSE platform
+                        END || ':' || ROUND(platform_fee_rate * 100, 1) || '%',
+                        ' | '
+                    )
+                    FROM product_prices
+                    WHERE product_id = p.id AND is_reference = 1
+                    ORDER BY platform
+                ) AS platform_fees,
+                p.status AS status,
+                CAST(0 AS INTEGER) AS stock_quantity,
+                c.name AS category_name,
+                b.name AS brand_name,
+                p.created_at AS created_at
             FROM products p
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN brands b ON b.id = p.brand_id
@@ -206,7 +214,35 @@ impl<'a> ProductQueries<'a> {
     /// 根据 ID 获取产品
     pub async fn get_by_id(&self, id: i64) -> Result<Option<Product>> {
         let product: Option<Product> = sqlx::query_as(
-            "SELECT * FROM products WHERE id = ? AND deleted_at IS NULL"
+            r#"SELECT
+                id,
+                product_code,
+                name,
+                model,
+                name_en,
+                slug,
+                category_id,
+                brand_id,
+                supplier_id,
+                weight,
+                volume,
+                description,
+                description_en,
+                specifications,
+                main_image,
+                images,
+                status,
+                is_featured,
+                is_new,
+                view_count,
+                sales_count,
+                notes,
+                unit,
+                created_at,
+                updated_at,
+                deleted_at
+            FROM products
+            WHERE id = ? AND deleted_at IS NULL"#
         )
         .bind(id)
         .fetch_optional(self.pool)
@@ -218,7 +254,35 @@ impl<'a> ProductQueries<'a> {
     /// 根据编码获取产品
     pub async fn get_by_code(&self, product_code: &str) -> Result<Option<Product>> {
         let product: Option<Product> = sqlx::query_as(
-            "SELECT * FROM products WHERE product_code = ? AND deleted_at IS NULL"
+            r#"SELECT
+                id,
+                product_code,
+                name,
+                model,
+                name_en,
+                slug,
+                category_id,
+                brand_id,
+                supplier_id,
+                weight,
+                volume,
+                description,
+                description_en,
+                specifications,
+                main_image,
+                images,
+                status,
+                is_featured,
+                is_new,
+                view_count,
+                sales_count,
+                notes,
+                unit,
+                created_at,
+                updated_at,
+                deleted_at
+            FROM products
+            WHERE product_code = ? AND deleted_at IS NULL"#
         )
         .bind(product_code)
         .fetch_optional(self.pool)
