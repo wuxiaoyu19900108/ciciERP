@@ -18,6 +18,7 @@ use crate::state::AppState;
 use crate::templates::base::{get_menus, UserInfo};
 use cicierp_db::queries::proforma_invoices::ProformaInvoiceQueries;
 use cicierp_db::queries::commercial_invoices::CommercialInvoiceQueries;
+use cicierp_db::queries::exchange_rates::ExchangeRateQueries;
 use cicierp_models::proforma_invoice::PIQuery;
 use cicierp_models::commercial_invoice::CIQuery;
 
@@ -1042,6 +1043,14 @@ pub async fn pi_create_handler(
     Extension(_auth_user): Extension<AuthUser>,
     Form(form): Form<PICreateForm>,
 ) -> impl IntoResponse {
+    // 获取成交时汇率快照
+    let snapshot_rate = {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        let rate = eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
+        ((rate - 0.05) * 100.0).round() / 100.0
+    };
+
     // 解析产品明细
     let names: Vec<&str> = form.product_names.lines().collect();
     let models: Vec<&str> = form.models.lines().collect();
@@ -1089,6 +1098,7 @@ pub async fn pi_create_handler(
         lead_time: form.lead_time,
         notes: form.notes,
         items,
+        exchange_rate: Some(snapshot_rate),  // 成交时汇率快照
     };
 
     match ProformaInvoiceQueries::new(state.db.pool()).create(&request).await {
@@ -1232,6 +1242,8 @@ pub async fn pi_convert_handler(
         payment_terms: Some(pi.payment_terms.clone()),
         delivery_terms: Some(pi.delivery_terms.clone()),
         lead_time: Some(pi.lead_time.clone()),
+        exchange_rate: pi.exchange_rate,  // 沿用 PI 的汇率快照
+        currency: Some(pi.currency.clone()),   // 沿用 PI 的货币
     };
 
     // 使用 OrderQueries 创建订单

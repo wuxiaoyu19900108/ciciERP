@@ -1,0 +1,99 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - heading "采购单详情" [level=2] [ref=e42]
+        - generic [ref=e43]:
+          - generic [ref=e44]: admin
+          - button "退出" [ref=e46] [cursor=pointer]
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - link [ref=e50] [cursor=pointer]:
+            - /url: /purchase
+            - img [ref=e51]
+          - generic [ref=e53]:
+            - heading "采购单详情" [level=1] [ref=e54]
+            - paragraph [ref=e55]: PO202604040844385069 - 1 项产品
+        - generic [ref=e56]:
+          - generic [ref=e57]: 草稿
+          - button "提交审核" [ref=e58] [cursor=pointer]
+      - generic [ref=e59]:
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - text: 采购单号
+            - paragraph [ref=e62]: PO202604040844385069
+          - generic [ref=e63]:
+            - text: 总金额
+            - paragraph [ref=e64]: ¥92.50
+          - generic [ref=e65]:
+            - text: 预计到货
+            - paragraph [ref=e66]: 2026-04-20
+          - generic [ref=e67]:
+            - text: 创建时间
+            - paragraph [ref=e68]: 2026-04-04 08:44:38
+        - generic [ref=e69]: "备注:"
+      - generic [ref=e70]:
+        - heading "产品明细" [level=3] [ref=e71]
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - heading "📦 Comfast" [level=4] [ref=e74]
+            - generic [ref=e75]: "小计: ¥92.50"
+          - table [ref=e77]:
+            - rowgroup [ref=e78]:
+              - row "产品 采购数量 已入库 单价 小计" [ref=e79]:
+                - columnheader "产品" [ref=e80]
+                - columnheader "采购数量" [ref=e81]
+                - columnheader "已入库" [ref=e82]
+                - columnheader "单价" [ref=e83]
+                - columnheader "小计" [ref=e84]
+            - rowgroup [ref=e85]:
+              - row "SONOFF Basic 5 0 ¥18.50 ¥92.50" [ref=e86]:
+                - cell "SONOFF Basic" [ref=e87]
+                - cell "5" [ref=e88]
+                - cell "0" [ref=e89]
+                - cell "¥18.50" [ref=e90]
+                - cell "¥92.50" [ref=e91]

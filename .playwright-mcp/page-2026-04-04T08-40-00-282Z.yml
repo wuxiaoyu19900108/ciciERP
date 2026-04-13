@@ -1,0 +1,83 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - heading "新增供应商" [level=2] [ref=e42]
+        - generic [ref=e43]:
+          - generic [ref=e44]: admin
+          - button "退出" [ref=e46] [cursor=pointer]
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - link "供应商列表" [ref=e50] [cursor=pointer]:
+            - /url: /suppliers
+          - generic [ref=e51]: /
+          - generic [ref=e52]: 新增供应商
+        - heading "新增供应商" [level=1] [ref=e53]
+      - generic [ref=e55]:
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - generic [ref=e58]: 名称 *
+            - textbox "供应商名称" [ref=e59]
+          - generic [ref=e60]:
+            - generic [ref=e61]: 联系人
+            - textbox "联系人姓名" [ref=e62]
+          - generic [ref=e63]:
+            - generic [ref=e64]: 联系电话
+            - textbox "联系电话" [ref=e65]
+          - generic [ref=e66]:
+            - generic [ref=e67]: 邮箱
+            - textbox "邮箱地址" [ref=e68]
+          - generic [ref=e69]:
+            - generic [ref=e70]: 地址
+            - textbox "详细地址" [ref=e71]
+          - generic [ref=e72]:
+            - generic [ref=e73]: 备注
+            - textbox "备注信息..." [ref=e74]
+        - generic [ref=e75]:
+          - button "保存供应商" [ref=e76] [cursor=pointer]
+          - link "取消" [ref=e77] [cursor=pointer]:
+            - /url: /suppliers

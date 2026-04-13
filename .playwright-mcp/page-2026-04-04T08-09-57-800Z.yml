@@ -1,0 +1,116 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - heading "ciciERP" [level=1] [ref=e5]
+    - navigation [ref=e6]:
+      - link "📊 仪表板" [ref=e7] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e8]: 📊
+        - text: 仪表板
+      - link "📦 产品管理" [ref=e9] [cursor=pointer]:
+        - /url: /products
+        - generic [ref=e10]: 📦
+        - text: 产品管理
+      - link "📋 订单管理" [ref=e11] [cursor=pointer]:
+        - /url: /orders
+        - generic [ref=e12]: 📋
+        - text: 订单管理
+      - link "📈 数据分析" [ref=e13] [cursor=pointer]:
+        - /url: /analytics
+        - generic [ref=e14]: 📈
+        - text: 数据分析
+      - link "📊 库存管理" [ref=e15] [cursor=pointer]:
+        - /url: /inventory
+        - generic [ref=e16]: 📊
+        - text: 库存管理
+      - link "👥 客户管理" [ref=e17] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e18]: 👥
+        - text: 客户管理
+      - link "🏭 供应商管理" [ref=e19] [cursor=pointer]:
+        - /url: /suppliers
+        - generic [ref=e20]: 🏭
+        - text: 供应商管理
+      - link "🛒 采购管理" [ref=e21] [cursor=pointer]:
+        - /url: /purchase
+        - generic [ref=e22]: 🛒
+        - text: 采购管理
+      - link "🚚 物流管理" [ref=e23] [cursor=pointer]:
+        - /url: /logistics
+        - generic [ref=e24]: 🚚
+        - text: 物流管理
+  - main [ref=e25]:
+    - generic [ref=e26]:
+      - heading "新建 PI" [level=2] [ref=e27]
+      - generic [ref=e28]: 欢迎，admin
+    - generic [ref=e30]:
+      - heading "新建 PI" [level=3] [ref=e32]
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - heading "客户信息" [level=4] [ref=e36]
+            - generic [ref=e37]:
+              - generic [ref=e38]: 客户名称 *
+              - textbox [ref=e39]
+            - generic [ref=e40]:
+              - generic [ref=e41]: 邮箱
+              - textbox [ref=e42]
+            - generic [ref=e43]:
+              - generic [ref=e44]: 电话
+              - textbox [ref=e45]
+            - generic [ref=e46]:
+              - generic [ref=e47]: 地址
+              - textbox [ref=e48]
+          - generic [ref=e49]:
+            - heading "PI 信息" [level=4] [ref=e50]
+            - generic [ref=e51]:
+              - generic [ref=e52]: PI 日期 *
+              - textbox [ref=e53]
+            - generic [ref=e54]:
+              - generic [ref=e55]: 有效期至
+              - textbox [ref=e56]
+            - generic [ref=e57]:
+              - generic [ref=e58]: 币种
+              - combobox [ref=e59]:
+                - option "USD" [selected]
+                - option "CNY"
+                - option "EUR"
+            - generic [ref=e60]:
+              - generic [ref=e61]: 折扣
+              - spinbutton [ref=e62]: "0"
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - generic [ref=e65]: 付款条款
+            - textbox [ref=e66]: 100% before shipment
+          - generic [ref=e67]:
+            - generic [ref=e68]: 交货条款
+            - textbox [ref=e69]: EXW
+          - generic [ref=e70]:
+            - generic [ref=e71]: 交货周期
+            - textbox [ref=e72]: 3-7 working days
+          - generic [ref=e73]:
+            - generic [ref=e74]: 备注
+            - textbox [ref=e75]
+        - generic [ref=e76]:
+          - heading "产品明细" [level=4] [ref=e77]
+          - generic [ref=e78]: 每行一个产品，用换行分隔
+          - generic [ref=e79]:
+            - generic [ref=e80]:
+              - generic [ref=e81]: 产品名称 *
+              - textbox "产品A 产品B 产品C" [ref=e82]:
+                - /placeholder: "产品A\n产品B\n产品C"
+            - generic [ref=e83]:
+              - generic [ref=e84]: 型号
+              - textbox "Model-A Model-B Model-C" [ref=e85]:
+                - /placeholder: "Model-A\nModel-B\nModel-C"
+            - generic [ref=e86]:
+              - generic [ref=e87]: 数量 *
+              - textbox "100 200 50" [ref=e88]:
+                - /placeholder: "100\n200\n50"
+            - generic [ref=e89]:
+              - generic [ref=e90]: 单价 *
+              - textbox "10.50 25.00 100.00" [ref=e91]:
+                - /placeholder: "10.50\n25.00\n100.00"
+        - generic [ref=e92]:
+          - link "取消" [ref=e93] [cursor=pointer]:
+            - /url: /orders/pi
+          - button "创建 PI" [ref=e94] [cursor=pointer]

@@ -1,0 +1,140 @@
+<!-- 页面标题和操作栏 -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-800">订单管理</h1>
+        <p class="text-gray-600 mt-1">管理所有订单</p>
+    </div>
+    <a href="/orders/new"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <span>+</span>
+        <span>新建订单</span>
+    </a>
+</div>
+
+<!-- 状态筛选 -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+    <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-500">状态筛选:</span>
+        <div class="flex items-center gap-2">
+            <a href="/orders"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if status.is_none() %}bg-blue-100 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                全部
+            </a>
+            <a href="/orders?status=1"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if status == Some(1) %}bg-yellow-100 text-yellow-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                待审核
+            </a>
+            <a href="/orders?status=2"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if status == Some(2) %}bg-blue-100 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                待发货
+            </a>
+            <a href="/orders?status=4"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if status == Some(4) %}bg-indigo-100 text-indigo-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                已发货
+            </a>
+            <a href="/orders?status=5"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if status == Some(5) %}bg-green-100 text-green-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                已完成
+            </a>
+            <a href="/orders?status=7"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if status == Some(7) %}bg-red-100 text-red-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                售后中
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 订单表格 -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">订单号</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">平台</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">客户</th>
+                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700">金额</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">订单状态</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">支付状态</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700">创建时间</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700">操作</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for order in orders %}
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4">
+                    <span class="font-mono text-sm text-blue-600">{{ order.order_code }}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-gray-600">{{ crate::templates::orders::platform_text(order.platform) }}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-gray-800">{{ order.customer_name|unwrap_or("-") }}</span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <span class="font-medium text-gray-800">¥{{ "%.2f"|format(order.total_amount) }}</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-2 py-1 text-xs font-medium rounded-full {{ crate::templates::orders::order_status_class(order.order_status) }}">
+                        {{ crate::templates::orders::order_status_text(order.order_status) }}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="text-sm {{ crate::templates::orders::payment_status_class(order.payment_status) }}">
+                        {{ crate::templates::orders::payment_status_text(order.payment_status) }}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-sm text-gray-500">{{ order.created_at }}</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <a href="/orders/{{ order.id }}"
+                           class="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors">
+                            详情
+                        </a>
+                        {% if order.order_status == 2 %}
+                        <button class="px-3 py-1 text-sm text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors">
+                            发货
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="px-6 py-12 text-center">
+                    <div class="text-gray-500">
+                        <p class="text-4xl mb-2">📋</p>
+                        <p>暂无订单数据</p>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 分页 -->
+{% if total_pages > 1 %}
+<div class="flex items-center justify-between mt-6">
+    <p class="text-sm text-gray-600">
+        共 {{ total }} 条记录，第 {{ page }}/{{ total_pages }} 页
+    </p>
+    <div class="flex items-center gap-2">
+        {% if has_prev() %}
+        <a href="/orders?page={{ prev_page() }}{% if status %}&status={{ status }}{% endif %}"
+           class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
+            上一页
+        </a>
+        {% endif %}
+
+        {% if has_next() %}
+        <a href="/orders?page={{ next_page() }}{% if status %}&status={{ status }}{% endif %}"
+           class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
+            下一页
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

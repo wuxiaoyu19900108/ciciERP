@@ -4,7 +4,7 @@ use anyhow::Result;
 use sqlx::{QueryBuilder, SqlitePool};
 
 use cicierp_models::{
-    product::{CreateProductRequest, Product, ProductDashboardStats, ProductListItem, ProductSku, UpdateProductRequest},
+    product::{CreateProductRequest, Product, ProductDashboardStats, ProductListItem, UpdateProductRequest},
     common::PagedResponse,
 };
 
@@ -38,7 +38,7 @@ impl<'a> ProductQueries<'a> {
         // 构建安全的 count 查询
         let mut count_query = QueryBuilder::new(
             "SELECT COUNT(DISTINCT p.id) as count FROM products p \
-             LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1 \
+             LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1 AND pp.platform = 'website' \
              WHERE p.deleted_at IS NULL"
         );
 
@@ -93,7 +93,7 @@ impl<'a> ProductQueries<'a> {
                 pp.sale_price_cny,
                 pp.sale_price_usd,
                 pp.exchange_rate as price_exchange_rate,
-                COALESCE(SUM(ps.stock_quantity), 0) as stock_quantity,
+                CAST(0 AS INTEGER) as stock_quantity,
                 c.name as category_name,
                 b.name as brand_name,
                 CASE
@@ -118,11 +118,10 @@ impl<'a> ProductQueries<'a> {
                  WHERE product_id=p.id AND is_reference=1
                  ORDER BY platform) as platform_fees
             FROM products p
-            LEFT JOIN product_skus ps ON ps.product_id = p.id
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN brands b ON b.id = p.brand_id
             LEFT JOIN suppliers s ON s.id = p.supplier_id
-            LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1
+            LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1 AND pp.platform = 'website'
             LEFT JOIN product_costs pc ON pc.product_id = p.id AND pc.is_reference = 1
             WHERE p.deleted_at IS NULL"#
         );
@@ -161,7 +160,7 @@ impl<'a> ProductQueries<'a> {
             list_query.push_bind(max);
         }
 
-        list_query.push(" GROUP BY p.id ORDER BY p.created_at DESC LIMIT ");
+        list_query.push(" GROUP BY p.id ORDER BY CAST(SUBSTR(p.product_code, 4) AS INTEGER) DESC LIMIT ");
         list_query.push_bind(page_size as i64);
         list_query.push(" OFFSET ");
         list_query.push_bind(offset as i64);
@@ -182,11 +181,10 @@ impl<'a> ProductQueries<'a> {
         let mut q = QueryBuilder::new(
             r#"SELECT
                 CAST(COUNT(DISTINCT p.id) AS INTEGER) as total_count,
-                CAST(COALESCE(SUM(COALESCE(ps.stock_quantity, 0)), 0) AS REAL) as total_stock,
+                CAST(0 AS REAL) as total_stock,
                 CAST(COALESCE(AVG(pp.sale_price_usd), 0) AS REAL) as avg_price_usd,
-                CAST(COALESCE(SUM(pp.sale_price_usd * COALESCE(ps.stock_quantity, 0)), 0) AS REAL) as total_stock_value
+                CAST(0 AS REAL) as total_stock_value
             FROM products p
-            LEFT JOIN product_skus ps ON ps.product_id = p.id
             LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1
             WHERE p.deleted_at IS NULL"#
         );
@@ -250,8 +248,9 @@ impl<'a> ProductQueries<'a> {
                 product_code, name, model, name_en, slug, category_id, brand_id, supplier_id,
                 weight, volume,
                 description, description_en, specifications, main_image, images,
-                status, is_featured, is_new, notes, purchase_price, sale_price, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                status, is_featured, is_new, notes, unit,
+                purchase_price, sale_price, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#
         )
         .bind(&product_code)
@@ -273,6 +272,7 @@ impl<'a> ProductQueries<'a> {
         .bind(is_featured)
         .bind(is_new)
         .bind(&req.notes)
+        .bind(req.unit.as_deref().unwrap_or("pcs"))
         .bind(0.0_f64) // purchase_price: 价格已迁移到 product_costs/product_prices，此处保持默认值
         .bind(0.0_f64) // sale_price: 同上
         .bind(&now)
@@ -364,6 +364,10 @@ impl<'a> ProductQueries<'a> {
             updates.push("notes = ?");
             bindings.push(notes.clone());
         }
+        if let Some(ref unit) = req.unit {
+            updates.push("unit = ?");
+            bindings.push(unit.clone());
+        }
 
         let sql = format!(
             "UPDATE products SET {} WHERE id = ? AND deleted_at IS NULL",
@@ -410,18 +414,6 @@ impl<'a> ProductQueries<'a> {
         Ok(result.rows_affected() > 0)
     }
 
-    /// 获取产品的 SKU 列表
-    pub async fn get_skus(&self, product_id: i64) -> Result<Vec<ProductSku>> {
-        let skus: Vec<ProductSku> = sqlx::query_as(
-            "SELECT * FROM product_skus WHERE product_id = ? ORDER BY id"
-        )
-        .bind(product_id)
-        .fetch_all(self.pool)
-        .await?;
-
-        Ok(skus)
-    }
-
     /// 全文搜索产品
     pub async fn search(&self, keyword: &str, page: u32, page_size: u32) -> Result<PagedResponse<ProductListItem>> {
         let offset = (page.saturating_sub(1)) * page_size;
@@ -459,19 +451,18 @@ impl<'a> ProductQueries<'a> {
                     THEN ((pp.sale_price_usd - COALESCE(pc.cost_usd, 0) - (pp.sale_price_usd * COALESCE(pp.platform_fee_rate, 0))) / pp.sale_price_usd) * 100
                     ELSE NULL
                 END as profit_margin,
-                COALESCE(SUM(ps.stock_quantity), 0) as stock_quantity,
+                CAST(0 AS INTEGER) as stock_quantity,
                 c.name as category_name,
                 b.name as brand_name
             FROM products p
             JOIN products_fts fts ON fts.rowid = p.id
-            LEFT JOIN product_skus ps ON ps.product_id = p.id
             LEFT JOIN categories c ON c.id = p.category_id
             LEFT JOIN brands b ON b.id = p.brand_id
             LEFT JOIN product_prices pp ON pp.product_id = p.id AND pp.is_reference = 1
             LEFT JOIN product_costs pc ON pc.product_id = p.id AND pc.is_reference = 1
             WHERE products_fts MATCH ? AND p.deleted_at IS NULL
             GROUP BY p.id
-            ORDER BY p.created_at DESC
+            ORDER BY CAST(SUBSTR(p.product_code, 4) AS INTEGER) DESC
             LIMIT ? OFFSET ?
         "#;
 
@@ -501,21 +492,23 @@ impl<'a> ProductQueries<'a> {
     /// YYYYMMDD 当天日期
     /// XXXX 当日4位序号（从0001开始）
     pub async fn generate_product_code(&self) -> Result<String> {
-        let today = chrono::Utc::now().format("%Y%m%d").to_string();
-        let prefix = format!("SKU-{}-", today);
-
-        // 查询当天已有的产品数量（包含已删除的，保证编号唯一性）
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM products WHERE product_code LIKE ?"
+        // 查询所有 SP-N 格式编码中的最大序号（包含已删除，保证不重复）
+        let row: Option<(String,)> = sqlx::query_as(
+            "SELECT product_code FROM products WHERE product_code LIKE 'SP-%' \
+             ORDER BY CAST(SUBSTR(product_code, 4) AS INTEGER) DESC LIMIT 1"
         )
-        .bind(format!("{}%", prefix))
-        .fetch_one(self.pool)
+        .fetch_optional(self.pool)
         .await?;
 
-        let sequence = count.0 + 1;
-        let product_code = format!("{}{:04}", prefix, sequence);
+        let next_n = if let Some((code,)) = row {
+            code.trim_start_matches("SP-")
+                .parse::<u64>()
+                .unwrap_or(0) + 1
+        } else {
+            1
+        };
 
-        Ok(product_code)
+        Ok(format!("SP-{}", next_n))
     }
 
     /// 获取指定时间后更新的产品列表（用于增量同步）

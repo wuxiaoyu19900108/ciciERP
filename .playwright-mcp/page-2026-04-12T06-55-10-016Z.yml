@@ -1,0 +1,84 @@
+- application [ref=e1]:
+  - iframe [ref=e235]:
+    
+  - iframe [ref=e2]:
+    
+  - banner "Menu bar" [ref=e3]:
+    - generic [ref=e6]:
+      - link "Sheets home" [ref=e8] [cursor=pointer]:
+        - /url: https://docs.google.com/spreadsheets/?usp=sheets_web
+      - generic [ref=e15]:
+        - generic "bug 登记表" [ref=e17]:
+          - generic [ref=e19]: bug 登记表
+          - 'button "Document status: Saved to Drive." [ref=e23]'
+        - generic [ref=e31]:
+          - button "Show all comments" [ref=e236] [cursor=pointer]
+          - button "Share. Anyone with the link. Anyone who has the link can access. No sign-in required." [disabled] [ref=e237]
+          - link "Sign in" [ref=e43] [cursor=pointer]:
+            - /url: https://accounts.google.com/ServiceLogin?service=wise&passive=1209600&osid=1&continue=https://docs.google.com/spreadsheets/d/1uM0vKs-rJOg7rUP46TRQKSl7AW7N59NszSAQEcI-pmc/edit?usp%3Dsharing&followup=https://docs.google.com/spreadsheets/d/1uM0vKs-rJOg7rUP46TRQKSl7AW7N59NszSAQEcI-pmc/edit?usp%3Dsharing&ltmpl=sheets&ec=GAZAmwI
+    - generic [ref=e44]:
+      - menubar [ref=e46]:
+        - menuitem "File" [ref=e47] [cursor=pointer]
+        - menuitem "Edit" [ref=e48] [cursor=pointer]
+        - menuitem "View" [ref=e49] [cursor=pointer]
+        - menuitem "Insert" [ref=e50] [cursor=pointer]
+        - menuitem "Format" [ref=e51] [cursor=pointer]
+        - menuitem "Data" [ref=e52] [cursor=pointer]
+        - menuitem "Tools" [ref=e53] [cursor=pointer]
+        - menuitem "Extensions" [ref=e54] [cursor=pointer]
+        - menuitem "Help" [ref=e55] [cursor=pointer]
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - toolbar "Search the menus (Alt+/)" [ref=e58]:
+            - combobox "Menus" [ref=e60]
+          - toolbar "Main" [ref=e61]:
+            - button "Undo (Ctrl+Z)" [ref=e62] [cursor=pointer]
+            - button "Redo (Ctrl+Y)" [ref=e67] [cursor=pointer]
+            - button "Print (Ctrl+P)" [ref=e72] [cursor=pointer]
+            - button "Paint format" [ref=e77] [cursor=pointer]
+            - combobox "Zoom" [ref=e82] [cursor=pointer]:
+              - option "Zoom list. 100% selected." [selected] [ref=e85]:
+                - textbox "Zoom" [ref=e86]: 100%
+            - separator [disabled] [ref=e90]
+            - button "Format as currency" [ref=e91] [cursor=pointer]:
+              - generic [ref=e93]: ¥
+            - button "Format as percent" [ref=e94] [cursor=pointer]:
+              - generic [ref=e96]: "%"
+            - button "Decrease decimal places" [ref=e97] [cursor=pointer]
+            - button "Increase decimal places" [ref=e102] [cursor=pointer]
+            - button "More formats" [ref=e107] [cursor=pointer]:
+              - generic [ref=e110]: "123"
+            - separator [disabled] [ref=e111]
+            - listbox "Font" [ref=e112] [cursor=pointer]:
+              - option "Font list. Default (Sans Serif) selected." [selected] [ref=e115]: Default (Sans Serif)
+            - separator [disabled] [ref=e119]
+            - button "Decrease font size (Ctrl+Shift+comma)" [ref=e120] [cursor=pointer]
+            - combobox "Font size" [ref=e125] [cursor=pointer]:
+              - option "Font size list. 10 selected." [selected] [ref=e128]:
+                - textbox "Font size" [ref=e129]: "10"
+            - button "Increase font size (Ctrl+Shift+period)" [ref=e130] [cursor=pointer]
+            - separator [disabled] [ref=e135]
+            - button "More" [ref=e136] [cursor=pointer]
+        - toolbar "Mode and view" [ref=e143]:
+          - button "Hide the menus (Ctrl+Shift+F)" [ref=e144] [cursor=pointer]
+    - generic [ref=e151]:
+      - generic "Name box (Ctrl + J)" [ref=e152]:
+        - textbox [active] [ref=e153]: A1
+        - button "Name box menu button. Select one of the menu items to navigate to its corresponding named range." [ref=e155] [cursor=pointer]
+      - combobox [ref=e244]: 编号
+  - navigation "Sheet tab bar" [ref=e207]:
+    - toolbar [ref=e208]:
+      - button "Add Sheet" [ref=e209] [cursor=pointer]
+      - button "All Sheets" [ref=e214] [cursor=pointer]
+    - toolbar [ref=e221]:
+      - button "工作表1" [ref=e222]:
+        - generic [ref=e226]: 工作表1
+    - toolbar [ref=e230]
+  - generic [ref=e231]:
+    - textbox
+  - link "Turn on screen reader support" [ref=e232] [cursor=pointer]:
+    - /url: "#"
+  - textbox [ref=e233]
+  - region [ref=e234]: To enable screen reader support, press Ctrl+Alt+Z To learn about keyboard shortcuts, press Ctrl+slash
+  - region
+  - generic [ref=e245]: Name box. Ctrl + J. A1 selected. Type a cell range or named range and hit the Enter key to navigate to the specified range.

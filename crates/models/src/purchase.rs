@@ -166,7 +166,7 @@ pub struct ApprovePurchaseRequest {
 /// 采购入库请求
 #[derive(Debug, Deserialize, Validate)]
 pub struct ReceivePurchaseRequest {
-    pub sku_id: i64,
+    pub product_id: i64,
     #[validate(range(min = 1, message = "收货数量必须大于0"))]
     pub received_qty: i64,
     #[validate(range(min = 0, message = "质检合格数量不能为负"))]

@@ -1,0 +1,528 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - button [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+          - heading "产品管理" [level=2] [ref=e45]
+        - generic [ref=e46]:
+          - generic [ref=e47]: admin
+          - button "退出" [ref=e49] [cursor=pointer]
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - heading "产品管理" [level=1] [ref=e53]
+          - paragraph [ref=e54]: 管理所有产品信息
+        - link "+ 新增产品" [ref=e55] [cursor=pointer]:
+          - /url: /products/new
+          - generic [ref=e56]: +
+          - generic [ref=e57]: 新增产品
+      - generic [ref=e60]:
+        - textbox "搜索产品编码、名称、型号..." [ref=e62]
+        - combobox [ref=e64]:
+          - option "全部供应商" [selected]
+          - option "Comfast"
+          - option "测试供应商-路由修复"
+          - option "测试供应商-已更新"
+        - generic [ref=e65]:
+          - spinbutton [ref=e66]
+          - generic [ref=e67]: —
+          - spinbutton [ref=e68]
+        - generic [ref=e69]:
+          - button "筛选" [ref=e70] [cursor=pointer]
+          - link "重置" [ref=e71] [cursor=pointer]:
+            - /url: /products
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - generic [ref=e74]: "149"
+          - generic [ref=e75]: 商品数量
+        - generic [ref=e76]:
+          - generic [ref=e77]: "480"
+          - generic [ref=e78]: 库存总数
+        - generic [ref=e79]:
+          - generic [ref=e80]: $76.38
+          - generic [ref=e81]: 平均销售价 (USD)
+        - generic [ref=e82]:
+          - generic [ref=e83]: $20318
+          - generic [ref=e84]: 理论库存价值 (USD)
+      - table [ref=e87]:
+        - rowgroup [ref=e88]:
+          - row "产品编码 产品名称 型号 供应商 RMB成本 美金成本 美金卖价 利润($) 利润率 平台费率 库存 状态 操作" [ref=e89]:
+            - columnheader "产品编码" [ref=e90]
+            - columnheader "产品名称" [ref=e91]
+            - columnheader "型号" [ref=e92]
+            - columnheader "供应商" [ref=e93]
+            - columnheader "RMB成本" [ref=e94]
+            - columnheader "美金成本" [ref=e95]
+            - columnheader "美金卖价" [ref=e96]
+            - columnheader "利润($)" [ref=e97]
+            - columnheader "利润率" [ref=e98]
+            - columnheader "平台费率" [ref=e99]
+            - columnheader "库存" [ref=e100]
+            - columnheader "状态" [ref=e101]
+            - columnheader "操作" [ref=e102]
+        - rowgroup [ref=e103]:
+          - row "SKU-20260402-0001 Playwright测试产品（已编辑） - - ¥50.00 $7.00 - - - - 0 上架 查看 编辑 删除" [ref=e104]:
+            - cell "SKU-20260402-0001" [ref=e105]
+            - cell "Playwright测试产品（已编辑）" [ref=e106]
+            - cell "-" [ref=e107]
+            - cell "-" [ref=e108]
+            - cell "¥50.00" [ref=e109]
+            - cell "$7.00" [ref=e110]
+            - cell "-" [ref=e111]
+            - cell "-" [ref=e112]
+            - cell "-" [ref=e113]
+            - cell "-" [ref=e114]
+            - cell "0" [ref=e115]
+            - cell "上架" [ref=e116]
+            - cell "查看 编辑 删除" [ref=e117]:
+              - generic [ref=e118]:
+                - link "查看" [ref=e119] [cursor=pointer]:
+                  - /url: /products/176
+                - link "编辑" [ref=e120] [cursor=pointer]:
+                  - /url: /products/176/edit
+                - button "删除" [ref=e121] [cursor=pointer]
+          - row "SKU-20260401-0007 UI 自动化测试产品 - - - - - - - - 0 上架 查看 编辑 删除" [ref=e122]:
+            - cell "SKU-20260401-0007" [ref=e123]
+            - cell "UI 自动化测试产品" [ref=e124]
+            - cell "-" [ref=e125]
+            - cell "-" [ref=e126]
+            - cell "-" [ref=e127]
+            - cell "-" [ref=e128]
+            - cell "-" [ref=e129]
+            - cell "-" [ref=e130]
+            - cell "-" [ref=e131]
+            - cell "-" [ref=e132]
+            - cell "0" [ref=e133]
+            - cell "上架" [ref=e134]
+            - cell "查看 编辑 删除" [ref=e135]:
+              - generic [ref=e136]:
+                - link "查看" [ref=e137] [cursor=pointer]:
+                  - /url: /products/166
+                - link "编辑" [ref=e138] [cursor=pointer]:
+                  - /url: /products/166/edit
+                - button "删除" [ref=e139] [cursor=pointer]
+          - row "SKU-20260401-0006 UI 自动化测试产品 - - - - - - - - 0 上架 查看 编辑 删除" [ref=e140]:
+            - cell "SKU-20260401-0006" [ref=e141]
+            - cell "UI 自动化测试产品" [ref=e142]
+            - cell "-" [ref=e143]
+            - cell "-" [ref=e144]
+            - cell "-" [ref=e145]
+            - cell "-" [ref=e146]
+            - cell "-" [ref=e147]
+            - cell "-" [ref=e148]
+            - cell "-" [ref=e149]
+            - cell "-" [ref=e150]
+            - cell "0" [ref=e151]
+            - cell "上架" [ref=e152]
+            - cell "查看 编辑 删除" [ref=e153]:
+              - generic [ref=e154]:
+                - link "查看" [ref=e155] [cursor=pointer]:
+                  - /url: /products/161
+                - link "编辑" [ref=e156] [cursor=pointer]:
+                  - /url: /products/161/edit
+                - button "删除" [ref=e157] [cursor=pointer]
+          - row "RBT-TEST-001 rebuild-test - - - - - - - - 0 草稿 查看 编辑 删除" [ref=e158]:
+            - cell "RBT-TEST-001" [ref=e159]
+            - cell "rebuild-test" [ref=e160]
+            - cell "-" [ref=e161]
+            - cell "-" [ref=e162]
+            - cell "-" [ref=e163]
+            - cell "-" [ref=e164]
+            - cell "-" [ref=e165]
+            - cell "-" [ref=e166]
+            - cell "-" [ref=e167]
+            - cell "-" [ref=e168]
+            - cell "0" [ref=e169]
+            - cell "草稿" [ref=e170]
+            - cell "查看 编辑 删除" [ref=e171]:
+              - generic [ref=e172]:
+                - link "查看" [ref=e173] [cursor=pointer]:
+                  - /url: /products/156
+                - link "编辑" [ref=e174] [cursor=pointer]:
+                  - /url: /products/156/edit
+                - button "删除" [ref=e175] [cursor=pointer]
+          - row "SKU-20260401-0005 UI_test_form - - - - - - - - 0 草稿 查看 编辑 删除" [ref=e176]:
+            - cell "SKU-20260401-0005" [ref=e177]
+            - cell "UI_test_form" [ref=e178]
+            - cell "-" [ref=e179]
+            - cell "-" [ref=e180]
+            - cell "-" [ref=e181]
+            - cell "-" [ref=e182]
+            - cell "-" [ref=e183]
+            - cell "-" [ref=e184]
+            - cell "-" [ref=e185]
+            - cell "-" [ref=e186]
+            - cell "0" [ref=e187]
+            - cell "草稿" [ref=e188]
+            - cell "查看 编辑 删除" [ref=e189]:
+              - generic [ref=e190]:
+                - link "查看" [ref=e191] [cursor=pointer]:
+                  - /url: /products/155
+                - link "编辑" [ref=e192] [cursor=pointer]:
+                  - /url: /products/155/edit
+                - button "删除" [ref=e193] [cursor=pointer]
+          - row "TEST-E2E-1775033973767 E2E 测试产品（已更新） - - - - - - - - 0 上架 查看 编辑 删除" [ref=e194]:
+            - cell "TEST-E2E-1775033973767" [ref=e195]
+            - cell "E2E 测试产品（已更新）" [ref=e196]
+            - cell "-" [ref=e197]
+            - cell "-" [ref=e198]
+            - cell "-" [ref=e199]
+            - cell "-" [ref=e200]
+            - cell "-" [ref=e201]
+            - cell "-" [ref=e202]
+            - cell "-" [ref=e203]
+            - cell "-" [ref=e204]
+            - cell "0" [ref=e205]
+            - cell "上架" [ref=e206]
+            - cell "查看 编辑 删除" [ref=e207]:
+              - generic [ref=e208]:
+                - link "查看" [ref=e209] [cursor=pointer]:
+                  - /url: /products/152
+                - link "编辑" [ref=e210] [cursor=pointer]:
+                  - /url: /products/152/edit
+                - button "删除" [ref=e211] [cursor=pointer]
+          - row "SKU-20260401-0003 del-test - - - - - - - - 0 草稿 查看 编辑 删除" [ref=e212]:
+            - cell "SKU-20260401-0003" [ref=e213]
+            - cell "del-test" [ref=e214]
+            - cell "-" [ref=e215]
+            - cell "-" [ref=e216]
+            - cell "-" [ref=e217]
+            - cell "-" [ref=e218]
+            - cell "-" [ref=e219]
+            - cell "-" [ref=e220]
+            - cell "-" [ref=e221]
+            - cell "-" [ref=e222]
+            - cell "0" [ref=e223]
+            - cell "草稿" [ref=e224]
+            - cell "查看 编辑 删除" [ref=e225]:
+              - generic [ref=e226]:
+                - link "查看" [ref=e227] [cursor=pointer]:
+                  - /url: /products/149
+                - link "编辑" [ref=e228] [cursor=pointer]:
+                  - /url: /products/149/edit
+                - button "删除" [ref=e229] [cursor=pointer]
+          - row "TEST-E2E-1775029404064 E2E 测试产品（已更新） - - - - - - - - 0 上架 查看 编辑 删除" [ref=e230]:
+            - cell "TEST-E2E-1775029404064" [ref=e231]
+            - cell "E2E 测试产品（已更新）" [ref=e232]
+            - cell "-" [ref=e233]
+            - cell "-" [ref=e234]
+            - cell "-" [ref=e235]
+            - cell "-" [ref=e236]
+            - cell "-" [ref=e237]
+            - cell "-" [ref=e238]
+            - cell "-" [ref=e239]
+            - cell "-" [ref=e240]
+            - cell "0" [ref=e241]
+            - cell "上架" [ref=e242]
+            - cell "查看 编辑 删除" [ref=e243]:
+              - generic [ref=e244]:
+                - link "查看" [ref=e245] [cursor=pointer]:
+                  - /url: /products/146
+                - link "编辑" [ref=e246] [cursor=pointer]:
+                  - /url: /products/146/edit
+                - button "删除" [ref=e247] [cursor=pointer]
+          - row "SKU-20260401-0001 测试产品修复 - - - - - - - - 0 草稿 查看 编辑 删除" [ref=e248]:
+            - cell "SKU-20260401-0001" [ref=e249]
+            - cell "测试产品修复" [ref=e250]
+            - cell "-" [ref=e251]
+            - cell "-" [ref=e252]
+            - cell "-" [ref=e253]
+            - cell "-" [ref=e254]
+            - cell "-" [ref=e255]
+            - cell "-" [ref=e256]
+            - cell "-" [ref=e257]
+            - cell "-" [ref=e258]
+            - cell "0" [ref=e259]
+            - cell "草稿" [ref=e260]
+            - cell "查看 编辑 删除" [ref=e261]:
+              - generic [ref=e262]:
+                - link "查看" [ref=e263] [cursor=pointer]:
+                  - /url: /products/143
+                - link "编辑" [ref=e264] [cursor=pointer]:
+                  - /url: /products/143/edit
+                - button "删除" [ref=e265] [cursor=pointer]
+          - row "SP-141 SONOFF Slampher - - - - - - - - 0 上架 查看 编辑 删除" [ref=e266]:
+            - cell "SP-141" [ref=e267]
+            - cell "SONOFF Slampher" [ref=e268]
+            - cell "-" [ref=e269]
+            - cell "-" [ref=e270]
+            - cell "-" [ref=e271]
+            - cell "-" [ref=e272]
+            - cell "-" [ref=e273]
+            - cell "-" [ref=e274]
+            - cell "-" [ref=e275]
+            - cell "-" [ref=e276]
+            - cell "0" [ref=e277]
+            - cell "上架" [ref=e278]
+            - cell "查看 编辑 删除" [ref=e279]:
+              - generic [ref=e280]:
+                - link "查看" [ref=e281] [cursor=pointer]:
+                  - /url: /products/141
+                - link "编辑" [ref=e282] [cursor=pointer]:
+                  - /url: /products/141/edit
+                - button "删除" [ref=e283] [cursor=pointer]
+          - row "SP-142 SONOFF Basic - - - - - - - - 0 上架 查看 编辑 删除" [ref=e284]:
+            - cell "SP-142" [ref=e285]
+            - cell "SONOFF Basic" [ref=e286]
+            - cell "-" [ref=e287]
+            - cell "-" [ref=e288]
+            - cell "-" [ref=e289]
+            - cell "-" [ref=e290]
+            - cell "-" [ref=e291]
+            - cell "-" [ref=e292]
+            - cell "-" [ref=e293]
+            - cell "-" [ref=e294]
+            - cell "0" [ref=e295]
+            - cell "上架" [ref=e296]
+            - cell "查看 编辑 删除" [ref=e297]:
+              - generic [ref=e298]:
+                - link "查看" [ref=e299] [cursor=pointer]:
+                  - /url: /products/142
+                - link "编辑" [ref=e300] [cursor=pointer]:
+                  - /url: /products/142/edit
+                - button "删除" [ref=e301] [cursor=pointer]
+          - row "SP-140 emo suit robot 标准版 - - ¥0.00 - - - - Ali:3.0% | AE:5.0% | Web:0.0% 0 上架 查看 编辑 删除" [ref=e302]:
+            - cell "SP-140" [ref=e303]
+            - cell "emo suit robot 标准版" [ref=e304]
+            - cell "-" [ref=e305]
+            - cell "-" [ref=e306]
+            - cell "¥0.00" [ref=e307]
+            - cell "-" [ref=e308]
+            - cell "-" [ref=e309]
+            - cell "-" [ref=e310]
+            - cell "-" [ref=e311]
+            - cell "Ali:3.0% | AE:5.0% | Web:0.0%" [ref=e312]
+            - cell "0" [ref=e313]
+            - cell "上架" [ref=e314]
+            - cell "查看 编辑 删除" [ref=e315]:
+              - generic [ref=e316]:
+                - link "查看" [ref=e317] [cursor=pointer]:
+                  - /url: /products/140
+                - link "编辑" [ref=e318] [cursor=pointer]:
+                  - /url: /products/140/edit
+                - button "删除" [ref=e319] [cursor=pointer]
+          - row "SP-139 Smart WiFi Thermostat OLED RF433 - - ¥0.00 - - - - Ali:3.0% | AE:5.0% | Web:0.0% 0 上架 查看 编辑 删除" [ref=e320]:
+            - cell "SP-139" [ref=e321]
+            - cell "Smart WiFi Thermostat OLED RF433" [ref=e322]
+            - cell "-" [ref=e323]
+            - cell "-" [ref=e324]
+            - cell "¥0.00" [ref=e325]
+            - cell "-" [ref=e326]
+            - cell "-" [ref=e327]
+            - cell "-" [ref=e328]
+            - cell "-" [ref=e329]
+            - cell "Ali:3.0% | AE:5.0% | Web:0.0%" [ref=e330]
+            - cell "0" [ref=e331]
+            - cell "上架" [ref=e332]
+            - cell "查看 编辑 删除" [ref=e333]:
+              - generic [ref=e334]:
+                - link "查看" [ref=e335] [cursor=pointer]:
+                  - /url: /products/139
+                - link "编辑" [ref=e336] [cursor=pointer]:
+                  - /url: /products/139/edit
+                - button "删除" [ref=e337] [cursor=pointer]
+          - row "SP-10 27显示器 - - ¥418.00 $61.38 $68.08 $5.00 7.3% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e338]:
+            - cell "SP-10" [ref=e339]
+            - cell "27显示器" [ref=e340]
+            - cell "-" [ref=e341]
+            - cell "-" [ref=e342]
+            - cell "¥418.00" [ref=e343]
+            - cell "$61.38" [ref=e344]
+            - cell "$68.08" [ref=e345]
+            - cell "$5.00" [ref=e346]:
+              - generic [ref=e347]: $5.00
+            - cell "7.3%" [ref=e348]:
+              - generic [ref=e349]: 7.3%
+            - cell "Ali:2.5%" [ref=e350]
+            - cell "0" [ref=e351]
+            - cell "上架" [ref=e352]
+            - cell "查看 编辑 删除" [ref=e353]:
+              - generic [ref=e354]:
+                - link "查看" [ref=e355] [cursor=pointer]:
+                  - /url: /products/19
+                - link "编辑" [ref=e356] [cursor=pointer]:
+                  - /url: /products/19/edit
+                - button "删除" [ref=e357] [cursor=pointer]
+          - row "SP-82 COMFAST CF-EW82 - - ¥125.00 $18.36 $23.95 $5.00 20.9% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e358]:
+            - cell "SP-82" [ref=e359]
+            - cell "COMFAST CF-EW82" [ref=e360]
+            - cell "-" [ref=e361]
+            - cell "-" [ref=e362]
+            - cell "¥125.00" [ref=e363]
+            - cell "$18.36" [ref=e364]
+            - cell "$23.95" [ref=e365]
+            - cell "$5.00" [ref=e366]:
+              - generic [ref=e367]: $5.00
+            - cell "20.9%" [ref=e368]:
+              - generic [ref=e369]: 20.9%
+            - cell "Ali:2.5%" [ref=e370]
+            - cell "0" [ref=e371]
+            - cell "上架" [ref=e372]
+            - cell "查看 编辑 删除" [ref=e373]:
+              - generic [ref=e374]:
+                - link "查看" [ref=e375] [cursor=pointer]:
+                  - /url: /products/138
+                - link "编辑" [ref=e376] [cursor=pointer]:
+                  - /url: /products/138/edit
+                - button "删除" [ref=e377] [cursor=pointer]
+          - row "SP-18 SONOFF Zigbee 3.0 USB Plus-ZBDongle-E - - ¥89.00 $13.07 $18.53 $5.00 27.0% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e378]:
+            - cell "SP-18" [ref=e379]
+            - cell "SONOFF Zigbee 3.0 USB Plus-ZBDongle-E" [ref=e380]
+            - cell "-" [ref=e381]
+            - cell "-" [ref=e382]
+            - cell "¥89.00" [ref=e383]
+            - cell "$13.07" [ref=e384]
+            - cell "$18.53" [ref=e385]
+            - cell "$5.00" [ref=e386]:
+              - generic [ref=e387]: $5.00
+            - cell "27.0%" [ref=e388]:
+              - generic [ref=e389]: 27.0%
+            - cell "Ali:2.5%" [ref=e390]
+            - cell "0" [ref=e391]
+            - cell "上架" [ref=e392]
+            - cell "查看 编辑 删除" [ref=e393]:
+              - generic [ref=e394]:
+                - link "查看" [ref=e395] [cursor=pointer]:
+                  - /url: /products/20
+                - link "编辑" [ref=e396] [cursor=pointer]:
+                  - /url: /products/20/edit
+                - button "删除" [ref=e397] [cursor=pointer]
+          - row "SP-19 SONOFF Zigbee 1.5M USB Male - - ¥6.00 $0.88 $6.03 $5.00 82.9% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e398]:
+            - cell "SP-19" [ref=e399]
+            - cell "SONOFF Zigbee 1.5M USB Male" [ref=e400]
+            - cell "-" [ref=e401]
+            - cell "-" [ref=e402]
+            - cell "¥6.00" [ref=e403]
+            - cell "$0.88" [ref=e404]
+            - cell "$6.03" [ref=e405]
+            - cell "$5.00" [ref=e406]:
+              - generic [ref=e407]: $5.00
+            - cell "82.9%" [ref=e408]:
+              - generic [ref=e409]: 82.9%
+            - cell "Ali:2.5%" [ref=e410]
+            - cell "0" [ref=e411]
+            - cell "上架" [ref=e412]
+            - cell "查看 编辑 删除" [ref=e413]:
+              - generic [ref=e414]:
+                - link "查看" [ref=e415] [cursor=pointer]:
+                  - /url: /products/21
+                - link "编辑" [ref=e416] [cursor=pointer]:
+                  - /url: /products/21/edit
+                - button "删除" [ref=e417] [cursor=pointer]
+          - row "SP-20 SONOFF SNZB-03P - - ¥48.00 $7.05 $12.36 $5.00 40.5% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e418]:
+            - cell "SP-20" [ref=e419]
+            - cell "SONOFF SNZB-03P" [ref=e420]
+            - cell "-" [ref=e421]
+            - cell "-" [ref=e422]
+            - cell "¥48.00" [ref=e423]
+            - cell "$7.05" [ref=e424]
+            - cell "$12.36" [ref=e425]
+            - cell "$5.00" [ref=e426]:
+              - generic [ref=e427]: $5.00
+            - cell "40.5%" [ref=e428]:
+              - generic [ref=e429]: 40.5%
+            - cell "Ali:2.5%" [ref=e430]
+            - cell "0" [ref=e431]
+            - cell "上架" [ref=e432]
+            - cell "查看 编辑 删除" [ref=e433]:
+              - generic [ref=e434]:
+                - link "查看" [ref=e435] [cursor=pointer]:
+                  - /url: /products/22
+                - link "编辑" [ref=e436] [cursor=pointer]:
+                  - /url: /products/22/edit
+                - button "删除" [ref=e437] [cursor=pointer]
+          - row "SP-21 SONOFF SNZB-04P - - ¥47.00 $6.90 $12.21 $5.00 41.0% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e438]:
+            - cell "SP-21" [ref=e439]
+            - cell "SONOFF SNZB-04P" [ref=e440]
+            - cell "-" [ref=e441]
+            - cell "-" [ref=e442]
+            - cell "¥47.00" [ref=e443]
+            - cell "$6.90" [ref=e444]
+            - cell "$12.21" [ref=e445]
+            - cell "$5.00" [ref=e446]:
+              - generic [ref=e447]: $5.00
+            - cell "41.0%" [ref=e448]:
+              - generic [ref=e449]: 41.0%
+            - cell "Ali:2.5%" [ref=e450]
+            - cell "0" [ref=e451]
+            - cell "上架" [ref=e452]
+            - cell "查看 编辑 删除" [ref=e453]:
+              - generic [ref=e454]:
+                - link "查看" [ref=e455] [cursor=pointer]:
+                  - /url: /products/23
+                - link "编辑" [ref=e456] [cursor=pointer]:
+                  - /url: /products/23/edit
+                - button "删除" [ref=e457] [cursor=pointer]
+          - row "SP-22 SONOFF SNZB-01P - - ¥41.00 $6.02 $11.30 $5.00 44.2% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e458]:
+            - cell "SP-22" [ref=e459]
+            - cell "SONOFF SNZB-01P" [ref=e460]
+            - cell "-" [ref=e461]
+            - cell "-" [ref=e462]
+            - cell "¥41.00" [ref=e463]
+            - cell "$6.02" [ref=e464]
+            - cell "$11.30" [ref=e465]
+            - cell "$5.00" [ref=e466]:
+              - generic [ref=e467]: $5.00
+            - cell "44.2%" [ref=e468]:
+              - generic [ref=e469]: 44.2%
+            - cell "Ali:2.5%" [ref=e470]
+            - cell "0" [ref=e471]
+            - cell "上架" [ref=e472]
+            - cell "查看 编辑 删除" [ref=e473]:
+              - generic [ref=e474]:
+                - link "查看" [ref=e475] [cursor=pointer]:
+                  - /url: /products/24
+                - link "编辑" [ref=e476] [cursor=pointer]:
+                  - /url: /products/24/edit
+                - button "删除" [ref=e477] [cursor=pointer]
+      - generic [ref=e478]:
+        - paragraph [ref=e479]: 共 149 条，第 1/8 页
+        - generic [ref=e480]:
+          - generic [ref=e481]: 上一页
+          - link "下一页" [ref=e482] [cursor=pointer]:
+            - /url: /products?page=2

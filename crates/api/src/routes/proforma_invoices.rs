@@ -9,7 +9,7 @@ use tracing::{info, instrument};
 use validator::Validate;
 
 use crate::state::AppState;
-use cicierp_db::queries::{orders::OrderQueries, proforma_invoices::ProformaInvoiceQueries};
+use cicierp_db::queries::{exchange_rates::ExchangeRateQueries, orders::OrderQueries, proforma_invoices::ProformaInvoiceQueries};
 use cicierp_models::{
     common::PagedResponse,
     proforma_invoice::{CreatePIRequest, PIDetail, PIListItem, PIQuery, ProformaInvoice, UpdatePIRequest},
@@ -77,11 +77,19 @@ pub async fn get_pi(
 #[instrument(skip(state))]
 pub async fn create_pi(
     State(state): State<AppState>,
-    Json(req): Json<CreatePIRequest>,
+    Json(mut req): Json<CreatePIRequest>,
 ) -> AppResult<Json<ApiResponse<ProformaInvoice>>> {
     info!("Creating proforma invoice: customer={}", req.customer_name);
 
     req.validate().map_err(AppError::from)?;
+
+    // 如果调用方没有传 exchange_rate，自动填入当前缓冲汇率快照
+    if req.exchange_rate.is_none() {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        let rate = eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
+        req.exchange_rate = Some(((rate - 0.05) * 100.0).round() / 100.0);
+    }
 
     let queries = ProformaInvoiceQueries::new(state.db.pool());
     let pi = queries.create(&req).await?;
@@ -246,6 +254,8 @@ pub async fn convert_pi_to_order(
         payment_terms: Some(pi_detail.pi.payment_terms.clone()),
         delivery_terms: Some(pi_detail.pi.delivery_terms.clone()),
         lead_time: Some(pi_detail.pi.lead_time.clone()),
+        exchange_rate: pi_detail.pi.exchange_rate,  // 沿用 PI 的汇率快照
+        currency: Some(pi_detail.pi.currency.clone()),     // 沿用 PI 的货币
     };
 
     // 创建订单

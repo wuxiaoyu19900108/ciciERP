@@ -1,0 +1,558 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - button [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+          - heading "产品管理" [level=2] [ref=e45]
+        - generic [ref=e46]:
+          - generic [ref=e47]: admin
+          - button "退出" [ref=e49] [cursor=pointer]
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - heading "产品管理" [level=1] [ref=e53]
+          - paragraph [ref=e54]: 管理所有产品信息
+        - generic [ref=e55]:
+          - link "↓ 导出 Excel" [ref=e56] [cursor=pointer]:
+            - /url: /products/export
+          - button "↑ 批量导入" [ref=e57] [cursor=pointer]
+          - link "+ 新增产品" [ref=e58] [cursor=pointer]:
+            - /url: /products/new
+            - generic [ref=e59]: +
+            - generic [ref=e60]: 新增产品
+      - generic [ref=e63]:
+        - textbox "搜索产品编码、名称、型号..." [ref=e65]
+        - combobox [ref=e67]:
+          - option "全部供应商" [selected]
+          - option "Comfast"
+          - option "测试供应商-路由修复"
+          - option "测试供应商-已更新"
+        - generic [ref=e68]:
+          - spinbutton [ref=e69]
+          - generic [ref=e70]: —
+          - spinbutton [ref=e71]
+        - generic [ref=e72]:
+          - button "筛选" [ref=e73] [cursor=pointer]
+          - link "重置" [ref=e74] [cursor=pointer]:
+            - /url: /products
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - generic [ref=e77]: "139"
+          - generic [ref=e78]: 商品数量
+        - generic [ref=e79]:
+          - generic [ref=e80]: "480"
+          - generic [ref=e81]: 库存总数
+        - generic [ref=e82]:
+          - generic [ref=e83]: $75.32
+          - generic [ref=e84]: 平均销售价 (USD)
+        - generic [ref=e85]:
+          - generic [ref=e86]: $20318
+          - generic [ref=e87]: 理论库存价值 (USD)
+      - table [ref=e90]:
+        - rowgroup [ref=e91]:
+          - row "产品编码 产品名称 型号 供应商 RMB成本 美金成本 美金卖价 利润($) 利润率 平台费率 库存 状态 操作" [ref=e92]:
+            - columnheader "产品编码" [ref=e93]
+            - columnheader "产品名称" [ref=e94]
+            - columnheader "型号" [ref=e95]
+            - columnheader "供应商" [ref=e96]
+            - columnheader "RMB成本" [ref=e97]
+            - columnheader "美金成本" [ref=e98]
+            - columnheader "美金卖价" [ref=e99]
+            - columnheader "利润($)" [ref=e100]
+            - columnheader "利润率" [ref=e101]
+            - columnheader "平台费率" [ref=e102]
+            - columnheader "库存" [ref=e103]
+            - columnheader "状态" [ref=e104]
+            - columnheader "操作" [ref=e105]
+        - rowgroup [ref=e106]:
+          - row "SP-142 SONOFF Basic - - ¥24.00 $3.48 $5.34 $1.72 32.3% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e107]:
+            - cell "SP-142" [ref=e108]
+            - cell "SONOFF Basic" [ref=e109]
+            - cell "-" [ref=e110]
+            - cell "-" [ref=e111]
+            - cell "¥24.00" [ref=e112]
+            - cell "$3.48" [ref=e113]
+            - cell "$5.34" [ref=e114]
+            - cell "$1.72" [ref=e115]:
+              - generic [ref=e116]: $1.72
+            - cell "32.3%" [ref=e117]:
+              - generic [ref=e118]: 32.3%
+            - cell "Ali:2.5%" [ref=e119]
+            - cell "0" [ref=e120]
+            - cell "上架" [ref=e121]
+            - cell "查看 编辑 删除" [ref=e122]:
+              - generic [ref=e123]:
+                - link "查看" [ref=e124] [cursor=pointer]:
+                  - /url: /products/142
+                - link "编辑" [ref=e125] [cursor=pointer]:
+                  - /url: /products/142/edit
+                - button "删除" [ref=e126] [cursor=pointer]
+          - row "SP-141 SONOFF Slampher - - ¥46.00 $6.67 $24.02 $16.75 69.7% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e127]:
+            - cell "SP-141" [ref=e128]
+            - cell "SONOFF Slampher" [ref=e129]
+            - cell "-" [ref=e130]
+            - cell "-" [ref=e131]
+            - cell "¥46.00" [ref=e132]
+            - cell "$6.67" [ref=e133]
+            - cell "$24.02" [ref=e134]
+            - cell "$16.75" [ref=e135]:
+              - generic [ref=e136]: $16.75
+            - cell "69.7%" [ref=e137]:
+              - generic [ref=e138]: 69.7%
+            - cell "Ali:2.5%" [ref=e139]
+            - cell "0" [ref=e140]
+            - cell "上架" [ref=e141]
+            - cell "查看 编辑 删除" [ref=e142]:
+              - generic [ref=e143]:
+                - link "查看" [ref=e144] [cursor=pointer]:
+                  - /url: /products/141
+                - link "编辑" [ref=e145] [cursor=pointer]:
+                  - /url: /products/141/edit
+                - button "删除" [ref=e146] [cursor=pointer]
+          - row "SP-139 Smart WiFi Thermostat OLED RF433 - - ¥213.94 $31.03 $130.58 $95.63 73.2% Ali:3.0% | AE:5.0% | Web:0.0% 0 上架 查看 编辑 删除" [ref=e147]:
+            - cell "SP-139" [ref=e148]
+            - cell "Smart WiFi Thermostat OLED RF433" [ref=e149]
+            - cell "-" [ref=e150]
+            - cell "-" [ref=e151]
+            - cell "¥213.94" [ref=e152]
+            - cell "$31.03" [ref=e153]
+            - cell "$130.58" [ref=e154]
+            - cell "$95.63" [ref=e155]:
+              - generic [ref=e156]: $95.63
+            - cell "73.2%" [ref=e157]:
+              - generic [ref=e158]: 73.2%
+            - cell "Ali:3.0% | AE:5.0% | Web:0.0%" [ref=e159]
+            - cell "0" [ref=e160]
+            - cell "上架" [ref=e161]
+            - cell "查看 编辑 删除" [ref=e162]:
+              - generic [ref=e163]:
+                - link "查看" [ref=e164] [cursor=pointer]:
+                  - /url: /products/139
+                - link "编辑" [ref=e165] [cursor=pointer]:
+                  - /url: /products/139/edit
+                - button "删除" [ref=e166] [cursor=pointer]
+          - row "SP-136 moes WRS-EUFL-BK - - ¥16.00 $2.34 $7.49 $4.93 65.8% Ali:3.0% | AE:5.0% | Web:0.0% 0 上架 查看 编辑 删除" [ref=e167]:
+            - cell "SP-136" [ref=e168]
+            - cell "moes WRS-EUFL-BK" [ref=e169]
+            - cell "-" [ref=e170]
+            - cell "-" [ref=e171]
+            - cell "¥16.00" [ref=e172]
+            - cell "$2.34" [ref=e173]
+            - cell "$7.49" [ref=e174]
+            - cell "$4.93" [ref=e175]:
+              - generic [ref=e176]: $4.93
+            - cell "65.8%" [ref=e177]:
+              - generic [ref=e178]: 65.8%
+            - cell "Ali:3.0% | AE:5.0% | Web:0.0%" [ref=e179]
+            - cell "0" [ref=e180]
+            - cell "上架" [ref=e181]
+            - cell "查看 编辑 删除" [ref=e182]:
+              - generic [ref=e183]:
+                - link "查看" [ref=e184] [cursor=pointer]:
+                  - /url: /products/137
+                - link "编辑" [ref=e185] [cursor=pointer]:
+                  - /url: /products/137/edit
+                - button "删除" [ref=e186] [cursor=pointer]
+          - row "SP-135 CF-E375AC - - ¥300.00 $44.05 $50.31 $5.00 9.9% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e187]:
+            - cell "SP-135" [ref=e188]
+            - cell "CF-E375AC" [ref=e189]
+            - cell "-" [ref=e190]
+            - cell "-" [ref=e191]
+            - cell "¥300.00" [ref=e192]
+            - cell "$44.05" [ref=e193]
+            - cell "$50.31" [ref=e194]
+            - cell "$5.00" [ref=e195]:
+              - generic [ref=e196]: $5.00
+            - cell "9.9%" [ref=e197]:
+              - generic [ref=e198]: 9.9%
+            - cell "Ali:2.5%" [ref=e199]
+            - cell "0" [ref=e200]
+            - cell "上架" [ref=e201]
+            - cell "查看 编辑 删除" [ref=e202]:
+              - generic [ref=e203]:
+                - link "查看" [ref=e204] [cursor=pointer]:
+                  - /url: /products/136
+                - link "编辑" [ref=e205] [cursor=pointer]:
+                  - /url: /products/136/edit
+                - button "删除" [ref=e206] [cursor=pointer]
+          - row "SP-134 CF-SG1241P - - ¥1000.00 $146.84 $155.74 $5.00 3.2% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e207]:
+            - cell "SP-134" [ref=e208]
+            - cell "CF-SG1241P" [ref=e209]
+            - cell "-" [ref=e210]
+            - cell "-" [ref=e211]
+            - cell "¥1000.00" [ref=e212]
+            - cell "$146.84" [ref=e213]
+            - cell "$155.74" [ref=e214]
+            - cell "$5.00" [ref=e215]:
+              - generic [ref=e216]: $5.00
+            - cell "3.2%" [ref=e217]:
+              - generic [ref=e218]: 3.2%
+            - cell "Ali:2.5%" [ref=e219]
+            - cell "0" [ref=e220]
+            - cell "上架" [ref=e221]
+            - cell "查看 编辑 删除" [ref=e222]:
+              - generic [ref=e223]:
+                - link "查看" [ref=e224] [cursor=pointer]:
+                  - /url: /products/135
+                - link "编辑" [ref=e225] [cursor=pointer]:
+                  - /url: /products/135/edit
+                - button "删除" [ref=e226] [cursor=pointer]
+          - row "SP-133 CF-SF181P - - ¥150.00 $22.03 $24.64 $2.00 8.1% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e227]:
+            - cell "SP-133" [ref=e228]
+            - cell "CF-SF181P" [ref=e229]
+            - cell "-" [ref=e230]
+            - cell "-" [ref=e231]
+            - cell "¥150.00" [ref=e232]
+            - cell "$22.03" [ref=e233]
+            - cell "$24.64" [ref=e234]
+            - cell "$2.00" [ref=e235]:
+              - generic [ref=e236]: $2.00
+            - cell "8.1%" [ref=e237]:
+              - generic [ref=e238]: 8.1%
+            - cell "Ali:2.5%" [ref=e239]
+            - cell "0" [ref=e240]
+            - cell "上架" [ref=e241]
+            - cell "查看 编辑 删除" [ref=e242]:
+              - generic [ref=e243]:
+                - link "查看" [ref=e244] [cursor=pointer]:
+                  - /url: /products/134
+                - link "编辑" [ref=e245] [cursor=pointer]:
+                  - /url: /products/134/edit
+                - button "删除" [ref=e246] [cursor=pointer]
+          - row "SP-132 S150 - - ¥530.00 $77.83 $90.08 $10.00 11.1% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e247]:
+            - cell "SP-132" [ref=e248]
+            - cell "S150" [ref=e249]
+            - cell "-" [ref=e250]
+            - cell "-" [ref=e251]
+            - cell "¥530.00" [ref=e252]
+            - cell "$77.83" [ref=e253]
+            - cell "$90.08" [ref=e254]
+            - cell "$10.00" [ref=e255]:
+              - generic [ref=e256]: $10.00
+            - cell "11.1%" [ref=e257]:
+              - generic [ref=e258]: 11.1%
+            - cell "Ali:2.5%" [ref=e259]
+            - cell "0" [ref=e260]
+            - cell "上架" [ref=e261]
+            - cell "查看 编辑 删除" [ref=e262]:
+              - generic [ref=e263]:
+                - link "查看" [ref=e264] [cursor=pointer]:
+                  - /url: /products/133
+                - link "编辑" [ref=e265] [cursor=pointer]:
+                  - /url: /products/133/edit
+                - button "删除" [ref=e266] [cursor=pointer]
+          - row "SP-131 SCAPC 1/2 - - ¥10.26 $1.51 $6.67 $5.00 74.9% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e267]:
+            - cell "SP-131" [ref=e268]
+            - cell "SCAPC 1/2" [ref=e269]
+            - cell "-" [ref=e270]
+            - cell "-" [ref=e271]
+            - cell "¥10.26" [ref=e272]
+            - cell "$1.51" [ref=e273]
+            - cell "$6.67" [ref=e274]
+            - cell "$5.00" [ref=e275]:
+              - generic [ref=e276]: $5.00
+            - cell "74.9%" [ref=e277]:
+              - generic [ref=e278]: 74.9%
+            - cell "Ali:2.5%" [ref=e279]
+            - cell "0" [ref=e280]
+            - cell "上架" [ref=e281]
+            - cell "查看 编辑 删除" [ref=e282]:
+              - generic [ref=e283]:
+                - link "查看" [ref=e284] [cursor=pointer]:
+                  - /url: /products/132
+                - link "编辑" [ref=e285] [cursor=pointer]:
+                  - /url: /products/132/edit
+                - button "删除" [ref=e286] [cursor=pointer]
+          - row "SP-130 QADSCs-024-APC - - ¥0.45 $0.07 $5.20 $5.00 96.2% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e287]:
+            - cell "SP-130" [ref=e288]
+            - cell "QADSCs-024-APC" [ref=e289]
+            - cell "-" [ref=e290]
+            - cell "-" [ref=e291]
+            - cell "¥0.45" [ref=e292]
+            - cell "$0.07" [ref=e293]
+            - cell "$5.20" [ref=e294]
+            - cell "$5.00" [ref=e295]:
+              - generic [ref=e296]: $5.00
+            - cell "96.2%" [ref=e297]:
+              - generic [ref=e298]: 96.2%
+            - cell "Ali:2.5%" [ref=e299]
+            - cell "0" [ref=e300]
+            - cell "上架" [ref=e301]
+            - cell "查看 编辑 删除" [ref=e302]:
+              - generic [ref=e303]:
+                - link "查看" [ref=e304] [cursor=pointer]:
+                  - /url: /products/131
+                - link "编辑" [ref=e305] [cursor=pointer]:
+                  - /url: /products/131/edit
+                - button "删除" [ref=e306] [cursor=pointer]
+          - row "SP-129 QSC60K1-SC/APC - - ¥1.24 $0.18 $5.32 $5.00 94.1% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e307]:
+            - cell "SP-129" [ref=e308]
+            - cell "QSC60K1-SC/APC" [ref=e309]
+            - cell "-" [ref=e310]
+            - cell "-" [ref=e311]
+            - cell "¥1.24" [ref=e312]
+            - cell "$0.18" [ref=e313]
+            - cell "$5.32" [ref=e314]
+            - cell "$5.00" [ref=e315]:
+              - generic [ref=e316]: $5.00
+            - cell "94.1%" [ref=e317]:
+              - generic [ref=e318]: 94.1%
+            - cell "Ali:2.5%" [ref=e319]
+            - cell "0" [ref=e320]
+            - cell "上架" [ref=e321]
+            - cell "查看 编辑 删除" [ref=e322]:
+              - generic [ref=e323]:
+                - link "查看" [ref=e324] [cursor=pointer]:
+                  - /url: /products/130
+                - link "编辑" [ref=e325] [cursor=pointer]:
+                  - /url: /products/130/edit
+                - button "删除" [ref=e326] [cursor=pointer]
+          - row "SP-128 90W & 60W PoE - - ¥45.00 $6.61 $11.91 $5.00 42.0% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e327]:
+            - cell "SP-128" [ref=e328]
+            - cell "90W & 60W PoE" [ref=e329]
+            - cell "-" [ref=e330]
+            - cell "-" [ref=e331]
+            - cell "¥45.00" [ref=e332]
+            - cell "$6.61" [ref=e333]
+            - cell "$11.91" [ref=e334]
+            - cell "$5.00" [ref=e335]:
+              - generic [ref=e336]: $5.00
+            - cell "42.0%" [ref=e337]:
+              - generic [ref=e338]: 42.0%
+            - cell "Ali:2.5%" [ref=e339]
+            - cell "0" [ref=e340]
+            - cell "上架" [ref=e341]
+            - cell "查看 编辑 删除" [ref=e342]:
+              - generic [ref=e343]:
+                - link "查看" [ref=e344] [cursor=pointer]:
+                  - /url: /products/129
+                - link "编辑" [ref=e345] [cursor=pointer]:
+                  - /url: /products/129/edit
+                - button "删除" [ref=e346] [cursor=pointer]
+          - row "SP-127 RB760iGS - - ¥486.00 $71.37 $78.32 $5.00 6.4% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e347]:
+            - cell "SP-127" [ref=e348]
+            - cell "RB760iGS" [ref=e349]
+            - cell "-" [ref=e350]
+            - cell "-" [ref=e351]
+            - cell "¥486.00" [ref=e352]
+            - cell "$71.37" [ref=e353]
+            - cell "$78.32" [ref=e354]
+            - cell "$5.00" [ref=e355]:
+              - generic [ref=e356]: $5.00
+            - cell "6.4%" [ref=e357]:
+              - generic [ref=e358]: 6.4%
+            - cell "Ali:2.5%" [ref=e359]
+            - cell "0" [ref=e360]
+            - cell "上架" [ref=e361]
+            - cell "查看 编辑 删除" [ref=e362]:
+              - generic [ref=e363]:
+                - link "查看" [ref=e364] [cursor=pointer]:
+                  - /url: /products/128
+                - link "编辑" [ref=e365] [cursor=pointer]:
+                  - /url: /products/128/edit
+                - button "删除" [ref=e366] [cursor=pointer]
+          - row "SP-126 WiFi涂鸦智能家居10寸中控屏 - - ¥1565.00 $229.81 $240.83 $5.00 2.1% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e367]:
+            - cell "SP-126" [ref=e368]
+            - cell "WiFi涂鸦智能家居10寸中控屏" [ref=e369]
+            - cell "-" [ref=e370]
+            - cell "-" [ref=e371]
+            - cell "¥1565.00" [ref=e372]
+            - cell "$229.81" [ref=e373]
+            - cell "$240.83" [ref=e374]
+            - cell "$5.00" [ref=e375]:
+              - generic [ref=e376]: $5.00
+            - cell "2.1%" [ref=e377]:
+              - generic [ref=e378]: 2.1%
+            - cell "Ali:2.5%" [ref=e379]
+            - cell "0" [ref=e380]
+            - cell "上架" [ref=e381]
+            - cell "查看 编辑 删除" [ref=e382]:
+              - generic [ref=e383]:
+                - link "查看" [ref=e384] [cursor=pointer]:
+                  - /url: /products/127
+                - link "编辑" [ref=e385] [cursor=pointer]:
+                  - /url: /products/127/edit
+                - button "删除" [ref=e386] [cursor=pointer]
+          - row "SP-125 PoE splitter - - ¥15.00 $2.20 $7.39 $5.00 67.7% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e387]:
+            - cell "SP-125" [ref=e388]
+            - cell "PoE splitter" [ref=e389]
+            - cell "-" [ref=e390]
+            - cell "-" [ref=e391]
+            - cell "¥15.00" [ref=e392]
+            - cell "$2.20" [ref=e393]
+            - cell "$7.39" [ref=e394]
+            - cell "$5.00" [ref=e395]:
+              - generic [ref=e396]: $5.00
+            - cell "67.7%" [ref=e397]:
+              - generic [ref=e398]: 67.7%
+            - cell "Ali:2.5%" [ref=e399]
+            - cell "0" [ref=e400]
+            - cell "上架" [ref=e401]
+            - cell "查看 编辑 删除" [ref=e402]:
+              - generic [ref=e403]:
+                - link "查看" [ref=e404] [cursor=pointer]:
+                  - /url: /products/126
+                - link "编辑" [ref=e405] [cursor=pointer]:
+                  - /url: /products/126/edit
+                - button "删除" [ref=e406] [cursor=pointer]
+          - row "SP-124 SM200控制器4G - - ¥240.00 $35.24 $41.27 $5.00 12.1% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e407]:
+            - cell "SP-124" [ref=e408]
+            - cell "SM200控制器4G" [ref=e409]
+            - cell "-" [ref=e410]
+            - cell "-" [ref=e411]
+            - cell "¥240.00" [ref=e412]
+            - cell "$35.24" [ref=e413]
+            - cell "$41.27" [ref=e414]
+            - cell "$5.00" [ref=e415]:
+              - generic [ref=e416]: $5.00
+            - cell "12.1%" [ref=e417]:
+              - generic [ref=e418]: 12.1%
+            - cell "Ali:2.5%" [ref=e419]
+            - cell "0" [ref=e420]
+            - cell "上架" [ref=e421]
+            - cell "查看 编辑 删除" [ref=e422]:
+              - generic [ref=e423]:
+                - link "查看" [ref=e424] [cursor=pointer]:
+                  - /url: /products/125
+                - link "编辑" [ref=e425] [cursor=pointer]:
+                  - /url: /products/125/edit
+                - button "删除" [ref=e426] [cursor=pointer]
+          - row "SP-123 Mikrotik C52iG-5HaxD2HaxD-TC - - ¥627.00 $92.07 $99.56 $5.00 5.0% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e427]:
+            - cell "SP-123" [ref=e428]
+            - cell "Mikrotik C52iG-5HaxD2HaxD-TC" [ref=e429]
+            - cell "-" [ref=e430]
+            - cell "-" [ref=e431]
+            - cell "¥627.00" [ref=e432]
+            - cell "$92.07" [ref=e433]
+            - cell "$99.56" [ref=e434]
+            - cell "$5.00" [ref=e435]:
+              - generic [ref=e436]: $5.00
+            - cell "5.0%" [ref=e437]:
+              - generic [ref=e438]: 5.0%
+            - cell "Ali:2.5%" [ref=e439]
+            - cell "0" [ref=e440]
+            - cell "上架" [ref=e441]
+            - cell "查看 编辑 删除" [ref=e442]:
+              - generic [ref=e443]:
+                - link "查看" [ref=e444] [cursor=pointer]:
+                  - /url: /products/124
+                - link "编辑" [ref=e445] [cursor=pointer]:
+                  - /url: /products/124/edit
+                - button "删除" [ref=e446] [cursor=pointer]
+          - row "SP-122 COMFAST-CF-E112N V2 - - ¥210.00 $30.84 $36.76 $5.00 13.6% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e447]:
+            - cell "SP-122" [ref=e448]
+            - cell "COMFAST-CF-E112N V2" [ref=e449]
+            - cell "-" [ref=e450]
+            - cell "-" [ref=e451]
+            - cell "¥210.00" [ref=e452]
+            - cell "$30.84" [ref=e453]
+            - cell "$36.76" [ref=e454]
+            - cell "$5.00" [ref=e455]:
+              - generic [ref=e456]: $5.00
+            - cell "13.6%" [ref=e457]:
+              - generic [ref=e458]: 13.6%
+            - cell "Ali:2.5%" [ref=e459]
+            - cell "0" [ref=e460]
+            - cell "上架" [ref=e461]
+            - cell "查看 编辑 删除" [ref=e462]:
+              - generic [ref=e463]:
+                - link "查看" [ref=e464] [cursor=pointer]:
+                  - /url: /products/123
+                - link "编辑" [ref=e465] [cursor=pointer]:
+                  - /url: /products/123/edit
+                - button "删除" [ref=e466] [cursor=pointer]
+          - row "SP-121 COMFAST-CF-WA933 - - ¥700.00 $102.79 $110.55 $5.00 4.5% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e467]:
+            - cell "SP-121" [ref=e468]
+            - cell "COMFAST-CF-WA933" [ref=e469]
+            - cell "-" [ref=e470]
+            - cell "-" [ref=e471]
+            - cell "¥700.00" [ref=e472]
+            - cell "$102.79" [ref=e473]
+            - cell "$110.55" [ref=e474]
+            - cell "$5.00" [ref=e475]:
+              - generic [ref=e476]: $5.00
+            - cell "4.5%" [ref=e477]:
+              - generic [ref=e478]: 4.5%
+            - cell "Ali:2.5%" [ref=e479]
+            - cell "0" [ref=e480]
+            - cell "上架" [ref=e481]
+            - cell "查看 编辑 删除" [ref=e482]:
+              - generic [ref=e483]:
+                - link "查看" [ref=e484] [cursor=pointer]:
+                  - /url: /products/122
+                - link "编辑" [ref=e485] [cursor=pointer]:
+                  - /url: /products/122/edit
+                - button "删除" [ref=e486] [cursor=pointer]
+          - row "SP-120 青萍空气检测仪CGDN1 - - ¥375.00 $55.07 $61.61 $5.00 8.1% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e487]:
+            - cell "SP-120" [ref=e488]
+            - cell "青萍空气检测仪CGDN1" [ref=e489]
+            - cell "-" [ref=e490]
+            - cell "-" [ref=e491]
+            - cell "¥375.00" [ref=e492]
+            - cell "$55.07" [ref=e493]
+            - cell "$61.61" [ref=e494]
+            - cell "$5.00" [ref=e495]:
+              - generic [ref=e496]: $5.00
+            - cell "8.1%" [ref=e497]:
+              - generic [ref=e498]: 8.1%
+            - cell "Ali:2.5%" [ref=e499]
+            - cell "0" [ref=e500]
+            - cell "上架" [ref=e501]
+            - cell "查看 编辑 删除" [ref=e502]:
+              - generic [ref=e503]:
+                - link "查看" [ref=e504] [cursor=pointer]:
+                  - /url: /products/121
+                - link "编辑" [ref=e505] [cursor=pointer]:
+                  - /url: /products/121/edit
+                - button "删除" [ref=e506] [cursor=pointer]
+      - generic [ref=e507]:
+        - paragraph [ref=e508]: 共 139 条，第 1/7 页
+        - generic [ref=e509]:
+          - generic [ref=e510]: 上一页
+          - link "下一页" [ref=e511] [cursor=pointer]:
+            - /url: /products?page=2

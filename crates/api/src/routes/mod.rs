@@ -1,5 +1,7 @@
 //! API 路由模块
 
+pub mod brands;
+pub mod categories;
 pub mod products;
 pub mod product_costs;
 pub mod product_prices;
@@ -62,6 +64,10 @@ fn api_v1_router(state: AppState) -> Router<AppState> {
         .merge(users::router())
         // 产品模块
         .merge(products::router())
+        // 品牌模块
+        .merge(brands::router())
+        // 分类模块
+        .merge(categories::router())
         // 产品成本模块
         .merge(product_costs::router())
         // 产品价格模块

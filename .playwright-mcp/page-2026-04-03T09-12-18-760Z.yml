@@ -1,0 +1,554 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - button [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+          - heading "产品管理" [level=2] [ref=e45]
+        - generic [ref=e46]:
+          - generic [ref=e47]: admin
+          - button "退出" [ref=e49] [cursor=pointer]
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - heading "产品管理" [level=1] [ref=e53]
+          - paragraph [ref=e54]: 管理所有产品信息
+        - link "+ 新增产品" [ref=e55] [cursor=pointer]:
+          - /url: /products/new
+          - generic [ref=e56]: +
+          - generic [ref=e57]: 新增产品
+      - generic [ref=e60]:
+        - textbox "搜索产品编码、名称、型号..." [ref=e62]
+        - combobox [ref=e64]:
+          - option "全部供应商" [selected]
+          - option "Comfast"
+          - option "测试供应商-路由修复"
+          - option "测试供应商-已更新"
+        - generic [ref=e65]:
+          - spinbutton [ref=e66]
+          - generic [ref=e67]: —
+          - spinbutton [ref=e68]
+        - generic [ref=e69]:
+          - button "筛选" [ref=e70] [cursor=pointer]
+          - link "重置" [ref=e71] [cursor=pointer]:
+            - /url: /products
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - generic [ref=e74]: "139"
+          - generic [ref=e75]: 商品数量
+        - generic [ref=e76]:
+          - generic [ref=e77]: "480"
+          - generic [ref=e78]: 库存总数
+        - generic [ref=e79]:
+          - generic [ref=e80]: $76.61
+          - generic [ref=e81]: 平均销售价 (USD)
+        - generic [ref=e82]:
+          - generic [ref=e83]: $20318
+          - generic [ref=e84]: 理论库存价值 (USD)
+      - table [ref=e87]:
+        - rowgroup [ref=e88]:
+          - row "产品编码 产品名称 型号 供应商 RMB成本 美金成本 美金卖价 利润($) 利润率 平台费率 库存 状态 操作" [ref=e89]:
+            - columnheader "产品编码" [ref=e90]
+            - columnheader "产品名称" [ref=e91]
+            - columnheader "型号" [ref=e92]
+            - columnheader "供应商" [ref=e93]
+            - columnheader "RMB成本" [ref=e94]
+            - columnheader "美金成本" [ref=e95]
+            - columnheader "美金卖价" [ref=e96]
+            - columnheader "利润($)" [ref=e97]
+            - columnheader "利润率" [ref=e98]
+            - columnheader "平台费率" [ref=e99]
+            - columnheader "库存" [ref=e100]
+            - columnheader "状态" [ref=e101]
+            - columnheader "操作" [ref=e102]
+        - rowgroup [ref=e103]:
+          - row "SP-141 SONOFF Slampher - - ¥46.00 $6.67 $24.02 $16.75 69.7% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e104]:
+            - cell "SP-141" [ref=e105]
+            - cell "SONOFF Slampher" [ref=e106]
+            - cell "-" [ref=e107]
+            - cell "-" [ref=e108]
+            - cell "¥46.00" [ref=e109]
+            - cell "$6.67" [ref=e110]
+            - cell "$24.02" [ref=e111]
+            - cell "$16.75" [ref=e112]:
+              - generic [ref=e113]: $16.75
+            - cell "69.7%" [ref=e114]:
+              - generic [ref=e115]: 69.7%
+            - cell "Ali:2.5%" [ref=e116]
+            - cell "0" [ref=e117]
+            - cell "上架" [ref=e118]
+            - cell "查看 编辑 删除" [ref=e119]:
+              - generic [ref=e120]:
+                - link "查看" [ref=e121] [cursor=pointer]:
+                  - /url: /products/141
+                - link "编辑" [ref=e122] [cursor=pointer]:
+                  - /url: /products/141/edit
+                - button "删除" [ref=e123] [cursor=pointer]
+          - row "SP-142 SONOFF Basic - - ¥24.00 $3.48 $5.34 $1.72 32.3% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e124]:
+            - cell "SP-142" [ref=e125]
+            - cell "SONOFF Basic" [ref=e126]
+            - cell "-" [ref=e127]
+            - cell "-" [ref=e128]
+            - cell "¥24.00" [ref=e129]
+            - cell "$3.48" [ref=e130]
+            - cell "$5.34" [ref=e131]
+            - cell "$1.72" [ref=e132]:
+              - generic [ref=e133]: $1.72
+            - cell "32.3%" [ref=e134]:
+              - generic [ref=e135]: 32.3%
+            - cell "Ali:2.5%" [ref=e136]
+            - cell "0" [ref=e137]
+            - cell "上架" [ref=e138]
+            - cell "查看 编辑 删除" [ref=e139]:
+              - generic [ref=e140]:
+                - link "查看" [ref=e141] [cursor=pointer]:
+                  - /url: /products/142
+                - link "编辑" [ref=e142] [cursor=pointer]:
+                  - /url: /products/142/edit
+                - button "删除" [ref=e143] [cursor=pointer]
+          - row "SP-139 Smart WiFi Thermostat OLED RF433 - - ¥213.94 $31.03 $130.58 $95.63 73.2% Ali:3.0% | AE:5.0% | Web:0.0% 0 上架 查看 编辑 删除" [ref=e144]:
+            - cell "SP-139" [ref=e145]
+            - cell "Smart WiFi Thermostat OLED RF433" [ref=e146]
+            - cell "-" [ref=e147]
+            - cell "-" [ref=e148]
+            - cell "¥213.94" [ref=e149]
+            - cell "$31.03" [ref=e150]
+            - cell "$130.58" [ref=e151]
+            - cell "$95.63" [ref=e152]:
+              - generic [ref=e153]: $95.63
+            - cell "73.2%" [ref=e154]:
+              - generic [ref=e155]: 73.2%
+            - cell "Ali:3.0% | AE:5.0% | Web:0.0%" [ref=e156]
+            - cell "0" [ref=e157]
+            - cell "上架" [ref=e158]
+            - cell "查看 编辑 删除" [ref=e159]:
+              - generic [ref=e160]:
+                - link "查看" [ref=e161] [cursor=pointer]:
+                  - /url: /products/139
+                - link "编辑" [ref=e162] [cursor=pointer]:
+                  - /url: /products/139/edit
+                - button "删除" [ref=e163] [cursor=pointer]
+          - row "SP-10 27显示器 - - ¥418.00 $61.38 $68.08 $5.00 7.3% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e164]:
+            - cell "SP-10" [ref=e165]
+            - cell "27显示器" [ref=e166]
+            - cell "-" [ref=e167]
+            - cell "-" [ref=e168]
+            - cell "¥418.00" [ref=e169]
+            - cell "$61.38" [ref=e170]
+            - cell "$68.08" [ref=e171]
+            - cell "$5.00" [ref=e172]:
+              - generic [ref=e173]: $5.00
+            - cell "7.3%" [ref=e174]:
+              - generic [ref=e175]: 7.3%
+            - cell "Ali:2.5%" [ref=e176]
+            - cell "0" [ref=e177]
+            - cell "上架" [ref=e178]
+            - cell "查看 编辑 删除" [ref=e179]:
+              - generic [ref=e180]:
+                - link "查看" [ref=e181] [cursor=pointer]:
+                  - /url: /products/19
+                - link "编辑" [ref=e182] [cursor=pointer]:
+                  - /url: /products/19/edit
+                - button "删除" [ref=e183] [cursor=pointer]
+          - row "SP-82 COMFAST CF-EW82 - - ¥125.00 $18.36 $23.95 $5.00 20.9% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e184]:
+            - cell "SP-82" [ref=e185]
+            - cell "COMFAST CF-EW82" [ref=e186]
+            - cell "-" [ref=e187]
+            - cell "-" [ref=e188]
+            - cell "¥125.00" [ref=e189]
+            - cell "$18.36" [ref=e190]
+            - cell "$23.95" [ref=e191]
+            - cell "$5.00" [ref=e192]:
+              - generic [ref=e193]: $5.00
+            - cell "20.9%" [ref=e194]:
+              - generic [ref=e195]: 20.9%
+            - cell "Ali:2.5%" [ref=e196]
+            - cell "0" [ref=e197]
+            - cell "上架" [ref=e198]
+            - cell "查看 编辑 删除" [ref=e199]:
+              - generic [ref=e200]:
+                - link "查看" [ref=e201] [cursor=pointer]:
+                  - /url: /products/138
+                - link "编辑" [ref=e202] [cursor=pointer]:
+                  - /url: /products/138/edit
+                - button "删除" [ref=e203] [cursor=pointer]
+          - row "SP-18 SONOFF Zigbee 3.0 USB Plus-ZBDongle-E - - ¥89.00 $13.07 $18.53 $5.00 27.0% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e204]:
+            - cell "SP-18" [ref=e205]
+            - cell "SONOFF Zigbee 3.0 USB Plus-ZBDongle-E" [ref=e206]
+            - cell "-" [ref=e207]
+            - cell "-" [ref=e208]
+            - cell "¥89.00" [ref=e209]
+            - cell "$13.07" [ref=e210]
+            - cell "$18.53" [ref=e211]
+            - cell "$5.00" [ref=e212]:
+              - generic [ref=e213]: $5.00
+            - cell "27.0%" [ref=e214]:
+              - generic [ref=e215]: 27.0%
+            - cell "Ali:2.5%" [ref=e216]
+            - cell "0" [ref=e217]
+            - cell "上架" [ref=e218]
+            - cell "查看 编辑 删除" [ref=e219]:
+              - generic [ref=e220]:
+                - link "查看" [ref=e221] [cursor=pointer]:
+                  - /url: /products/20
+                - link "编辑" [ref=e222] [cursor=pointer]:
+                  - /url: /products/20/edit
+                - button "删除" [ref=e223] [cursor=pointer]
+          - row "SP-19 SONOFF Zigbee 1.5M USB Male - - ¥6.00 $0.88 $6.03 $5.00 82.9% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e224]:
+            - cell "SP-19" [ref=e225]
+            - cell "SONOFF Zigbee 1.5M USB Male" [ref=e226]
+            - cell "-" [ref=e227]
+            - cell "-" [ref=e228]
+            - cell "¥6.00" [ref=e229]
+            - cell "$0.88" [ref=e230]
+            - cell "$6.03" [ref=e231]
+            - cell "$5.00" [ref=e232]:
+              - generic [ref=e233]: $5.00
+            - cell "82.9%" [ref=e234]:
+              - generic [ref=e235]: 82.9%
+            - cell "Ali:2.5%" [ref=e236]
+            - cell "0" [ref=e237]
+            - cell "上架" [ref=e238]
+            - cell "查看 编辑 删除" [ref=e239]:
+              - generic [ref=e240]:
+                - link "查看" [ref=e241] [cursor=pointer]:
+                  - /url: /products/21
+                - link "编辑" [ref=e242] [cursor=pointer]:
+                  - /url: /products/21/edit
+                - button "删除" [ref=e243] [cursor=pointer]
+          - row "SP-20 SONOFF SNZB-03P - - ¥48.00 $7.05 $12.36 $5.00 40.5% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e244]:
+            - cell "SP-20" [ref=e245]
+            - cell "SONOFF SNZB-03P" [ref=e246]
+            - cell "-" [ref=e247]
+            - cell "-" [ref=e248]
+            - cell "¥48.00" [ref=e249]
+            - cell "$7.05" [ref=e250]
+            - cell "$12.36" [ref=e251]
+            - cell "$5.00" [ref=e252]:
+              - generic [ref=e253]: $5.00
+            - cell "40.5%" [ref=e254]:
+              - generic [ref=e255]: 40.5%
+            - cell "Ali:2.5%" [ref=e256]
+            - cell "0" [ref=e257]
+            - cell "上架" [ref=e258]
+            - cell "查看 编辑 删除" [ref=e259]:
+              - generic [ref=e260]:
+                - link "查看" [ref=e261] [cursor=pointer]:
+                  - /url: /products/22
+                - link "编辑" [ref=e262] [cursor=pointer]:
+                  - /url: /products/22/edit
+                - button "删除" [ref=e263] [cursor=pointer]
+          - row "SP-21 SONOFF SNZB-04P - - ¥47.00 $6.90 $12.21 $5.00 41.0% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e264]:
+            - cell "SP-21" [ref=e265]
+            - cell "SONOFF SNZB-04P" [ref=e266]
+            - cell "-" [ref=e267]
+            - cell "-" [ref=e268]
+            - cell "¥47.00" [ref=e269]
+            - cell "$6.90" [ref=e270]
+            - cell "$12.21" [ref=e271]
+            - cell "$5.00" [ref=e272]:
+              - generic [ref=e273]: $5.00
+            - cell "41.0%" [ref=e274]:
+              - generic [ref=e275]: 41.0%
+            - cell "Ali:2.5%" [ref=e276]
+            - cell "0" [ref=e277]
+            - cell "上架" [ref=e278]
+            - cell "查看 编辑 删除" [ref=e279]:
+              - generic [ref=e280]:
+                - link "查看" [ref=e281] [cursor=pointer]:
+                  - /url: /products/23
+                - link "编辑" [ref=e282] [cursor=pointer]:
+                  - /url: /products/23/edit
+                - button "删除" [ref=e283] [cursor=pointer]
+          - row "SP-22 SONOFF SNZB-01P - - ¥41.00 $6.02 $11.30 $5.00 44.2% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e284]:
+            - cell "SP-22" [ref=e285]
+            - cell "SONOFF SNZB-01P" [ref=e286]
+            - cell "-" [ref=e287]
+            - cell "-" [ref=e288]
+            - cell "¥41.00" [ref=e289]
+            - cell "$6.02" [ref=e290]
+            - cell "$11.30" [ref=e291]
+            - cell "$5.00" [ref=e292]:
+              - generic [ref=e293]: $5.00
+            - cell "44.2%" [ref=e294]:
+              - generic [ref=e295]: 44.2%
+            - cell "Ali:2.5%" [ref=e296]
+            - cell "0" [ref=e297]
+            - cell "上架" [ref=e298]
+            - cell "查看 编辑 删除" [ref=e299]:
+              - generic [ref=e300]:
+                - link "查看" [ref=e301] [cursor=pointer]:
+                  - /url: /products/24
+                - link "编辑" [ref=e302] [cursor=pointer]:
+                  - /url: /products/24/edit
+                - button "删除" [ref=e303] [cursor=pointer]
+          - row "SP-23 SNZB-02D Temp Humidity - - ¥55.00 $8.08 $13.41 $5.00 37.3% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e304]:
+            - cell "SP-23" [ref=e305]
+            - cell "SNZB-02D Temp Humidity" [ref=e306]
+            - cell "-" [ref=e307]
+            - cell "-" [ref=e308]
+            - cell "¥55.00" [ref=e309]
+            - cell "$8.08" [ref=e310]
+            - cell "$13.41" [ref=e311]
+            - cell "$5.00" [ref=e312]:
+              - generic [ref=e313]: $5.00
+            - cell "37.3%" [ref=e314]:
+              - generic [ref=e315]: 37.3%
+            - cell "Ali:2.5%" [ref=e316]
+            - cell "0" [ref=e317]
+            - cell "上架" [ref=e318]
+            - cell "查看 编辑 删除" [ref=e319]:
+              - generic [ref=e320]:
+                - link "查看" [ref=e321] [cursor=pointer]:
+                  - /url: /products/25
+                - link "编辑" [ref=e322] [cursor=pointer]:
+                  - /url: /products/25/edit
+                - button "删除" [ref=e323] [cursor=pointer]
+          - row "SP-24 ZBMINI2 Switch Power - - ¥55.00 $8.08 $13.41 $5.00 37.3% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e324]:
+            - cell "SP-24" [ref=e325]
+            - cell "ZBMINI2 Switch Power" [ref=e326]
+            - cell "-" [ref=e327]
+            - cell "-" [ref=e328]
+            - cell "¥55.00" [ref=e329]
+            - cell "$8.08" [ref=e330]
+            - cell "$13.41" [ref=e331]
+            - cell "$5.00" [ref=e332]:
+              - generic [ref=e333]: $5.00
+            - cell "37.3%" [ref=e334]:
+              - generic [ref=e335]: 37.3%
+            - cell "Ali:2.5%" [ref=e336]
+            - cell "0" [ref=e337]
+            - cell "上架" [ref=e338]
+            - cell "查看 编辑 删除" [ref=e339]:
+              - generic [ref=e340]:
+                - link "查看" [ref=e341] [cursor=pointer]:
+                  - /url: /products/26
+                - link "编辑" [ref=e342] [cursor=pointer]:
+                  - /url: /products/26/edit
+                - button "删除" [ref=e343] [cursor=pointer]
+          - row "SP-25 rfid reader black color 125kHz - - ¥14.00 $2.06 $7.24 $5.00 69.1% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e344]:
+            - cell "SP-25" [ref=e345]
+            - cell "rfid reader black color 125kHz" [ref=e346]
+            - cell "-" [ref=e347]
+            - cell "-" [ref=e348]
+            - cell "¥14.00" [ref=e349]
+            - cell "$2.06" [ref=e350]
+            - cell "$7.24" [ref=e351]
+            - cell "$5.00" [ref=e352]:
+              - generic [ref=e353]: $5.00
+            - cell "69.1%" [ref=e354]:
+              - generic [ref=e355]: 69.1%
+            - cell "Ali:2.5%" [ref=e356]
+            - cell "0" [ref=e357]
+            - cell "上架" [ref=e358]
+            - cell "查看 编辑 删除" [ref=e359]:
+              - generic [ref=e360]:
+                - link "查看" [ref=e361] [cursor=pointer]:
+                  - /url: /products/27
+                - link "编辑" [ref=e362] [cursor=pointer]:
+                  - /url: /products/27/edit
+                - button "删除" [ref=e363] [cursor=pointer]
+          - row "SP-26 zigbee smoke detector - - ¥40.00 $5.87 $11.15 $5.00 44.8% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e364]:
+            - cell "SP-26" [ref=e365]
+            - cell "zigbee smoke detector" [ref=e366]
+            - cell "-" [ref=e367]
+            - cell "-" [ref=e368]
+            - cell "¥40.00" [ref=e369]
+            - cell "$5.87" [ref=e370]
+            - cell "$11.15" [ref=e371]
+            - cell "$5.00" [ref=e372]:
+              - generic [ref=e373]: $5.00
+            - cell "44.8%" [ref=e374]:
+              - generic [ref=e375]: 44.8%
+            - cell "Ali:2.5%" [ref=e376]
+            - cell "0" [ref=e377]
+            - cell "上架" [ref=e378]
+            - cell "查看 编辑 删除" [ref=e379]:
+              - generic [ref=e380]:
+                - link "查看" [ref=e381] [cursor=pointer]:
+                  - /url: /products/28
+                - link "编辑" [ref=e382] [cursor=pointer]:
+                  - /url: /products/28/edit
+                - button "删除" [ref=e383] [cursor=pointer]
+          - row "SP-27 zigbee alarm siren EU Plug - - ¥73.00 $10.72 $16.12 $5.00 31.0% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e384]:
+            - cell "SP-27" [ref=e385]
+            - cell "zigbee alarm siren EU Plug" [ref=e386]
+            - cell "-" [ref=e387]
+            - cell "-" [ref=e388]
+            - cell "¥73.00" [ref=e389]
+            - cell "$10.72" [ref=e390]
+            - cell "$16.12" [ref=e391]
+            - cell "$5.00" [ref=e392]:
+              - generic [ref=e393]: $5.00
+            - cell "31.0%" [ref=e394]:
+              - generic [ref=e395]: 31.0%
+            - cell "Ali:2.5%" [ref=e396]
+            - cell "0" [ref=e397]
+            - cell "上架" [ref=e398]
+            - cell "查看 编辑 删除" [ref=e399]:
+              - generic [ref=e400]:
+                - link "查看" [ref=e401] [cursor=pointer]:
+                  - /url: /products/29
+                - link "编辑" [ref=e402] [cursor=pointer]:
+                  - /url: /products/29/edit
+                - button "删除" [ref=e403] [cursor=pointer]
+          - row "SP-28 MOES Tuya WiFi Smart Curtain Switch Mini Module - - ¥27.00 $3.96 $9.20 $5.00 54.4% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e404]:
+            - cell "SP-28" [ref=e405]
+            - cell "MOES Tuya WiFi Smart Curtain Switch Mini Module" [ref=e406]
+            - cell "-" [ref=e407]
+            - cell "-" [ref=e408]
+            - cell "¥27.00" [ref=e409]
+            - cell "$3.96" [ref=e410]
+            - cell "$9.20" [ref=e411]
+            - cell "$5.00" [ref=e412]:
+              - generic [ref=e413]: $5.00
+            - cell "54.4%" [ref=e414]:
+              - generic [ref=e415]: 54.4%
+            - cell "Ali:2.5%" [ref=e416]
+            - cell "0" [ref=e417]
+            - cell "上架" [ref=e418]
+            - cell "查看 编辑 删除" [ref=e419]:
+              - generic [ref=e420]:
+                - link "查看" [ref=e421] [cursor=pointer]:
+                  - /url: /products/30
+                - link "编辑" [ref=e422] [cursor=pointer]:
+                  - /url: /products/30/edit
+                - button "删除" [ref=e423] [cursor=pointer]
+          - row "SP-29 MOES Tuya ZigBee Smart Curtain Switch Mini Module - - ¥32.00 $4.70 $9.95 $5.00 50.3% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e424]:
+            - cell "SP-29" [ref=e425]
+            - cell "MOES Tuya ZigBee Smart Curtain Switch Mini Module" [ref=e426]
+            - cell "-" [ref=e427]
+            - cell "-" [ref=e428]
+            - cell "¥32.00" [ref=e429]
+            - cell "$4.70" [ref=e430]
+            - cell "$9.95" [ref=e431]
+            - cell "$5.00" [ref=e432]:
+              - generic [ref=e433]: $5.00
+            - cell "50.3%" [ref=e434]:
+              - generic [ref=e435]: 50.3%
+            - cell "Ali:2.5%" [ref=e436]
+            - cell "0" [ref=e437]
+            - cell "上架" [ref=e438]
+            - cell "查看 编辑 删除" [ref=e439]:
+              - generic [ref=e440]:
+                - link "查看" [ref=e441] [cursor=pointer]:
+                  - /url: /products/31
+                - link "编辑" [ref=e442] [cursor=pointer]:
+                  - /url: /products/31/edit
+                - button "删除" [ref=e443] [cursor=pointer]
+          - row "SP-30 MOES Tuya Automatic Zigbee Roller Shade Blinds Motor (38mm tube) - - ¥263.00 $38.62 $44.74 $5.00 11.2% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e444]:
+            - cell "SP-30" [ref=e445]
+            - cell "MOES Tuya Automatic Zigbee Roller Shade Blinds Motor (38mm tube)" [ref=e446]
+            - cell "-" [ref=e447]
+            - cell "-" [ref=e448]
+            - cell "¥263.00" [ref=e449]
+            - cell "$38.62" [ref=e450]
+            - cell "$44.74" [ref=e451]
+            - cell "$5.00" [ref=e452]:
+              - generic [ref=e453]: $5.00
+            - cell "11.2%" [ref=e454]:
+              - generic [ref=e455]: 11.2%
+            - cell "Ali:2.5%" [ref=e456]
+            - cell "0" [ref=e457]
+            - cell "上架" [ref=e458]
+            - cell "查看 编辑 删除" [ref=e459]:
+              - generic [ref=e460]:
+                - link "查看" [ref=e461] [cursor=pointer]:
+                  - /url: /products/32
+                - link "编辑" [ref=e462] [cursor=pointer]:
+                  - /url: /products/32/edit
+                - button "删除" [ref=e463] [cursor=pointer]
+          - row "SP-31 WiFi RF433 Blinds Curtain Switch with Remote - - ¥53.00 $7.78 $13.11 $5.00 38.1% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e464]:
+            - cell "SP-31" [ref=e465]
+            - cell "WiFi RF433 Blinds Curtain Switch with Remote" [ref=e466]
+            - cell "-" [ref=e467]
+            - cell "-" [ref=e468]
+            - cell "¥53.00" [ref=e469]
+            - cell "$7.78" [ref=e470]
+            - cell "$13.11" [ref=e471]
+            - cell "$5.00" [ref=e472]:
+              - generic [ref=e473]: $5.00
+            - cell "38.1%" [ref=e474]:
+              - generic [ref=e475]: 38.1%
+            - cell "Ali:2.5%" [ref=e476]
+            - cell "0" [ref=e477]
+            - cell "上架" [ref=e478]
+            - cell "查看 编辑 删除" [ref=e479]:
+              - generic [ref=e480]:
+                - link "查看" [ref=e481] [cursor=pointer]:
+                  - /url: /products/33
+                - link "编辑" [ref=e482] [cursor=pointer]:
+                  - /url: /products/33/edit
+                - button "删除" [ref=e483] [cursor=pointer]
+          - row "SP-32 MOES Tuya ZigBee Smart Door Lock (Password + Fingerprint) - - ¥297.00 $43.61 $49.86 $5.00 10.0% Ali:2.5% 0 上架 查看 编辑 删除" [ref=e484]:
+            - cell "SP-32" [ref=e485]
+            - cell "MOES Tuya ZigBee Smart Door Lock (Password + Fingerprint)" [ref=e486]
+            - cell "-" [ref=e487]
+            - cell "-" [ref=e488]
+            - cell "¥297.00" [ref=e489]
+            - cell "$43.61" [ref=e490]
+            - cell "$49.86" [ref=e491]
+            - cell "$5.00" [ref=e492]:
+              - generic [ref=e493]: $5.00
+            - cell "10.0%" [ref=e494]:
+              - generic [ref=e495]: 10.0%
+            - cell "Ali:2.5%" [ref=e496]
+            - cell "0" [ref=e497]
+            - cell "上架" [ref=e498]
+            - cell "查看 编辑 删除" [ref=e499]:
+              - generic [ref=e500]:
+                - link "查看" [ref=e501] [cursor=pointer]:
+                  - /url: /products/34
+                - link "编辑" [ref=e502] [cursor=pointer]:
+                  - /url: /products/34/edit
+                - button "删除" [ref=e503] [cursor=pointer]
+      - generic [ref=e504]:
+        - paragraph [ref=e505]: 共 139 条，第 1/7 页
+        - generic [ref=e506]:
+          - generic [ref=e507]: 上一页
+          - link "下一页" [ref=e508] [cursor=pointer]:
+            - /url: /products?page=2

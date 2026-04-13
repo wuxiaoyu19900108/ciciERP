@@ -107,3 +107,46 @@ Query structs implement `.page()` and `.page_size()` with defaults (page=1, page
 Implemented: products (+ costs/prices/content), suppliers, customers (+ addresses), orders, inventory (+ alerts), purchases (+ approve/receive), logistics (+ companies/shipments/tracking), proforma invoices (PI), commercial invoices (CI), exchange rates, users/auth (RBAC), integration API (for cicishop etc.), Web SSR UI (Askama templates).
 
 Pending: AI 管家 (Feishu Bot + Claude API), 数据分析看板 (analytics dashboard).
+
+## MCP Playwright Usage
+
+Playwright MCP tools are available for browser automation. Key notes:
+
+### General
+- Use `playwright-browser_navigate` to go to URLs
+- Use `playwright-browser_snapshot` (not screenshot) for reading page structure before interacting
+- Use `playwright-browser_run_code` for complex JS interactions
+- After login, session cookies persist within the same browser session
+- Local dev server: `http://localhost:3000` (internal only); public: `https://erp.cicishop.cc`
+- Default admin login: username=`admin`, password=`admin123`
+
+### Critical: Avoid `waitForLoadState('networkidle')`
+Never use `waitForLoadState('networkidle')` — WebSocket connections prevent it from resolving. Instead use:
+```js
+await page.waitForSelector('.some-element');
+// or
+await page.waitForTimeout(2000);
+```
+
+### Google Sheets Navigation
+- Wait for sheet: use `waitForSelector('.waffle')` or `waitForText('BUG')`
+- Navigate to specific cells via the Name Box (top-left cell reference input):
+  ```js
+  const nameBox = await page.$('[aria-label="Name box (Ctrl + J)"] input');
+  await nameBox.click();
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('J23');   // cell address
+  await page.keyboard.press('Enter');
+  ```
+- Read spreadsheet data: use the CSV export URL instead of browser scraping:
+  ```bash
+  curl -sL "https://docs.google.com/spreadsheets/d/SHEET_ID/export?format=csv&gid=0"
+  ```
+- To edit cells: navigate via Name Box then type directly (sheet must be editable/logged in)
+
+### Bug Tracker Spreadsheet
+URL: `https://docs.google.com/spreadsheets/d/1uM0vKs-rJOg7rUP46TRQKSl7AW7N59NszSAQEcI-pmc/edit?usp=sharing`
+Local doc: `docs/BUG_TRACKER.md`
+- Column J = 修复状态 (fix status)
+- BUG rows start at row 2 (row 1 = header); BUG-007 = row 2, BUG-008 = row 3, etc.
+- Mark fixed bugs with: `✅ 已修复（说明）`

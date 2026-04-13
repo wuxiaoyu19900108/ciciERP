@@ -1,0 +1,291 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - heading "新建订单" [level=2] [ref=e42]
+        - generic [ref=e43]:
+          - generic [ref=e44]: admin
+          - button "退出" [ref=e46] [cursor=pointer]
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - link "订单列表" [ref=e50] [cursor=pointer]:
+            - /url: /orders
+          - generic [ref=e51]: /
+          - generic [ref=e52]: 新建订单
+        - heading "新建订单" [level=1] [ref=e53]
+      - generic [ref=e55]:
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - heading "👤 客户信息" [level=3] [ref=e58]
+            - generic [ref=e60]:
+              - generic [ref=e61]: 选择已有客户
+              - textbox "🔍 输入姓名搜索客户..." [ref=e62]
+              - combobox [ref=e63]:
+                - option "-- 手动输入客户信息 --" [selected]
+            - generic [ref=e64]:
+              - generic [ref=e65]:
+                - generic [ref=e66]: 客户姓名
+                - textbox "客户姓名" [ref=e67]
+              - generic [ref=e68]:
+                - generic [ref=e69]: 联系电话
+                - textbox "联系电话" [ref=e70]
+              - generic [ref=e71]:
+                - generic [ref=e72]: 邮箱
+                - textbox "邮箱地址" [ref=e73]
+          - generic [ref=e74]:
+            - heading "📍 收货地址" [level=3] [ref=e75]
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - generic [ref=e78]: 收件人 *
+                - textbox [ref=e79]
+              - generic [ref=e80]:
+                - generic [ref=e81]: 手机号 *
+                - textbox [ref=e82]
+              - generic [ref=e83]:
+                - generic [ref=e84]: 国家 *
+                - textbox [ref=e85]: US
+              - generic [ref=e86]:
+                - generic [ref=e87]: 详细地址 *
+                - textbox [ref=e88]
+              - generic [ref=e90]:
+                - checkbox "保存到客户地址列表" [ref=e91]
+                - generic [ref=e92]: 保存到客户地址列表
+          - generic [ref=e93]:
+            - generic [ref=e94]:
+              - heading "📦 订单商品" [level=3] [ref=e95]
+              - button "+ 添加商品" [ref=e96] [cursor=pointer]
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]: 商品
+                - textbox "🔍 编码或名称搜索..." [ref=e101]
+                - combobox [ref=e102]:
+                  - option "-- 选择商品 --" [selected]
+                  - option "[SP-142] SONOFF Basic"
+                  - option "[SP-141] SONOFF Slampher"
+                  - option "[SP-139] Smart WiFi Thermostat OLED RF433"
+                  - option "[SP-136] moes WRS-EUFL-BK"
+                  - option "[SP-135] CF-E375AC"
+                  - option "[SP-134] CF-SG1241P"
+                  - option "[SP-133] CF-SF181P"
+                  - option "[SP-132] S150"
+                  - option "[SP-131] SCAPC 1/2"
+                  - option "[SP-130] QADSCs-024-APC"
+                  - option "[SP-129] QSC60K1-SC/APC"
+                  - option "[SP-128] 90W & 60W PoE"
+                  - option "[SP-127] RB760iGS"
+                  - option "[SP-126] WiFi涂鸦智能家居10寸中控屏"
+                  - option "[SP-125] PoE splitter"
+                  - option "[SP-124] SM200控制器4G"
+                  - option "[SP-123] Mikrotik C52iG-5HaxD2HaxD-TC"
+                  - option "[SP-122] COMFAST-CF-E112N V2"
+                  - option "[SP-121] COMFAST-CF-WA933"
+                  - option "[SP-120] 青萍空气检测仪CGDN1"
+                  - option "[SP-119] SONOFF M5 2gang black"
+                  - option "[SP-118] SONOFF DUAL R3"
+                  - option "[SP-117] COMFAST CF-WA800V3"
+                  - option "[SP-116] 782AC 网卡"
+                  - option "[SP-115] LOONA003"
+                  - option "[SP-114] 智能眼镜A2"
+                  - option "[SP-113] SONOFF DS18B20"
+                  - option "[SP-112] ZBM-ZBT-1 Dongle"
+                  - option "[SP-111] emo suit robot GO Home version"
+                  - option "[SP-110] emo suit robot Standard version"
+                  - option "[SP-109] 青萍空气检测仪CGS2"
+                  - option "[SP-108] se06ultra(高通x75)"
+                  - option "[SP-107] se06pro(高通x62)"
+                  - option "[SP-106] se06(高通x62)"
+                  - option "[SP-105] MOES Plug-in Display with Humidity Temperature Sensor"
+                  - option "[SP-104] CF-WR613N V1"
+                  - option "[SP-103] CF-WR631AX V3"
+                  - option "[SP-102] CF-WR631AX V2"
+                  - option "[SP-101] CF-WR630AX"
+                  - option "[SP-100] CF-E3 V4"
+                  - option "[SP-99] CF-SG181P"
+                  - option "[SP-98] SONOFF TRVZB"
+                  - option "[SP-97] SONOFF Zigbee-3-0-USB-Dongle E"
+                  - option "[SP-96] SONOFF-SNZB-04P-Zigbee-Smart-Door Sensor"
+                  - option "[SP-95] COMFAST CF-WR758AC"
+                  - option "[SP-94] OPPO原装手机屏幕10"
+                  - option "[SP-93] COMFAST-CF-XR185"
+                  - option "[SP-92] COMFAST-EW82"
+                  - option "[SP-91] YT Tuya ZigBee Smart 5.8G Millimeter"
+                  - option "[SP-90] YT Tuya WIFI Smart 5.8G Millimeter"
+                  - option "[SP-89] YT Tuya WIFI Smart 24G Millimeter"
+                  - option "[SP-88] YT Tuya ZigBee Smart 24G Millimeter"
+                  - option "[SP-87] CF-WR633AX"
+                  - option "[SP-86] Intel® BE200 PCIE 模块"
+                  - option "[SP-85] COMFAST CF-E130N V2"
+                  - option "[SP-84] LOONA003"
+                  - option "[SP-83] COMFAST-EW72 V2"
+                  - option "[SP-82] COMFAST CF-EW82"
+                  - option "[SP-81] Zigbee 3.0UsB Dongle ETH-52P"
+                  - option "[SP-80] Zigbee Repeater Signal"
+                  - option "[SP-79] COMFAST CF-EW87"
+                  - option "[SP-78] COMFAST CF-E39AX"
+                  - option "[SP-77] COMFAST-EW74 V2"
+                  - option "[SP-75] ZBM-MG21 Dongle"
+                  - option "[SP-74] COMFAST CF-WA937"
+                  - option "[SP-73] COMFAST CF-WA900 V2"
+                  - option "[SP-72] COMFAST CF-EW85"
+                  - option "[SP-71] COMFAST CF-EW72"
+                  - option "[SP-70] COMFAST CF-E395AX"
+                  - option "[SP-69] COMFAST CF-E313AC"
+                  - option "[SP-68] COMFAST CF-E313AC"
+                  - option "[SP-67] COMFAST CF-WA350"
+                  - option "[SP-66] COMFAST CF-E393AX"
+                  - option "[SP-65] Broadlink RM4 Pro"
+                  - option "[SP-64] COMFAST-CF-EW71"
+                  - option "[SP-63] RB951Ui-2HnD"
+                  - option "[SP-62] RB951Ui-2nD"
+                  - option "[SP-61] COMFAST E312A V2"
+                  - option "[SP-60] COMFAST CF-EW85"
+                  - option "[SP-59] MOES Tuya WiFi 3.5-inch Smart Control Panel with 3 Relays"
+                  - option "[SP-58] MOES ZigBee WiFi Dimmer Curtain Switch Module"
+                  - option "[SP-57] MOES Indoor Smart Camera 8MP (WiFi)"
+                  - option "[SP-56] MOES WiFi Smart Video Doorbell (2-Way Audio)"
+                  - option "[SP-55] MOES Zigbee + Matter Gateway / Hub"
+                  - option "[SP-54] MOES Tuya Matter WiFi Switch Module (2-Gang)"
+                  - option "[SP-53] MOES Matter WiFi Smart Light 3Button Switch EU"
+                  - option "[SP-52] MOES Matter WiFi Smart Light 2Button Switch EU"
+                  - option "[SP-51] MOES Matter WiFi Smart Light 1 Button Switch EU"
+                  - option "[SP-50] MOES Matter WiFi Smart Light 4 Button Switch"
+                  - option "[SP-49] MOES Matter WiFi Smart Light 3 Button Switch"
+                  - option "[SP-48] MOES Matter WiFi Smart Light 2 Button Switch"
+                  - option "[SP-47] MOES Matter WiFi Smart Light Button Switch"
+                  - option "[SP-46] MOES WiFi 5-inch Smart Touch Control Panel (Zigbee Hub built-in)"
+                  - option "[SP-45] MOES ZigBee WiFi Universal IR Remote Controller"
+                  - option "[SP-44] MOES Tuya Bluetooth Wood Cabinet Lock"
+                  - option "[SP-43] Matter WiFi Smart Light Switch 16A Relay Module"
+                  - option "[SP-42] MOES Tuya Matter Plug WiFi Smart Socket 16A"
+                  - option "[SP-41] MOES Matter WiFi Smart Glass Touch Light Switch 4gang"
+                  - option "[SP-40] MOES Matter WiFi Smart Glass Touch Light Switch 3gang"
+                  - option "[SP-39] MOES Matter WiFi Smart Glass Touch Light Switch2gang"
+                  - option "[SP-38] MOES Matter WiFi Smart Glass Touch Light Switch"
+                  - option "[SP-37] MOES Mini Tuya WiFi/Zigbee Smart Dimmer Module"
+                  - option "[SP-36] MOES Mini Tuya WiFi/Zigbee Smart Dimmer Module"
+                  - option "[SP-35] MOES Tuya Zigbee Smart Circuit Breaker 63A"
+                  - option "[SP-34] MOES Bluetooth Smart Wooden Door Lock (Fingerprint)"
+                  - option "[SP-33] MOES 80A WiFi Smart Circuit Breaker"
+                  - option "[SP-32] MOES Tuya ZigBee Smart Door Lock (Password + Fingerprint)"
+                  - option "[SP-31] WiFi RF433 Blinds Curtain Switch with Remote"
+                  - option "[SP-30] MOES Tuya Automatic Zigbee Roller Shade Blinds Motor (38mm tube)"
+                  - option "[SP-29] MOES Tuya ZigBee Smart Curtain Switch Mini Module"
+                  - option "[SP-28] MOES Tuya WiFi Smart Curtain Switch Mini Module"
+                  - option "[SP-27] zigbee alarm siren EU Plug"
+                  - option "[SP-26] zigbee smoke detector"
+                  - option "[SP-25] rfid reader black color 125kHz"
+                  - option "[SP-24] ZBMINI2 Switch Power"
+                  - option "[SP-23] SNZB-02D Temp Humidity"
+                  - option "[SP-22] SONOFF SNZB-01P"
+                  - option "[SP-21] SONOFF SNZB-04P"
+                  - option "[SP-20] SONOFF SNZB-03P"
+                  - option "[SP-19] SONOFF Zigbee 1.5M USB Male"
+                  - option "[SP-18] SONOFF Zigbee 3.0 USB Plus-ZBDongle-E"
+                  - option "[SP-17] SNZB-05P Leak Detector"
+                  - option "[SP-16] 稞米Mavit 3T 定制款"
+                  - option "[SP-15] COMFAST CF-E320N V2"
+                  - option "[SP-14] COMFAST CF-E314N V2"
+                  - option "[SP-13] 87背光键盘黑灰"
+                  - option "[SP-12] 87背光键盘白色"
+                  - option "[SP-11] 87背光键盘黑色"
+                  - option "[SP-10] 27显示器"
+                  - option "[SP-09] COMFAST CF-E314N V2"
+                  - option "[SP-08] COMFAST CF-E319A"
+                  - option "[SP-07] COMFAST CF-E312A"
+                  - option "[SP-06] R02"
+                  - option "[SP-05] Sonoff风扇-无遥控-220V"
+                  - option "[SP-04] Sonoff D1调光器 - 无遥控器 - 220V"
+                  - option "[SP-03] COMFAST CF-EW72"
+                  - option "[SP-02] 27显示器"
+                  - option "[SP-01] COMFAST CF-EW74"
+                  - option "[TEST-P001] 测试产品-功能测试"
+              - generic [ref=e103]:
+                - generic [ref=e104]: 数量
+                - spinbutton [ref=e105]: "1"
+              - generic [ref=e106]:
+                - generic [ref=e107]: 单价(USD) (参考价格)
+                - generic [ref=e108]:
+                  - spinbutton [ref=e109]
+                  - button "📜" [ref=e110] [cursor=pointer]
+              - generic [ref=e111]:
+                - generic [ref=e112]: 小计
+                - textbox [ref=e113]: $0.00
+              - button "✕" [ref=e115] [cursor=pointer]
+          - generic [ref=e116]:
+            - heading "💰 金额汇总" [level=3] [ref=e117]
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - generic [ref=e120]: 商品总额
+                - textbox [ref=e121]: $0.00
+              - generic [ref=e122]:
+                - generic [ref=e123]: 运费
+                - spinbutton [ref=e124]: "0"
+              - generic [ref=e125]:
+                - generic [ref=e126]: 优惠
+                - spinbutton [ref=e127]: "0"
+              - generic [ref=e128]:
+                - generic [ref=e129]: 订单总额
+                - textbox [ref=e130]: $0.00
+          - generic [ref=e131]:
+            - heading "📝 条款信息" [level=3] [ref=e132]
+            - generic [ref=e133]:
+              - generic [ref=e134]:
+                - generic [ref=e135]: 付款条款
+                - textbox [ref=e136]: 100% before shipment
+              - generic [ref=e137]:
+                - generic [ref=e138]: 交货条款
+                - textbox [ref=e139]: EXW
+              - generic [ref=e140]:
+                - generic [ref=e141]: 交货期
+                - textbox [ref=e142]: 3-7 working days
+          - generic [ref=e143]:
+            - generic [ref=e144]: 备注
+            - textbox "订单备注..." [ref=e145]
+        - generic [ref=e146]:
+          - button "创建订单（未成交状态）" [ref=e147] [cursor=pointer]
+          - link "取消" [ref=e148] [cursor=pointer]:
+            - /url: /orders

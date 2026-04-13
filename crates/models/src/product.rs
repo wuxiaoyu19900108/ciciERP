@@ -48,46 +48,10 @@ pub struct Product {
     pub view_count: i64,
     pub sales_count: i64,
     pub notes: Option<String>,
+    pub unit: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-}
-
-/// SKU 状态
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SkuStatus {
-    #[serde(rename = "1")]
-    Active = 1,
-    #[serde(rename = "2")]
-    Inactive = 2,
-}
-
-impl Default for SkuStatus {
-    fn default() -> Self {
-        SkuStatus::Active
-    }
-}
-
-/// SKU 实体
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct ProductSku {
-    pub id: i64,
-    pub product_id: i64,
-    pub sku_code: String,
-    pub spec_values: JsonValue,
-    pub sale_price: f64,
-    pub cost_price: f64,
-    pub compare_price: Option<f64>,
-    pub stock_quantity: i64,
-    pub available_quantity: i64,
-    pub locked_quantity: i64,
-    pub safety_stock: i64,
-    pub sku_image: Option<String>,
-    pub barcode: Option<String>,
-    pub qr_code: Option<String>,
-    pub status: i64,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 /// 分类实体
@@ -153,6 +117,7 @@ pub struct CreateProductRequest {
     pub is_featured: Option<bool>,
     pub is_new: Option<bool>,
     pub notes: Option<String>,
+    pub unit: Option<String>,
 }
 
 /// 更新产品请求（不包含价格，价格独立管理）
@@ -177,6 +142,7 @@ pub struct UpdateProductRequest {
     pub is_featured: Option<bool>,
     pub is_new: Option<bool>,
     pub notes: Option<String>,
+    pub unit: Option<String>,
 }
 
 /// 产品查询参数
@@ -206,12 +172,11 @@ impl ProductQuery {
     }
 }
 
-/// 产品详情（包含 SKU 列表）
+/// 产品详情
 #[derive(Debug, Serialize)]
 pub struct ProductDetail {
     #[serde(flatten)]
     pub product: Product,
-    pub skus: Vec<ProductSku>,
     pub category: Option<Category>,
     pub brand: Option<Brand>,
 }
@@ -417,6 +382,12 @@ pub struct ProductPrice {
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    // 新增字段：平台定价模式
+    pub pricing_mode: Option<String>,        // 'margin', 'markup', 'reference'
+    pub input_currency: Option<String>,      // 'CNY' or 'USD'
+    pub reference_platform: Option<String>,  // for website: 'alibaba', 'aliexpress'
+    pub adjustment_type: Option<String>,     // 'fixed_add', 'fixed_sub', 'percent_up', 'percent_down'
+    pub adjustment_value: Option<f64>,
 }
 
 /// 创建产品销售价格请求
@@ -434,6 +405,12 @@ pub struct CreateProductPriceRequest {
     pub is_reference: Option<bool>,  // 默认 false
     pub effective_date: Option<String>,
     pub notes: Option<String>,
+    // 新增字段
+    pub pricing_mode: Option<String>,
+    pub input_currency: Option<String>,
+    pub reference_platform: Option<String>,
+    pub adjustment_type: Option<String>,
+    pub adjustment_value: Option<f64>,
 }
 
 /// 更新产品销售价格请求
@@ -450,6 +427,12 @@ pub struct UpdateProductPriceRequest {
     pub is_reference: Option<bool>,
     pub effective_date: Option<String>,
     pub notes: Option<String>,
+    // 新增字段
+    pub pricing_mode: Option<String>,
+    pub input_currency: Option<String>,
+    pub reference_platform: Option<String>,
+    pub adjustment_type: Option<String>,
+    pub adjustment_value: Option<f64>,
 }
 
 /// 价格查询参数

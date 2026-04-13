@@ -1,0 +1,116 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - heading "客户详情" [level=2] [ref=e42]
+        - generic [ref=e43]:
+          - generic [ref=e44]: admin
+          - button "退出" [ref=e46] [cursor=pointer]
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - link "客户列表" [ref=e50] [cursor=pointer]:
+            - /url: /customers
+          - generic [ref=e51]: /
+          - generic [ref=e52]: 张伟
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - heading "张伟" [level=1] [ref=e55]
+            - generic [ref=e56]: 正常
+          - generic [ref=e57]:
+            - link "编辑" [ref=e58] [cursor=pointer]:
+              - /url: /customers/180/edit
+            - link "返回列表" [ref=e59] [cursor=pointer]:
+              - /url: /customers
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - heading "👤 基本信息" [level=3] [ref=e62]
+          - generic [ref=e63]:
+            - generic [ref=e64]:
+              - paragraph [ref=e65]: 客户编码
+              - paragraph [ref=e66]: CUS-20260404-0001
+            - generic [ref=e67]:
+              - paragraph [ref=e68]: 姓名
+              - paragraph [ref=e69]: 张伟
+            - generic [ref=e70]:
+              - paragraph [ref=e71]: 手机号
+              - paragraph [ref=e72]: "13800138001"
+            - generic [ref=e73]:
+              - paragraph [ref=e74]: 邮箱
+              - paragraph [ref=e75]: zhangwei@test.com
+            - generic [ref=e76]:
+              - paragraph [ref=e77]: 备注
+              - paragraph [ref=e78]: 测试客户
+            - generic [ref=e79]:
+              - paragraph [ref=e80]: 注册时间
+              - paragraph [ref=e81]: 2026-04-04 08:39
+        - generic [ref=e83]:
+          - heading "📊 消费统计" [level=3] [ref=e84]
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e87]: 订单数
+              - generic [ref=e88]: "0"
+            - generic [ref=e89]:
+              - generic [ref=e90]: 消费总额
+              - generic [ref=e91]: ¥0.00
+            - generic [ref=e92]:
+              - generic [ref=e93]: 积分
+              - generic [ref=e94]: "0"
+      - generic [ref=e95]:
+        - generic [ref=e96]:
+          - heading "📍 收货地址" [level=3] [ref=e97]
+          - button "添加地址" [ref=e98] [cursor=pointer]
+        - table [ref=e100]:
+          - rowgroup [ref=e101]:
+            - row "收件人 手机号 地址 状态 操作" [ref=e102]:
+              - columnheader "收件人" [ref=e103]
+              - columnheader "手机号" [ref=e104]
+              - columnheader "地址" [ref=e105]
+              - columnheader "状态" [ref=e106]
+              - columnheader "操作" [ref=e107]
+          - rowgroup [ref=e108]:
+            - row "暂无收货地址" [ref=e109]:
+              - cell "暂无收货地址" [ref=e110]

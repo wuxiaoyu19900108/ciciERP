@@ -1,0 +1,421 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - heading "订单管理" [level=2] [ref=e42]
+        - generic [ref=e43]:
+          - generic [ref=e44]: admin
+          - button "退出" [ref=e46] [cursor=pointer]
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - heading "订单管理" [level=1] [ref=e50]
+          - paragraph [ref=e51]: 以订单为核心，PI/CI 为可下载文件
+        - generic [ref=e52]:
+          - link "📥 导入AE订单" [ref=e53] [cursor=pointer]:
+            - /url: /orders/import/ae
+            - generic [ref=e54]: 📥
+            - generic [ref=e55]: 导入AE订单
+          - link "📊 导出Excel" [ref=e56] [cursor=pointer]:
+            - /url: /api/v1/orders/export
+            - generic [ref=e57]: 📊
+            - generic [ref=e58]: 导出Excel
+          - link "+ 新建订单" [ref=e59] [cursor=pointer]:
+            - /url: /orders/new
+            - generic [ref=e60]: +
+            - generic [ref=e61]: 新建订单
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - generic [ref=e64]: "56"
+          - generic [ref=e65]: 订单总数
+        - generic [ref=e66]:
+          - generic [ref=e67]: "22321.70"
+          - generic [ref=e68]: 总销售额
+        - generic [ref=e69]:
+          - generic [ref=e70]: "4787.83"
+          - generic [ref=e71]: 总毛利
+        - generic [ref=e72]:
+          - generic [ref=e73]: 21.4%
+          - generic [ref=e74]: 平均毛利率
+      - generic [ref=e76]:
+        - generic [ref=e77]: "状态说明:"
+        - generic [ref=e78]:
+          - strong [ref=e79]: 未成交/价格锁定
+          - text: → 可下载 PI（形式发票）
+        - generic [ref=e80]:
+          - strong [ref=e81]: 已付款/已发货/已收货
+          - text: → 可下载 CI（商业发票）
+      - generic [ref=e83]:
+        - generic [ref=e84]: "平台:"
+        - generic [ref=e85]:
+          - link "全部 (186)" [ref=e86] [cursor=pointer]:
+            - /url: /orders
+          - link "Alibaba (56)" [ref=e87] [cursor=pointer]:
+            - /url: /orders?platform=alibaba
+          - link "AliExpress (77)" [ref=e88] [cursor=pointer]:
+            - /url: /orders?platform=aliexpress
+          - link "其他 (53)" [ref=e89] [cursor=pointer]:
+            - /url: /orders?platform=other
+      - generic [ref=e91]:
+        - generic [ref=e92]: "币种:"
+        - generic [ref=e93]:
+          - link "全部" [ref=e94] [cursor=pointer]:
+            - /url: /orders?platform=alibaba
+          - link "USD" [ref=e95] [cursor=pointer]:
+            - /url: /orders?currency=USD&platform=alibaba
+          - link "CNY" [ref=e96] [cursor=pointer]:
+            - /url: /orders?currency=CNY&platform=alibaba
+      - generic [ref=e98]:
+        - generic [ref=e99]: "状态:"
+        - generic [ref=e100]:
+          - link "全部" [ref=e101] [cursor=pointer]:
+            - /url: /orders?platform=alibaba
+          - link "未成交" [ref=e102] [cursor=pointer]:
+            - /url: /orders?status=1&platform=alibaba
+          - link "价格锁定" [ref=e103] [cursor=pointer]:
+            - /url: /orders?status=2&platform=alibaba
+          - link "已付款" [ref=e104] [cursor=pointer]:
+            - /url: /orders?status=3&platform=alibaba
+          - link "已发货" [ref=e105] [cursor=pointer]:
+            - /url: /orders?status=4&platform=alibaba
+          - link "已收货" [ref=e106] [cursor=pointer]:
+            - /url: /orders?status=5&platform=alibaba
+      - generic [ref=e107]:
+        - table [ref=e109]:
+          - rowgroup [ref=e110]:
+            - row "订单号 来源 客户 金额 毛利 状态 操作" [ref=e111]:
+              - columnheader "订单号" [ref=e112]
+              - columnheader "来源" [ref=e113]
+              - columnheader "客户" [ref=e114]
+              - columnheader "金额" [ref=e115]
+              - columnheader "毛利" [ref=e116]
+              - columnheader "状态" [ref=e117]
+              - columnheader "操作" [ref=e118]
+          - rowgroup [ref=e119]:
+            - row "ORD-20260118-0001 alibaba giuseppe succurro 22.07 1.76 (8.0%) 已付款 详情 下载CI 删除" [ref=e120]:
+              - cell "ORD-20260118-0001" [ref=e121]
+              - cell "alibaba" [ref=e122]
+              - cell "giuseppe succurro" [ref=e123]
+              - cell "22.07" [ref=e124]
+              - cell "1.76 (8.0%)" [ref=e125]
+              - cell "已付款" [ref=e126]
+              - cell "详情 下载CI 删除" [ref=e127]:
+                - generic [ref=e128]:
+                  - link "详情" [ref=e129] [cursor=pointer]:
+                    - /url: /orders/120
+                  - link "下载CI" [ref=e130] [cursor=pointer]:
+                    - /url: /api/v1/orders/120/download-ci
+                  - button "删除" [ref=e131] [cursor=pointer]
+            - row "ORD-20260118-0002 alibaba Ian Calderwood 34.00 9.10 (26.8%) 已付款 详情 下载CI 删除" [ref=e132]:
+              - cell "ORD-20260118-0002" [ref=e133]
+              - cell "alibaba" [ref=e134]
+              - cell "Ian Calderwood" [ref=e135]
+              - cell "34.00" [ref=e136]
+              - cell "9.10 (26.8%)" [ref=e137]
+              - cell "已付款" [ref=e138]
+              - cell "详情 下载CI 删除" [ref=e139]:
+                - generic [ref=e140]:
+                  - link "详情" [ref=e141] [cursor=pointer]:
+                    - /url: /orders/121
+                  - link "下载CI" [ref=e142] [cursor=pointer]:
+                    - /url: /api/v1/orders/121/download-ci
+                  - button "删除" [ref=e143] [cursor=pointer]
+            - row "ORD-20260118-0003 alibaba Ian Calderwood 13.00 8.70 (66.9%) 已付款 详情 下载CI 删除" [ref=e144]:
+              - cell "ORD-20260118-0003" [ref=e145]
+              - cell "alibaba" [ref=e146]
+              - cell "Ian Calderwood" [ref=e147]
+              - cell "13.00" [ref=e148]
+              - cell "8.70 (66.9%)" [ref=e149]
+              - cell "已付款" [ref=e150]
+              - cell "详情 下载CI 删除" [ref=e151]:
+                - generic [ref=e152]:
+                  - link "详情" [ref=e153] [cursor=pointer]:
+                    - /url: /orders/122
+                  - link "下载CI" [ref=e154] [cursor=pointer]:
+                    - /url: /api/v1/orders/122/download-ci
+                  - button "删除" [ref=e155] [cursor=pointer]
+            - row "ORD-20260117-0001 alibaba Vitalijs Tomsons 62.00 8.35 (13.5%) 已付款 详情 下载CI 删除" [ref=e156]:
+              - cell "ORD-20260117-0001" [ref=e157]
+              - cell "alibaba" [ref=e158]
+              - cell "Vitalijs Tomsons" [ref=e159]
+              - cell "62.00" [ref=e160]
+              - cell "8.35 (13.5%)" [ref=e161]
+              - cell "已付款" [ref=e162]
+              - cell "详情 下载CI 删除" [ref=e163]:
+                - generic [ref=e164]:
+                  - link "详情" [ref=e165] [cursor=pointer]:
+                    - /url: /orders/119
+                  - link "下载CI" [ref=e166] [cursor=pointer]:
+                    - /url: /api/v1/orders/119/download-ci
+                  - button "删除" [ref=e167] [cursor=pointer]
+            - row "ORD-20260115-0001 alibaba Ben Kholafaei 380.00 94.79 (24.9%) 已付款 详情 下载CI 删除" [ref=e168]:
+              - cell "ORD-20260115-0001" [ref=e169]
+              - cell "alibaba" [ref=e170]
+              - cell "Ben Kholafaei" [ref=e171]
+              - cell "380.00" [ref=e172]
+              - cell "94.79 (24.9%)" [ref=e173]
+              - cell "已付款" [ref=e174]
+              - cell "详情 下载CI 删除" [ref=e175]:
+                - generic [ref=e176]:
+                  - link "详情" [ref=e177] [cursor=pointer]:
+                    - /url: /orders/118
+                  - link "下载CI" [ref=e178] [cursor=pointer]:
+                    - /url: /api/v1/orders/118/download-ci
+                  - button "删除" [ref=e179] [cursor=pointer]
+            - row "ORD-20260112-0002 alibaba christ Ngapout 400.00 42.40 (10.6%) 已付款 详情 下载CI 删除" [ref=e180]:
+              - cell "ORD-20260112-0002" [ref=e181]
+              - cell "alibaba" [ref=e182]
+              - cell "christ Ngapout" [ref=e183]
+              - cell "400.00" [ref=e184]
+              - cell "42.40 (10.6%)" [ref=e185]
+              - cell "已付款" [ref=e186]
+              - cell "详情 下载CI 删除" [ref=e187]:
+                - generic [ref=e188]:
+                  - link "详情" [ref=e189] [cursor=pointer]:
+                    - /url: /orders/117
+                  - link "下载CI" [ref=e190] [cursor=pointer]:
+                    - /url: /api/v1/orders/117/download-ci
+                  - button "删除" [ref=e191] [cursor=pointer]
+            - row "ORD-20260105-0001 alibaba Azyz Balley 478.00 29.50 (6.2%) 已付款 详情 下载CI 删除" [ref=e192]:
+              - cell "ORD-20260105-0001" [ref=e193]
+              - cell "alibaba" [ref=e194]
+              - cell "Azyz Balley" [ref=e195]
+              - cell "478.00" [ref=e196]
+              - cell "29.50 (6.2%)" [ref=e197]
+              - cell "已付款" [ref=e198]
+              - cell "详情 下载CI 删除" [ref=e199]:
+                - generic [ref=e200]:
+                  - link "详情" [ref=e201] [cursor=pointer]:
+                    - /url: /orders/115
+                  - link "下载CI" [ref=e202] [cursor=pointer]:
+                    - /url: /api/v1/orders/115/download-ci
+                  - button "删除" [ref=e203] [cursor=pointer]
+            - row "ORD-20260104-0001 alibaba LASSINE FOFANA 440.00 10.80 (2.5%) 已付款 详情 下载CI 删除" [ref=e204]:
+              - cell "ORD-20260104-0001" [ref=e205]
+              - cell "alibaba" [ref=e206]
+              - cell "LASSINE FOFANA" [ref=e207]
+              - cell "440.00" [ref=e208]
+              - cell "10.80 (2.5%)" [ref=e209]
+              - cell "已付款" [ref=e210]
+              - cell "详情 下载CI 删除" [ref=e211]:
+                - generic [ref=e212]:
+                  - link "详情" [ref=e213] [cursor=pointer]:
+                    - /url: /orders/112
+                  - link "下载CI" [ref=e214] [cursor=pointer]:
+                    - /url: /api/v1/orders/112/download-ci
+                  - button "删除" [ref=e215] [cursor=pointer]
+            - row "ORD-20260104-0002 alibaba LASSINE FOFANA 384.00 29.28 (7.6%) 已付款 详情 下载CI 删除" [ref=e216]:
+              - cell "ORD-20260104-0002" [ref=e217]
+              - cell "alibaba" [ref=e218]
+              - cell "LASSINE FOFANA" [ref=e219]
+              - cell "384.00" [ref=e220]
+              - cell "29.28 (7.6%)" [ref=e221]
+              - cell "已付款" [ref=e222]
+              - cell "详情 下载CI 删除" [ref=e223]:
+                - generic [ref=e224]:
+                  - link "详情" [ref=e225] [cursor=pointer]:
+                    - /url: /orders/113
+                  - link "下载CI" [ref=e226] [cursor=pointer]:
+                    - /url: /api/v1/orders/113/download-ci
+                  - button "删除" [ref=e227] [cursor=pointer]
+            - row "ORD-20260104-0003 alibaba LASSINE FOFANA 256.00 15.68 (6.1%) 已付款 详情 下载CI 删除" [ref=e228]:
+              - cell "ORD-20260104-0003" [ref=e229]
+              - cell "alibaba" [ref=e230]
+              - cell "LASSINE FOFANA" [ref=e231]
+              - cell "256.00" [ref=e232]
+              - cell "15.68 (6.1%)" [ref=e233]
+              - cell "已付款" [ref=e234]
+              - cell "详情 下载CI 删除" [ref=e235]:
+                - generic [ref=e236]:
+                  - link "详情" [ref=e237] [cursor=pointer]:
+                    - /url: /orders/114
+                  - link "下载CI" [ref=e238] [cursor=pointer]:
+                    - /url: /api/v1/orders/114/download-ci
+                  - button "删除" [ref=e239] [cursor=pointer]
+            - row "ORD-20251230-0001 alibaba miki hadad-4 1473.00 65.67 (4.5%) 已付款 详情 下载CI 删除" [ref=e240]:
+              - cell "ORD-20251230-0001" [ref=e241]
+              - cell "alibaba" [ref=e242]
+              - cell "miki hadad-4" [ref=e243]
+              - cell "1473.00" [ref=e244]
+              - cell "65.67 (4.5%)" [ref=e245]
+              - cell "已付款" [ref=e246]
+              - cell "详情 下载CI 删除" [ref=e247]:
+                - generic [ref=e248]:
+                  - link "详情" [ref=e249] [cursor=pointer]:
+                    - /url: /orders/110
+                  - link "下载CI" [ref=e250] [cursor=pointer]:
+                    - /url: /api/v1/orders/110/download-ci
+                  - button "删除" [ref=e251] [cursor=pointer]
+            - row "ORD-20251230-0002 alibaba Rustam Yuldashev 740.00 169.58 (22.9%) 已付款 详情 下载CI 删除" [ref=e252]:
+              - cell "ORD-20251230-0002" [ref=e253]
+              - cell "alibaba" [ref=e254]
+              - cell "Rustam Yuldashev" [ref=e255]
+              - cell "740.00" [ref=e256]
+              - cell "169.58 (22.9%)" [ref=e257]
+              - cell "已付款" [ref=e258]
+              - cell "详情 下载CI 删除" [ref=e259]:
+                - generic [ref=e260]:
+                  - link "详情" [ref=e261] [cursor=pointer]:
+                    - /url: /orders/111
+                  - link "下载CI" [ref=e262] [cursor=pointer]:
+                    - /url: /api/v1/orders/111/download-ci
+                  - button "删除" [ref=e263] [cursor=pointer]
+            - row "ORD-20251229-0001 alibaba LASSINE FOFANA 1682.50 931.45 (55.4%) 已付款 详情 下载CI 删除" [ref=e264]:
+              - cell "ORD-20251229-0001" [ref=e265]
+              - cell "alibaba" [ref=e266]
+              - cell "LASSINE FOFANA" [ref=e267]
+              - cell "1682.50" [ref=e268]
+              - cell "931.45 (55.4%)" [ref=e269]
+              - cell "已付款" [ref=e270]
+              - cell "详情 下载CI 删除" [ref=e271]:
+                - generic [ref=e272]:
+                  - link "详情" [ref=e273] [cursor=pointer]:
+                    - /url: /orders/109
+                  - link "下载CI" [ref=e274] [cursor=pointer]:
+                    - /url: /api/v1/orders/109/download-ci
+                  - button "删除" [ref=e275] [cursor=pointer]
+            - row "ORD-20251221-0001 alibaba Shawn Norton 380.00 98.82 (26.0%) 已付款 详情 下载CI 删除" [ref=e276]:
+              - cell "ORD-20251221-0001" [ref=e277]
+              - cell "alibaba" [ref=e278]
+              - cell "Shawn Norton" [ref=e279]
+              - cell "380.00" [ref=e280]
+              - cell "98.82 (26.0%)" [ref=e281]
+              - cell "已付款" [ref=e282]
+              - cell "详情 下载CI 删除" [ref=e283]:
+                - generic [ref=e284]:
+                  - link "详情" [ref=e285] [cursor=pointer]:
+                    - /url: /orders/107
+                  - link "下载CI" [ref=e286] [cursor=pointer]:
+                    - /url: /api/v1/orders/107/download-ci
+                  - button "删除" [ref=e287] [cursor=pointer]
+            - row "ORD-20251220-0001 alibaba miki hadad-4 1200.00 75.28 (6.3%) 已付款 详情 下载CI 删除" [ref=e288]:
+              - cell "ORD-20251220-0001" [ref=e289]
+              - cell "alibaba" [ref=e290]
+              - cell "miki hadad-4" [ref=e291]
+              - cell "1200.00" [ref=e292]
+              - cell "75.28 (6.3%)" [ref=e293]
+              - cell "已付款" [ref=e294]
+              - cell "详情 下载CI 删除" [ref=e295]:
+                - generic [ref=e296]:
+                  - link "详情" [ref=e297] [cursor=pointer]:
+                    - /url: /orders/106
+                  - link "下载CI" [ref=e298] [cursor=pointer]:
+                    - /url: /api/v1/orders/106/download-ci
+                  - button "删除" [ref=e299] [cursor=pointer]
+            - row "ORD-20251219-0001 alibaba Shawn Norton 509.00 36.50 (7.2%) 已付款 详情 下载CI 删除" [ref=e300]:
+              - cell "ORD-20251219-0001" [ref=e301]
+              - cell "alibaba" [ref=e302]
+              - cell "Shawn Norton" [ref=e303]
+              - cell "509.00" [ref=e304]
+              - cell "36.50 (7.2%)" [ref=e305]
+              - cell "已付款" [ref=e306]
+              - cell "详情 下载CI 删除" [ref=e307]:
+                - generic [ref=e308]:
+                  - link "详情" [ref=e309] [cursor=pointer]:
+                    - /url: /orders/105
+                  - link "下载CI" [ref=e310] [cursor=pointer]:
+                    - /url: /api/v1/orders/105/download-ci
+                  - button "删除" [ref=e311] [cursor=pointer]
+            - row "ORD-20251217-0001 alibaba christ Ngapout 203.00 26.70 (13.2%) 已付款 详情 下载CI 删除" [ref=e312]:
+              - cell "ORD-20251217-0001" [ref=e313]
+              - cell "alibaba" [ref=e314]
+              - cell "christ Ngapout" [ref=e315]
+              - cell "203.00" [ref=e316]
+              - cell "26.70 (13.2%)" [ref=e317]
+              - cell "已付款" [ref=e318]
+              - cell "详情 下载CI 删除" [ref=e319]:
+                - generic [ref=e320]:
+                  - link "详情" [ref=e321] [cursor=pointer]:
+                    - /url: /orders/104
+                  - link "下载CI" [ref=e322] [cursor=pointer]:
+                    - /url: /api/v1/orders/104/download-ci
+                  - button "删除" [ref=e323] [cursor=pointer]
+            - row "ORD-20251204-0001 alibaba malik bdier 380.00 98.82 (26.0%) 已付款 详情 下载CI 删除" [ref=e324]:
+              - cell "ORD-20251204-0001" [ref=e325]
+              - cell "alibaba" [ref=e326]
+              - cell "malik bdier" [ref=e327]
+              - cell "380.00" [ref=e328]
+              - cell "98.82 (26.0%)" [ref=e329]
+              - cell "已付款" [ref=e330]
+              - cell "详情 下载CI 删除" [ref=e331]:
+                - generic [ref=e332]:
+                  - link "详情" [ref=e333] [cursor=pointer]:
+                    - /url: /orders/100
+                  - link "下载CI" [ref=e334] [cursor=pointer]:
+                    - /url: /api/v1/orders/100/download-ci
+                  - button "删除" [ref=e335] [cursor=pointer]
+            - row "ORD-20251204-0002 alibaba 钟珊 622.00 59.64 (9.6%) 已付款 详情 下载CI 删除" [ref=e336]:
+              - cell "ORD-20251204-0002" [ref=e337]
+              - cell "alibaba" [ref=e338]
+              - cell "钟珊" [ref=e339]
+              - cell "622.00" [ref=e340]
+              - cell "59.64 (9.6%)" [ref=e341]
+              - cell "已付款" [ref=e342]
+              - cell "详情 下载CI 删除" [ref=e343]:
+                - generic [ref=e344]:
+                  - link "详情" [ref=e345] [cursor=pointer]:
+                    - /url: /orders/101
+                  - link "下载CI" [ref=e346] [cursor=pointer]:
+                    - /url: /api/v1/orders/101/download-ci
+                  - button "删除" [ref=e347] [cursor=pointer]
+            - row "ORD-20251204-0003 alibaba 钟珊-1 340.00 58.82 (17.3%) 已付款 详情 下载CI 删除" [ref=e348]:
+              - cell "ORD-20251204-0003" [ref=e349]
+              - cell "alibaba" [ref=e350]
+              - cell "钟珊-1" [ref=e351]
+              - cell "340.00" [ref=e352]
+              - cell "58.82 (17.3%)" [ref=e353]
+              - cell "已付款" [ref=e354]
+              - cell "详情 下载CI 删除" [ref=e355]:
+                - generic [ref=e356]:
+                  - link "详情" [ref=e357] [cursor=pointer]:
+                    - /url: /orders/102
+                  - link "下载CI" [ref=e358] [cursor=pointer]:
+                    - /url: /api/v1/orders/102/download-ci
+                  - button "删除" [ref=e359] [cursor=pointer]
+        - generic [ref=e360]:
+          - paragraph [ref=e361]: 共 56 条记录，第 1/3 页
+          - link "下一页" [ref=e363] [cursor=pointer]:
+            - /url: /orders?page=2

@@ -1,0 +1,143 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - heading "订单详情" [level=2] [ref=e42]
+        - generic [ref=e43]:
+          - generic [ref=e44]: admin
+          - button "退出" [ref=e46] [cursor=pointer]
+    - main [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - link "订单列表" [ref=e50] [cursor=pointer]:
+            - /url: /orders
+          - generic [ref=e51]: /
+          - generic [ref=e52]: ORD-20260404-0002
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - heading "订单详情" [level=1] [ref=e55]
+            - generic [ref=e56]: 未成交
+          - generic [ref=e57]:
+            - link "编辑" [ref=e58] [cursor=pointer]:
+              - /url: /orders/234/edit
+            - link "下载 PI" [ref=e59] [cursor=pointer]:
+              - /url: /api/v1/orders/234/download-pi
+            - button "锁定价格" [ref=e60] [cursor=pointer]
+            - button "取消订单" [ref=e61] [cursor=pointer]
+            - link "返回列表" [ref=e62] [cursor=pointer]:
+              - /url: /orders
+      - generic [ref=e63]: "💡 提示: 确认价格后点击\"锁定价格\"，然后可以发送 PI 给客户"
+      - generic [ref=e64]:
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - heading "📦 订单商品" [level=3] [ref=e67]
+            - table [ref=e68]:
+              - rowgroup [ref=e69]:
+                - row "商品 数量 单价 小计" [ref=e70]:
+                  - columnheader "商品" [ref=e71]
+                  - columnheader "数量" [ref=e72]
+                  - columnheader "单价" [ref=e73]
+                  - columnheader "小计" [ref=e74]
+              - rowgroup [ref=e75]:
+                - row "COMFAST CF-EW72 50 $18.00 $900.00" [ref=e76]:
+                  - cell "COMFAST CF-EW72" [ref=e77]
+                  - cell "50" [ref=e78]
+                  - cell "$18.00" [ref=e79]
+                  - cell "$900.00" [ref=e80]
+                - row "SONOFF Basic 20 $15.50 $310.00" [ref=e81]:
+                  - cell "SONOFF Basic" [ref=e82]
+                  - cell "20" [ref=e83]
+                  - cell "$15.50" [ref=e84]
+                  - cell "$310.00" [ref=e85]
+          - generic [ref=e86]:
+            - heading "📍 收货地址" [level=3] [ref=e87]
+            - generic [ref=e88]:
+              - paragraph [ref=e89]:
+                - strong [ref=e90]: "收件人:"
+                - text: ABC Trading Ltd
+              - paragraph [ref=e91]:
+                - strong [ref=e92]: "地址:"
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - heading "💰 金额信息" [level=3] [ref=e95]
+            - generic [ref=e96]:
+              - generic [ref=e97]:
+                - generic [ref=e98]: 商品总额
+                - generic [ref=e99]: $1210.00
+              - generic [ref=e100]:
+                - generic [ref=e101]: 运费
+                - generic [ref=e102]: $0.00
+              - generic [ref=e103]:
+                - generic [ref=e104]: 优惠
+                - generic [ref=e105]: "-$0.00"
+              - generic [ref=e106]:
+                - generic [ref=e107]: 订单总额
+                - generic [ref=e108]: $1210.00
+              - generic [ref=e109]:
+                - generic [ref=e110]: 支付状态
+                - generic [ref=e111]: 未支付
+          - generic [ref=e112]:
+            - heading "📋 基本信息" [level=3] [ref=e113]
+            - generic [ref=e114]:
+              - generic [ref=e115]:
+                - generic [ref=e116]: 订单号
+                - generic [ref=e117]: ORD-20260404-0002
+              - generic [ref=e118]:
+                - generic [ref=e119]: 来源
+                - generic [ref=e120]: PI
+              - generic [ref=e121]:
+                - generic [ref=e122]: 创建时间
+                - generic [ref=e123]: 2026-04-04 08:11
+          - generic [ref=e124]:
+            - heading "📄 可下载文件" [level=3] [ref=e125]
+            - generic [ref=e126]:
+              - generic [ref=e127]:
+                - generic [ref=e128]: PI (形式发票)
+                - link "下载" [ref=e129] [cursor=pointer]:
+                  - /url: /api/v1/orders/234/download-pi
+              - generic [ref=e130]:
+                - generic [ref=e131]: CI (商业发票)
+                - generic [ref=e132]: 不可用

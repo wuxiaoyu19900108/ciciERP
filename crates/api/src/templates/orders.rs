@@ -87,6 +87,7 @@ pub fn platform_text(platform: &str) -> &str {
         "ali" => "阿里国际站",
         "ae" => "速卖通",
         "manual" => "手动创建",
-        _ => platform,
+        "PI" => "PI",
+        _ => "其他",
     }
 }

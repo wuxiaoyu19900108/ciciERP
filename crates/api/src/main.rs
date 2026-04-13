@@ -6,6 +6,7 @@ mod middleware;
 mod routes;
 mod state;
 mod templates;
+mod utils;
 
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -14,6 +15,7 @@ use axum::http::{self, HeaderValue};
 use tokio::time::interval;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
+use tower_http::compression::CompressionLayer;
 use tracing::{info, warn, error, Level};
 use tracing_subscriber::FmtSubscriber;
 

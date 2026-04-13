@@ -127,7 +127,6 @@ pub struct IntegrationProductItem {
     pub images: Vec<String>,
     pub category: Option<CategoryInfo>,
     pub brand: Option<BrandInfo>,
-    pub skus: Vec<IntegrationSkuItem>,
     pub prices: serde_json::Value,
     pub content: Option<ProductContentInfo>,
     pub updated_at: String,
@@ -265,7 +264,7 @@ pub async fn list_products_for_sync(
     for item in result.items {
         // 获取完整产品信息
         if let Some(product) = product_queries.get_by_id(item.id).await? {
-            let int_product = build_integration_product(&product_queries, &price_queries, &content_queries, product).await;
+            let int_product = build_integration_product(&price_queries, &content_queries, product).await;
             items.push(int_product);
         }
     }
@@ -303,7 +302,7 @@ pub async fn list_updated_products(
     let products = product_queries.list_updated_since(updated_after, query.page_size()).await?;
 
     let items = futures::future::join_all(products.into_iter().map(|p| async {
-        build_integration_product(&product_queries, &price_queries, &content_queries, p).await
+        build_integration_product(&price_queries, &content_queries, p).await
     })).await;
 
     Ok(Json(ApiResponse::success(items)))
@@ -338,7 +337,7 @@ pub async fn batch_get_products(
     let mut items = Vec::with_capacity(req.ids.len());
     for id in req.ids {
         if let Some(product) = product_queries.get_by_id(id).await? {
-            let item = build_integration_product(&product_queries, &price_queries, &content_queries, product).await;
+            let item = build_integration_product(&price_queries, &content_queries, product).await;
             items.push(item);
         }
     }
@@ -366,21 +365,17 @@ pub async fn get_product_for_sync(
 
     let product = product_queries.get_by_id(id).await?.ok_or(AppError::NotFound)?;
 
-    let item = build_integration_product(&product_queries, &price_queries, &content_queries, product).await;
+    let item = build_integration_product(&price_queries, &content_queries, product).await;
 
     Ok(Json(ApiResponse::success(item)))
 }
 
 /// 构建集成产品响应
 async fn build_integration_product(
-    product_queries: &ProductQueries<'_>,
     price_queries: &ProductPriceQueries<'_>,
     content_queries: &ProductContentQueries<'_>,
     product: Product,
 ) -> IntegrationProductItem {
-    // 获取 SKU 列表
-    let skus = product_queries.get_skus(product.id).await.unwrap_or_default();
-
     // 获取价格
     let prices = price_queries.list_by_product(product.id).await.unwrap_or_default();
 
@@ -399,18 +394,6 @@ async fn build_integration_product(
     // 获取内容
     let content = content_queries.get_by_product_id(product.id).await.ok().flatten();
 
-    // 构建 SKU 列表
-    let sku_items: Vec<IntegrationSkuItem> = skus.into_iter().map(|sku| {
-        IntegrationSkuItem {
-            id: sku.id,
-            sku_code: sku.sku_code,
-            spec_values: sku.spec_values,
-            sale_price: sku.sale_price,
-            available_quantity: 0, // TODO: 从库存获取
-            status: sku.status,
-        }
-    }).collect();
-
     // 解析图片
     let images: Vec<String> = if product.images.is_array() {
         serde_json::from_value(product.images.clone()).unwrap_or_default()
@@ -427,7 +410,6 @@ async fn build_integration_product(
         images,
         category: product.category_id.map(|id| CategoryInfo { id, name: String::new() }),
         brand: product.brand_id.map(|id| BrandInfo { id, name: String::new() }),
-        skus: sku_items,
         prices: serde_json::Value::Object(price_map),
         content: content.map(|c| ProductContentInfo {
             title_en: c.title_en,

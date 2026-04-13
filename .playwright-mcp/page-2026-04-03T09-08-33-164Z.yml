@@ -1,0 +1,15 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - heading "📦 ciciERP" [level=1] [ref=e5]
+    - paragraph [ref=e6]: 企业资源管理系统
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]: 用户名
+      - textbox "用户名" [active] [ref=e10]:
+        - /placeholder: 请输入用户名
+    - generic [ref=e11]:
+      - generic [ref=e12]: 密码
+      - textbox "密码" [ref=e13]:
+        - /placeholder: 请输入密码
+    - button "登 录" [ref=e14] [cursor=pointer]
+  - paragraph [ref=e16]: "默认管理员: admin / admin123"

@@ -33,7 +33,15 @@ sha2 = { workspace = true }
 hex = { workspace = true }
 futures = { workspace = true }
 rust_xlsxwriter = "0.64"
+calamine = { version = "0.24", features = ["dates"] }
 csv = { workspace = true }
+
+# Redis 缓存
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+
+# OpenAPI 文档
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
 
 cicierp-db = { workspace = true }
 cicierp-models = { workspace = true }

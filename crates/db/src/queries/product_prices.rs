@@ -93,8 +93,10 @@ impl<'a> ProductPriceQueries<'a> {
             INSERT INTO product_prices (
                 product_id, platform, sale_price_cny, sale_price_usd, exchange_rate,
                 profit_margin, platform_fee_rate, platform_fee, is_reference,
-                effective_date, notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                effective_date, notes, pricing_mode, input_currency,
+                reference_platform, adjustment_type, adjustment_value,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#
         )
         .bind(req.product_id)
@@ -108,6 +110,11 @@ impl<'a> ProductPriceQueries<'a> {
         .bind(is_reference)
         .bind(&req.effective_date)
         .bind(&req.notes)
+        .bind(&req.pricing_mode)
+        .bind(&req.input_currency)
+        .bind(&req.reference_platform)
+        .bind(&req.adjustment_type)
+        .bind(req.adjustment_value)
         .bind(&now)
         .bind(&now)
         .execute(self.pool)
@@ -235,6 +242,88 @@ impl<'a> ProductPriceQueries<'a> {
                 is_reference: Some(true),
                 effective_date: None,
                 notes,
+                pricing_mode: None,
+                input_currency: None,
+                reference_platform: None,
+                adjustment_type: None,
+                adjustment_value: None,
+            };
+            self.create(&req).await
+        }
+    }
+
+    /// 更新或创建参考售价（带完整字段）
+    pub async fn update_reference_price_full(
+        &self,
+        product_id: i64,
+        platform: &str,
+        sale_price_cny: f64,
+        sale_price_usd: Option<f64>,
+        exchange_rate: f64,
+        profit_margin: Option<f64>,
+        platform_fee_rate: Option<f64>,
+        pricing_mode: Option<String>,
+        input_currency: Option<String>,
+        reference_platform: Option<String>,
+        adjustment_type: Option<String>,
+        adjustment_value: Option<f64>,
+        notes: Option<String>,
+    ) -> Result<ProductPrice> {
+        if let Some(existing) = self.get_reference_price(product_id, platform).await? {
+            let now = chrono::Utc::now().to_rfc3339();
+            sqlx::query(
+                r#"
+                UPDATE product_prices SET
+                    sale_price_cny = ?,
+                    sale_price_usd = ?,
+                    exchange_rate = ?,
+                    profit_margin = COALESCE(?, profit_margin),
+                    platform_fee_rate = COALESCE(?, platform_fee_rate),
+                    pricing_mode = COALESCE(?, pricing_mode),
+                    input_currency = COALESCE(?, input_currency),
+                    reference_platform = ?,
+                    adjustment_type = COALESCE(?, adjustment_type),
+                    adjustment_value = COALESCE(?, adjustment_value),
+                    notes = ?,
+                    updated_at = ?
+                WHERE id = ?
+                "#
+            )
+            .bind(sale_price_cny)
+            .bind(sale_price_usd)
+            .bind(exchange_rate)
+            .bind(profit_margin)
+            .bind(platform_fee_rate)
+            .bind(&pricing_mode)
+            .bind(&input_currency)
+            .bind(&reference_platform)
+            .bind(&adjustment_type)
+            .bind(adjustment_value)
+            .bind(&notes)
+            .bind(&now)
+            .bind(existing.id)
+            .execute(self.pool)
+            .await?;
+
+            self.get_by_id(existing.id).await?.ok_or_else(|| anyhow::anyhow!("Failed to fetch updated price"))
+        } else {
+            let req = CreateProductPriceRequest {
+                product_id,
+                platform: Some(platform.to_string()),
+                sale_price_cny,
+                sale_price_usd,
+                exchange_rate: Some(exchange_rate),
+                profit_margin,
+                platform_fee_rate,
+                platform_fee: None,
+                is_reference: Some(true),
+                effective_date: None,
+                notes,
+                pricing_mode,
+                input_currency,
+                reference_platform,
+                adjustment_type,
+                adjustment_value,
             };
             self.create(&req).await
         }

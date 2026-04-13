@@ -51,7 +51,7 @@ def main():
     print(f"产品数量: {len(products)}")
 
     # 获取已存在的订单号
-    cursor.execute('SELECT order_code FROM orders WHERE platform = "ali_import"')
+    cursor.execute('SELECT order_code FROM orders WHERE platform = "alibaba"')
     existing_orders = {row[0] for row in cursor.fetchall()}
     print(f"已存在的阿里订单数: {len(existing_orders)}")
 
@@ -113,7 +113,7 @@ def main():
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             order_no,
-            'ali_import',
+            'alibaba',
             customer_id,
             client_name,
             3,  # 已付款

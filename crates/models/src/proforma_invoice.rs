@@ -60,6 +60,7 @@ pub struct ProformaInvoice {
     pub subtotal: f64,
     pub discount: f64,
     pub total_amount: f64,
+    pub exchange_rate: Option<f64>,  // 成交时汇率快照（USD/CNY）
 
     // 状态
     pub status: i64,
@@ -137,6 +138,7 @@ pub struct CreatePIRequest {
     // 金额
     pub currency: Option<String>,
     pub discount: Option<f64>,
+    pub exchange_rate: Option<f64>,  // 成交时汇率快照，由系统自动写入
 
     // 日期
     #[validate(length(min = 1))]

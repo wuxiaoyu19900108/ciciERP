@@ -229,6 +229,8 @@ pub struct CreateOrderRequest {
     pub payment_terms: Option<String>,
     pub delivery_terms: Option<String>,
     pub lead_time: Option<String>,
+    pub exchange_rate: Option<f64>,  // 成交时汇率快照
+    pub currency: Option<String>,    // 货币，默认 USD
 }
 
 /// 更新订单请求

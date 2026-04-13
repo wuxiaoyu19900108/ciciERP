@@ -8,26 +8,26 @@ use validator::Validate;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MovementType {
     #[serde(rename = "1")]
-    Inbound = 1,     // 入库
+    Inbound = 1,
     #[serde(rename = "2")]
-    Outbound = 2,    // 出库
+    Outbound = 2,
     #[serde(rename = "3")]
-    Transfer = 3,    // 调拨
+    Transfer = 3,
     #[serde(rename = "4")]
-    Adjustment = 4,  // 盘点
+    Adjustment = 4,
     #[serde(rename = "5")]
-    Damage = 5,      // 损耗
+    Damage = 5,
     #[serde(rename = "6")]
-    Lock = 6,        // 锁定
+    Lock = 6,
     #[serde(rename = "7")]
-    Unlock = 7,      // 解锁
+    Unlock = 7,
 }
 
 /// 库存实体
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Inventory {
     pub id: i64,
-    pub sku_id: i64,
+    pub product_id: i64,
     pub total_quantity: i64,
     pub available_quantity: i64,
     pub locked_quantity: i64,
@@ -41,12 +41,10 @@ pub struct Inventory {
 }
 
 impl Inventory {
-    /// 检查是否低于安全库存
     pub fn is_low_stock(&self) -> bool {
         self.available_quantity < self.safety_stock
     }
 
-    /// 检查是否可以锁定指定数量
     pub fn can_lock(&self, quantity: i64) -> bool {
         self.available_quantity >= quantity
     }
@@ -57,7 +55,7 @@ impl Inventory {
 pub struct StockMovement {
     pub id: i64,
     pub movement_code: String,
-    pub sku_id: i64,
+    pub product_id: i64,
     pub warehouse_id: Option<i64>,
     pub movement_type: i64,
     pub quantity: i64,
@@ -89,7 +87,7 @@ pub struct UpdateInventoryRequest {
 /// 锁定库存请求
 #[derive(Debug, Deserialize, Validate)]
 pub struct LockInventoryRequest {
-    pub sku_id: i64,
+    pub product_id: i64,
     #[validate(range(min = 1))]
     pub quantity: i64,
     pub order_id: Option<i64>,
@@ -98,7 +96,7 @@ pub struct LockInventoryRequest {
 /// 解锁库存请求
 #[derive(Debug, Deserialize, Validate)]
 pub struct UnlockInventoryRequest {
-    pub sku_id: i64,
+    pub product_id: i64,
     #[validate(range(min = 1))]
     pub quantity: i64,
     pub order_id: Option<i64>,
@@ -110,7 +108,7 @@ pub struct InventoryQuery {
     pub page: Option<u32>,
     pub page_size: Option<u32>,
     pub low_stock: Option<bool>,
-    pub sku_code: Option<String>,
+    pub product_code: Option<String>,
     pub product_name: Option<String>,
 }
 
@@ -124,15 +122,13 @@ impl InventoryQuery {
     }
 }
 
-/// 库存列表项（包含 SKU 和产品信息）
+/// 库存列表项（包含产品信息）
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct InventoryListItem {
     pub id: i64,
-    pub sku_id: i64,
-    pub sku_code: String,
     pub product_id: i64,
+    pub product_code: String,
     pub product_name: String,
-    pub spec_values: String,
     pub total_quantity: i64,
     pub available_quantity: i64,
     pub locked_quantity: i64,
@@ -143,10 +139,10 @@ pub struct InventoryListItem {
 /// 库存预警项
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct InventoryAlert {
-    pub sku_id: i64,
-    pub sku_code: String,
+    pub product_id: i64,
+    pub product_code: String,
     pub product_name: String,
     pub available_quantity: i64,
     pub safety_stock: i64,
-    pub shortage: i64,  // 缺口数量
+    pub shortage: i64,
 }

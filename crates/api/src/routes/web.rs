@@ -36,6 +36,28 @@ where
     }
 }
 
+fn empty_string_as_none_i32<'de, D>(de: D) -> Result<Option<i32>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Option::deserialize(de)?;
+    match s.as_deref() {
+        None | Some("") => Ok(None),
+        Some(v) => v.parse::<i32>().map(Some).map_err(serde::de::Error::custom),
+    }
+}
+
+fn empty_string_as_none_u32<'de, D>(de: D) -> Result<Option<u32>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Option::deserialize(de)?;
+    match s.as_deref() {
+        None | Some("") => Ok(None),
+        Some(v) => v.parse::<u32>().map(Some).map_err(serde::de::Error::custom),
+    }
+}
+
 /// serde_urlencoded 对单值不自动包装成 Vec，需要自定义 visitor 同时接受 str 和 seq
 fn str_or_vec_string<'de, D>(de: D) -> Result<Vec<String>, D::Error>
 where
@@ -124,6 +146,7 @@ use crate::templates::base::{get_menus, UserInfo};
 use crate::templates::dashboard::DashboardStats;
 use cicierp_db::queries::{
     customers::{CustomerQueries, CreateAddressRequest},
+    exchange_rates::ExchangeRateQueries,
     inventory::InventoryQueries,
     logistics::{LogisticsCompanyQueries, ShipmentQueries},
     orders::{OrderQueries, OrderFilterStats},
@@ -156,11 +179,16 @@ pub fn protected_router() -> Router<AppState> {
         .route("/", get(dashboard_page))
         // 产品
         .route("/products", get(products_page))
+        .route("/products/export", get(product_export_handler))
+        .route("/products/import/template", get(product_import_template_handler))
+        .route("/products/import", post(product_import_handler))
         .route("/products/new", get(product_new_page).post(product_create_handler))
         .route("/products/:id", get(product_detail_page))
         .route("/products/:id/edit", get(product_edit_page).post(product_update_handler))
         // 订单
         .route("/orders", get(orders_page))
+        .route("/orders/import/template", get(order_import_template_handler))
+        .route("/orders/import", post(order_import_handler))
         .route("/orders/import/ae", get(order_import_ae_page).post(order_import_ae_handler))
         .route("/orders/new", get(order_new_page).post(order_create_handler))
         .route("/orders/:id", get(order_detail_page))
@@ -188,6 +216,7 @@ pub fn protected_router() -> Router<AppState> {
         .route("/suppliers/:id/edit", get(supplier_edit_page).post(supplier_update_handler))
         // 采购
         .route("/purchase", get(purchase_page))
+        .route("/purchases/new", get(|| async { Redirect::to("/purchase/new") }))
         .route("/purchase/new", get(purchase_new_page).post(purchase_create_handler))
         .route("/purchase/:id", get(purchase_detail_page))
         // 物流
@@ -683,7 +712,7 @@ pub async fn dashboard_page(
             <span class="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">预警</span>
         </div>
         <p class="text-2xl font-bold text-gray-800">{}</p>
-        <p class="text-xs text-gray-500 mt-1">低库存 SKU</p>
+        <p class="text-xs text-gray-500 mt-1">低库存产品</p>
     </a>
 
     <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
@@ -747,7 +776,7 @@ pub async fn dashboard_page(
             <span class="text-xl mb-1">👤</span>
             <span class="text-xs text-gray-700">新增客户</span>
         </a>
-        <a href="/purchases/new" class="flex flex-col items-center p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+        <a href="/purchase/new" class="flex flex-col items-center p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
             <span class="text-xl mb-1">🛒</span>
             <span class="text-xs text-gray-700">新建采购</span>
         </a>
@@ -779,8 +808,11 @@ pub async fn dashboard_page(
 pub struct ProductsQuery {
     page: Option<u32>,
     keyword: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     supplier_id: Option<i64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     price_min: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     price_max: Option<f64>,
 }
 
@@ -862,7 +894,7 @@ pub async fn products_page(
 
         rows.push_str(&format!(
             r#"<tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-2 py-3"><span class="font-mono text-xs text-gray-600">{}</span></td>
+                <td class="px-2 py-3"><a href="/products/{}" class="font-mono text-xs text-blue-600 hover:text-blue-800 hover:underline">{}</a></td>
                 <td class="px-2 py-3"><span class="font-medium text-gray-800 text-sm">{}</span></td>
                 <td class="px-2 py-3"><span class="text-xs text-gray-600">{}</span></td>
                 <td class="px-2 py-3"><span class="text-xs text-gray-500">{}</span></td>
@@ -876,12 +908,12 @@ pub async fn products_page(
                 <td class="px-2 py-3 text-center">{}</td>
                 <td class="px-2 py-3 text-center">
                     <div class="flex items-center justify-center gap-1">
-                        <a href="/products/{}" class="px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded">查看</a>
                         <a href="/products/{}/edit" class="px-2 py-1 text-xs text-green-600 hover:text-green-800 hover:bg-green-50 rounded">编辑</a>
                         <button onclick="deleteItem('/api/v1/products/{}', '确认删除产品「{}」？', true)" class="px-2 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded">删除</button>
                     </div>
                 </td>
             </tr>"#,
+            p.id,
             p.product_code,
             p.name,
             model_display,
@@ -895,7 +927,6 @@ pub async fn products_page(
             stock_class,
             p.stock_quantity.unwrap_or(0),
             status_badge,
-            p.id,
             p.id,
             p.id,
             p.name
@@ -962,9 +993,48 @@ pub async fn products_page(
         <h1 class="text-xl sm:text-2xl font-bold text-gray-800">产品管理</h1>
         <p class="text-gray-600 mt-1 text-sm sm:text-base">管理所有产品信息</p>
     </div>
-    <a href="/products/new" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto">
-        <span>+</span><span>新增产品</span>
-    </a>
+    <div class="flex flex-wrap items-center gap-2">
+        <a href="/products/export" class="inline-flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">
+            ↓ 导出 Excel
+        </a>
+        <a href="/products/import/template" class="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors">
+            ↓ 通用模板
+        </a>
+        <button onclick="document.getElementById('importModal').classList.remove('hidden')"
+                class="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition-colors">
+            ↑ 通用导入
+        </button>
+        <a href="/products/new" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <span>+</span><span>新增产品</span>
+        </a>
+    </div>
+</div>
+
+<!-- 通用导入弹窗 -->
+<div id="importModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">批量导入产品（通用）</h3>
+            <button onclick="document.getElementById('importModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <div class="text-sm text-gray-600 mb-4 space-y-1">
+            <p>列顺序：产品名称* / 英文名称 / 供应商名称 / 成本(CNY)* / 售价(CNY) / 售价(USD) / 状态 / 分类 / 品牌 / 备注</p>
+            <p><a href="/products/import/template" class="text-blue-600 hover:underline">↓ 下载通用模板</a></p>
+        </div>
+        <form action="/products/import" method="POST" enctype="multipart/form-data">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">选择文件</label>
+                <input type="file" name="file" accept=".xlsx"
+                       class="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg px-3 py-2 cursor-pointer" required>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">取消</button>
+                <button type="submit" class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600">开始导入</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- 筛选栏 -->
@@ -1029,7 +1099,7 @@ pub async fn products_page(
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">RMB成本</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">美金成本</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">美金卖价</th>
-                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">利润($)</th>
+                    <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">利润($)(网站)</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">利润率</th>
                     <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700">平台费率</th>
                     <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700">库存</th>
@@ -1059,11 +1129,22 @@ pub async fn products_page(
 
 /// 新增产品页面
 pub async fn product_new_page(
+    State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
 ) -> Html<String> {
     let user = get_user_from_extension(&auth_user);
 
-    let content = r#"<!-- 页面标题 -->
+    // 获取缓冲汇率：市场汇率 - 0.05，保留两位小数
+    let buffered_rate = {
+        let queries = ExchangeRateQueries::new(state.db.pool());
+        let rate = queries.get_latest_rate("USD", "CNY").await
+            .ok().flatten()
+            .map(|r| r.rate)
+            .unwrap_or(7.2);
+        format!("{:.2}", (rate - 0.05).max(0.0))
+    };
+
+    let content = format!(r#"<!-- 页面标题 -->
 <div class="mb-6">
     <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
         <a href="/products" class="hover:text-blue-600">产品列表</a>
@@ -1102,43 +1183,82 @@ pub async fn product_new_page(
                            placeholder="English Name">
                 </div>
 
+                <!-- 型号 -->
+                <div>
+                    <label for="model" class="block text-sm font-medium text-gray-700 mb-2">
+                        型号
+                    </label>
+                    <input type="text" id="model" name="model"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="对外展示的型号，如 V3.0 / Pro Max">
+                    <p class="text-xs text-gray-400 mt-1">对外展示字段，用于报价单和产品资料</p>
+                </div>
+
+                <!-- 单位 -->
+                <div>
+                    <label for="unit" class="block text-sm font-medium text-gray-700 mb-2">单位</label>
+                    <select id="unit" name="unit" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="pcs" selected>件 (pcs)</option>
+                        <option value="set">套 (set)</option>
+                        <option value="pair">对 (pair)</option>
+                        <option value="box">箱 (box)</option>
+                        <option value="m">米 (m)</option>
+                        <option value="kg">千克 (kg)</option>
+                    </select>
+                </div>
+
                 <!-- 分类 -->
                 <div>
-                    <label for="category_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="category_name_input" class="block text-sm font-medium text-gray-700 mb-2">
                         分类
                     </label>
-                    <select id="category_id" name="category_id"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">请选择分类</option>
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="category_name_input" autocomplete="off"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="输入分类名称搜索或新增">
+                        <input type="hidden" id="category_id" name="category_id" value="">
+                        <input type="hidden" id="category_name" name="category_name" value="">
+                        <div id="category_dropdown" class="hidden absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto"></div>
+                        <p class="text-xs text-gray-400 mt-1">输入已有分类可搜索选择；输入新名称保存时自动新增</p>
+                    </div>
                 </div>
 
                 <!-- 品牌 -->
                 <div>
-                    <label for="brand_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="brand_name_input" class="block text-sm font-medium text-gray-700 mb-2">
                         品牌
                     </label>
-                    <select id="brand_id" name="brand_id"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">请选择品牌</option>
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="brand_name_input" autocomplete="off"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="输入品牌名称搜索或新增">
+                        <input type="hidden" id="brand_id" name="brand_id" value="">
+                        <input type="hidden" id="brand_name" name="brand_name" value="">
+                        <div id="brand_dropdown" class="hidden absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto"></div>
+                        <p class="text-xs text-gray-400 mt-1">输入已有品牌可搜索选择；输入新名称保存时自动新增</p>
+                    </div>
                 </div>
 
                 <!-- 供应商 -->
                 <div>
-                    <label for="supplier_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="supplier_name_input" class="block text-sm font-medium text-gray-700 mb-2">
                         供应商
                     </label>
-                    <select id="supplier_id" name="supplier_id"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">请选择供应商</option>
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="supplier_name_input" autocomplete="off"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="输入供应商名称搜索">
+                        <input type="hidden" id="supplier_id" name="supplier_id" value="">
+                        <input type="hidden" id="supplier_name" name="supplier_name" value="">
+                        <div id="supplier_dropdown" class="hidden absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto"></div>
+                        <p class="text-xs text-gray-400 mt-1">输入供应商名称搜索选择</p>
+                    </div>
                 </div>
 
                 <!-- 重量 -->
                 <div>
                     <label for="weight" class="block text-sm font-medium text-gray-700 mb-2">
-                        重量 (kg)
+                        重量 (kg) <span class="text-xs text-gray-400">(仅记录)</span>
                     </label>
                     <input type="number" id="weight" name="weight" step="0.001" min="0"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1148,7 +1268,7 @@ pub async fn product_new_page(
                 <!-- 体积 -->
                 <div>
                     <label for="volume" class="block text-sm font-medium text-gray-700 mb-2">
-                        体积 (m³)
+                        体积 (m³) <span class="text-xs text-gray-400">(仅记录)</span>
                     </label>
                     <input type="number" id="volume" name="volume" step="0.0001" min="0"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1162,8 +1282,8 @@ pub async fn product_new_page(
                     </label>
                     <select id="status" name="status"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="3">草稿</option>
-                        <option value="1" selected>上架</option>
+                        <option value="3" selected>草稿</option>
+                        <option value="1">上架 (需已设置售价)</option>
                         <option value="2">下架</option>
                     </select>
                 </div>
@@ -1218,24 +1338,15 @@ pub async fn product_new_page(
                            placeholder="0.00">
                 </div>
 
-                <!-- 成本 USD -->
+                <!-- 成本 USD（只读，自动由CNY/当前汇率计算） -->
                 <div>
                     <label for="cost_usd" class="block text-sm font-medium text-gray-700 mb-2">
-                        成本 (USD)
+                        成本 (USD) <span class="text-xs text-gray-400">(自动)</span>
                     </label>
                     <input type="number" id="cost_usd" name="cost_usd" step="0.01" min="0"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="0.00">
-                </div>
-
-                <!-- 汇率 -->
-                <div>
-                    <label for="cost_exchange_rate" class="block text-sm font-medium text-gray-700 mb-2">
-                        汇率
-                    </label>
-                    <input type="number" id="cost_exchange_rate" name="cost_exchange_rate" step="0.01" min="0" value="7.2"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="7.20">
+                           class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                           placeholder="0.00" readonly>
+                    <p class="text-xs text-gray-400 mt-1" id="cost_formula_hint">公式: 成本(CNY) ÷ 汇率 = 成本(USD)</p>
                 </div>
 
                 <!-- 成本备注 -->
@@ -1250,99 +1361,178 @@ pub async fn product_new_page(
             </div>
         </div>
 
-        <!-- 第三部分：参考售价（可选） -->
+        <!-- 第三部分：定价（三平台独立） -->
         <div class="mb-8">
             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                🏷️ 参考售价 <span class="text-sm font-normal text-gray-500">(可选)</span>
+                🏷️ 平台定价 <span class="text-sm font-normal text-gray-500">(按平台分别设置)</span>
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                <!-- 销售平台 -->
-                <div>
-                    <label for="price_platform" class="block text-sm font-medium text-gray-700 mb-2">
-                        销售平台
-                    </label>
-                    <select id="price_platform" name="price_platform"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="website">独立站 (Website)</option>
-                        <option value="alibaba">阿里巴巴 (Alibaba)</option>
-                        <option value="amazon">亚马逊 (Amazon)</option>
-                    </select>
-                </div>
 
-                <!-- 售价 CNY -->
-                <div>
-                    <label for="sale_price_cny" class="block text-sm font-medium text-gray-700 mb-2">
-                        售价 (CNY)
-                    </label>
-                    <input type="number" id="sale_price_cny" name="sale_price_cny" step="0.01" min="0"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="0.00">
-                </div>
+            <!-- 全局汇率 -->
+            <div class="mb-4 p-3 bg-blue-50 rounded-lg flex items-center gap-4">
+                <label class="text-sm font-medium text-blue-800 whitespace-nowrap">💱 参考汇率 (USD/CNY)</label>
+                <input type="number" id="price_exchange_rate" name="price_exchange_rate" step="0.01" min="0"
+                       value="{buffered_rate}"
+                       class="w-32 px-3 py-1.5 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                <span class="text-xs text-blue-600">成本和售价的CNY/USD换算共用此汇率</span>
+            </div>
 
-                <!-- 售价 USD -->
-                <div>
-                    <label for="sale_price_usd" class="block text-sm font-medium text-gray-700 mb-2">
-                        售价 (USD)
-                    </label>
-                    <input type="number" id="sale_price_usd" name="sale_price_usd" step="0.01" min="0"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="0.00">
+            <!-- AliExpress 区块 -->
+            <div class="mb-4 p-4 border border-orange-200 rounded-xl bg-orange-50">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-sm font-semibold text-orange-700">🛒 AliExpress</span>
+                    <span class="text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">主输入: RMB</span>
                 </div>
-
-                <!-- 汇率 -->
-                <div>
-                    <label for="price_exchange_rate" class="block text-sm font-medium text-gray-700 mb-2">
-                        汇率
-                    </label>
-                    <input type="number" id="price_exchange_rate" name="price_exchange_rate" step="0.01" min="0" value="7.2"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="7.20">
-                </div>
-
-                <!-- 利润率 -->
-                <div>
-                    <label for="profit_margin" class="block text-sm font-medium text-gray-700 mb-2">
-                        目标利润率 (%)
-                    </label>
-                    <input type="number" id="profit_margin" name="profit_margin" step="0.01" min="0" value="15"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="15">
-                </div>
-
-                <!-- 各平台费率 -->
-                <div class="md:col-span-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">各平台费率 (%)</label>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="text-xs text-gray-500 mb-1 block">Alibaba</label>
-                            <input type="number" id="fee_rate_alibaba" name="fee_rate_alibaba" step="0.01" min="0" value="3.0"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                   placeholder="3.0">
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500 mb-1 block">AliExpress</label>
-                            <input type="number" id="fee_rate_aliexpress" name="fee_rate_aliexpress" step="0.01" min="0" value="5.0"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                   placeholder="5.0">
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500 mb-1 block">网站/其他</label>
-                            <input type="number" id="fee_rate_website" name="fee_rate_website" step="0.01" min="0" value="2.5"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                   placeholder="2.5">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
+                        <input type="number" id="ae_fee_rate" name="ae_fee_rate" step="0.01" min="0" value="12.0"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                               placeholder="5.0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-orange-600">★</span></label>
+                        <input type="number" id="ae_sale_price_cny" name="ae_sale_price_cny" step="0.01" min="0" value=""
+                               class="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                               placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="ae_sale_price_usd" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                    <div class="flex items-end">
+                        <div id="ae_profit_preview" class="w-full p-2 rounded-lg bg-white border border-orange-200 text-xs text-gray-600">
+                            <div>利润: <span id="ae_profit_val" class="font-medium">-</span></div>
+                            <div>利润率: <span id="ae_profit_pct" class="font-medium">-</span></div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- 售价备注 -->
-                <div class="md:col-span-3">
-                    <label for="price_notes" class="block text-sm font-medium text-gray-700 mb-2">
-                        售价备注
-                    </label>
-                    <input type="text" id="price_notes" name="price_notes"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="售价相关备注信息">
+            <!-- Alibaba 区块 -->
+            <div class="mb-4 p-4 border border-yellow-200 rounded-xl bg-yellow-50">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-sm font-semibold text-yellow-700">🏪 Alibaba</span>
+                    <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">主输入: USD</span>
                 </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
+                        <input type="number" id="ali_fee_rate" name="ali_fee_rate" step="0.01" min="0" value="2.5"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+                               placeholder="3.0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-yellow-600">★</span></label>
+                        <input type="number" id="ali_sale_price_usd" name="ali_sale_price_usd" step="0.01" min="0" value=""
+                               class="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+                               placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="ali_sale_price_cny" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                    <div class="flex items-end">
+                        <div id="ali_profit_preview" class="w-full p-2 rounded-lg bg-white border border-yellow-200 text-xs text-gray-600">
+                            <div>利润: <span id="ali_profit_val" class="font-medium">-</span></div>
+                            <div>利润率: <span id="ali_profit_pct" class="font-medium">-</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Website 区块 -->
+            <div class="p-4 border border-blue-200 rounded-xl bg-blue-50">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-sm font-semibold text-blue-700">🌐 Website</span>
+                    <span class="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded-full">独立站</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
+                        <input type="number" id="web_fee_rate" name="web_fee_rate" step="0.01" min="0" value="0.0"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                               placeholder="2.5">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">定价模式</label>
+                        <select id="web_mode" name="web_mode"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                onchange="updateWebModeUI()">
+                            <option value="independent" selected>独立定价</option>
+                            <option value="follow_ae">跟随 AE 价格</option>
+                            <option value="follow_ali">跟随 ALI 价格</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- 独立定价输入 -->
+                <div id="web_independent_section" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-blue-600">★</span></label>
+                        <input type="number" id="web_sale_price_cny" name="web_sale_price_cny" step="0.01" min="0" value=""
+                               class="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                               placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="web_sale_price_usd" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                    <div class="flex items-end">
+                        <div id="web_profit_preview" class="w-full p-2 rounded-lg bg-white border border-blue-200 text-xs text-gray-600">
+                            <div>利润: <span id="web_profit_val" class="font-medium">-</span></div>
+                            <div>利润率: <span id="web_profit_pct" class="font-medium">-</span></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 跟随模式调整 -->
+                <div id="web_follow_section" class="hidden grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">参考平台价格 (CNY)</label>
+                        <input type="number" id="web_ref_price_cny" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">调整方式</label>
+                        <select id="web_adj_type" name="web_adj_type"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                onchange="calcWebFollowPrice()">
+                            <option value="fixed_add">固定加价 (+CNY)</option>
+                            <option value="fixed_sub">固定减价 (-CNY)</option>
+                            <option value="percent_up">百分比上调 (+%)</option>
+                            <option value="percent_down">百分比下调 (-%)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">调整值</label>
+                        <input type="number" id="web_adj_value" name="web_adj_value" step="0.01" min="0" value=""
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                               placeholder="0" oninput="calcWebFollowPrice()">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">计算结果 (CNY)</label>
+                        <input type="number" id="web_follow_result_cny" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-blue-100 text-blue-800 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自动计算按钮 -->
+            <div class="mt-3 flex gap-2">
+                <button type="button" id="btn_auto_calc_ae" onclick="autoCalcAE()"
+                        class="text-xs px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200">
+                    💡 AE自动计算 (15%利润率)
+                </button>
+                <button type="button" id="btn_auto_calc_ali" onclick="autoCalcALI()"
+                        class="text-xs px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200">
+                    💡 ALI自动计算 (15%利润率)
+                </button>
             </div>
         </div>
 
@@ -1357,9 +1547,378 @@ pub async fn product_new_page(
             </a>
         </div>
     </form>
-</div>"#;
+</div>
+<script>
+(function() {{
+    function calcCostUsd() {{
+        const cny  = parseFloat(document.getElementById('cost_cny')?.value) || 0;
+        const rate = parseFloat(document.getElementById('price_exchange_rate')?.value) || {buffered_rate};
+        const costUsdEl = document.getElementById('cost_usd');
+        if (cny > 0 && costUsdEl) {{
+            costUsdEl.value = (cny / rate).toFixed(2);
+            const hint = document.getElementById('cost_formula_hint');
+            if (hint) hint.textContent = `¥${{cny.toFixed(2)}} ÷ ${{rate.toFixed(2)}} = $${{(cny/rate).toFixed(2)}}`;
+        }} else if (costUsdEl) {{
+            costUsdEl.value = '';
+        }}
+    }}
 
-    render_layout("新增产品", "products", Some(user), content)
+    // === 新定价系统 ===
+    const rate = () => parseFloat(document.getElementById('price_exchange_rate')?.value) || {buffered_rate};
+    const costCnyVal = () => parseFloat(document.getElementById('cost_cny')?.value) || 0;
+    const costUsdVal = () => costCnyVal() / rate();
+
+    function calcAEPrices() {{
+        const cny = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+        const r = rate();
+        const usdEl = document.getElementById('ae_sale_price_usd');
+        if (usdEl && cny > 0) usdEl.value = (cny / r).toFixed(2);
+        updateAEProfit();
+    }}
+
+    function updateAEProfit() {{
+        const cny = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+        const fee = (parseFloat(document.getElementById('ae_fee_rate')?.value) || 12) / 100;
+        const cost = costCnyVal();
+        if (cny > 0 && cost > 0) {{
+            const profit = cny - cost - cny * fee;
+            const pct = cny > 0 ? (profit / cny * 100).toFixed(1) : 0;
+            document.getElementById('ae_profit_val').textContent = profit.toFixed(2) + ' CNY';
+            document.getElementById('ae_profit_pct').textContent = pct + '%';
+            document.getElementById('ae_profit_preview').className =
+                'w-full p-2 rounded-lg border text-xs ' +
+                (profit > 0 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700');
+        }}
+    }}
+
+    function calcALIPrices() {{
+        const usd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+        const r = rate();
+        const cnyEl = document.getElementById('ali_sale_price_cny');
+        if (cnyEl && usd > 0) cnyEl.value = (usd * r).toFixed(2);
+        updateALIProfit();
+    }}
+
+    function updateALIProfit() {{
+        const usd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+        const fee = (parseFloat(document.getElementById('ali_fee_rate')?.value) || 2.5) / 100;
+        const cUsd = costUsdVal();
+        if (usd > 0 && cUsd > 0) {{
+            const profit = usd - cUsd - usd * fee;
+            const pct = usd > 0 ? (profit / usd * 100).toFixed(1) : 0;
+            document.getElementById('ali_profit_val').textContent = '$' + profit.toFixed(2);
+            document.getElementById('ali_profit_pct').textContent = pct + '%';
+            document.getElementById('ali_profit_preview').className =
+                'w-full p-2 rounded-lg border text-xs ' +
+                (profit > 0 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700');
+        }}
+    }}
+
+    function updateWebModeUI() {{
+        const mode = document.getElementById('web_mode')?.value;
+        const indSection = document.getElementById('web_independent_section');
+        const followSection = document.getElementById('web_follow_section');
+        if (mode === 'independent') {{
+            indSection?.classList.remove('hidden');
+            followSection?.classList.add('hidden');
+        }} else {{
+            indSection?.classList.add('hidden');
+            followSection?.classList.remove('hidden');
+            updateWebRefPrice();
+        }}
+        updateWebProfit();
+    }}
+
+    function updateWebRefPrice() {{
+        const mode = document.getElementById('web_mode')?.value;
+        const refEl = document.getElementById('web_ref_price_cny');
+        if (!refEl) return;
+        if (mode === 'follow_ae') {{
+            const aePrice = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+            refEl.value = aePrice > 0 ? aePrice.toFixed(2) : '';
+        }} else if (mode === 'follow_ali') {{
+            const aliUsd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+            refEl.value = aliUsd > 0 ? (aliUsd * rate()).toFixed(2) : '';
+        }}
+        calcWebFollowPrice();
+    }}
+
+    function calcWebFollowPrice() {{
+        const refCny = parseFloat(document.getElementById('web_ref_price_cny')?.value) || 0;
+        const adjType = document.getElementById('web_adj_type')?.value || 'fixed_add';
+        const adjVal = parseFloat(document.getElementById('web_adj_value')?.value) || 0;
+        let result = refCny;
+        if (adjType === 'fixed_add') result = refCny + adjVal;
+        else if (adjType === 'fixed_sub') result = refCny - adjVal;
+        else if (adjType === 'percent_up') result = refCny * (1 + adjVal / 100);
+        else if (adjType === 'percent_down') result = refCny * (1 - adjVal / 100);
+        const resultEl = document.getElementById('web_follow_result_cny');
+        if (resultEl) resultEl.value = result > 0 ? result.toFixed(2) : '';
+        updateWebProfit();
+    }}
+
+    function calcWebIndependentPrices() {{
+        const cny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
+        const usdEl = document.getElementById('web_sale_price_usd');
+        if (usdEl && cny > 0) usdEl.value = (cny / rate()).toFixed(2);
+        updateWebProfit();
+    }}
+
+    function updateWebProfit() {{
+        const mode = document.getElementById('web_mode')?.value || 'independent';
+        let priceCny = 0;
+        if (mode === 'independent') {{
+            priceCny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
+        }} else {{
+            priceCny = parseFloat(document.getElementById('web_follow_result_cny')?.value) || 0;
+        }}
+        const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
+        const cost = costCnyVal();
+        if (priceCny > 0 && cost > 0) {{
+            const profit = priceCny - cost - priceCny * fee;
+            const pct = priceCny > 0 ? (profit / priceCny * 100).toFixed(1) : 0;
+            document.getElementById('web_profit_val').textContent = profit.toFixed(2) + ' CNY';
+            document.getElementById('web_profit_pct').textContent = pct + '%';
+            document.getElementById('web_profit_preview').className =
+                'w-full p-2 rounded-lg border text-xs ' +
+                (profit > 0 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700');
+        }}
+    }}
+
+    function autoCalcAE() {{
+        const cost = costCnyVal();
+        if (cost <= 0) {{ alert('请先填写成本(CNY)'); return; }}
+        const fee = (parseFloat(document.getElementById('ae_fee_rate')?.value) || 12) / 100;
+        const margin = 0.15;
+        const denom = 1 - margin - fee;
+        if (denom <= 0) return;
+        const price = cost / denom;
+        const el = document.getElementById('ae_sale_price_cny');
+        if (el) {{ el.value = price.toFixed(2); calcAEPrices(); }}
+    }}
+
+    function autoCalcALI() {{
+        const cost = costCnyVal();
+        if (cost <= 0) {{ alert('请先填写成本(CNY)'); return; }}
+        const fee = (parseFloat(document.getElementById('ali_fee_rate')?.value) || 2.5) / 100;
+        const margin = 0.15;
+        const denom = 1 - margin - fee;
+        if (denom <= 0) return;
+        const priceUsd = (cost / denom) / rate();
+        const el = document.getElementById('ali_sale_price_usd');
+        if (el) {{ el.value = Math.max(priceUsd, 1.0).toFixed(2); calcALIPrices(); }}
+    }}
+
+    document.getElementById('ae_sale_price_cny')?.addEventListener('input', calcAEPrices);
+    document.getElementById('ae_fee_rate')?.addEventListener('input', updateAEProfit);
+    document.getElementById('ali_sale_price_usd')?.addEventListener('input', calcALIPrices);
+    document.getElementById('ali_fee_rate')?.addEventListener('input', updateALIProfit);
+    document.getElementById('web_sale_price_cny')?.addEventListener('input', calcWebIndependentPrices);
+    document.getElementById('web_fee_rate')?.addEventListener('input', updateWebProfit);
+    document.getElementById('price_exchange_rate')?.addEventListener('input', function() {{
+        calcCostUsd();
+        calcAEPrices();
+        calcALIPrices();
+        calcWebIndependentPrices();
+    }});
+    document.getElementById('cost_cny')?.addEventListener('input', function() {{
+        calcCostUsd();
+        updateAEProfit();
+        updateALIProfit();
+        updateWebProfit();
+    }});
+
+    updateWebModeUI();
+    calcAEPrices();
+    calcALIPrices();
+    calcWebIndependentPrices();
+
+    document.getElementById('status')?.addEventListener('change', function() {{
+        if (this.value === '1') {{
+            const aePrice = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+            const aliPrice = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+            const webPrice = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
+            if (aePrice <= 0 && aliPrice <= 0 && webPrice <= 0) {{
+                alert('⚠️ 请先设置售价，再将产品设为上架状态。');
+                this.value = '3';
+            }}
+        }}
+    }});
+
+    document.querySelector('form').addEventListener('submit', function(e) {{
+        const costCnyInput = parseFloat(document.getElementById('cost_cny')?.value);
+        const rateVal = parseFloat(document.getElementById('price_exchange_rate')?.value);
+        if (costCnyInput !== undefined && !isNaN(costCnyInput) && costCnyInput < 0) {{
+            e.preventDefault(); alert('成本不能为负数'); return;
+        }}
+        if (rateVal !== undefined && !isNaN(rateVal) && rateVal <= 0) {{
+            e.preventDefault(); alert('汇率必须大于0'); return;
+        }}
+        const aePrice = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+        const aliPrice = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+        const webPrice = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
+        if (aePrice <= 0 && aliPrice <= 0 && webPrice <= 0) {{
+            if (!confirm('未设置任何平台售价，确定要保存吗？保存后产品将标记为"草稿"状态。')) {{
+                e.preventDefault(); return;
+            }}
+        }}
+    }});
+
+    // 品牌 Combobox
+    const brandInput    = document.getElementById('brand_name_input');
+    const brandIdInput  = document.getElementById('brand_id');
+    const brandNameHid  = document.getElementById('brand_name');
+    const brandDropdown = document.getElementById('brand_dropdown');
+    let brandTimer = null;
+
+    function renderBrandDropdown(items, keyword) {{
+        brandDropdown.innerHTML = '';
+        if (items.length > 0) {{
+            items.forEach(function(b) {{
+                const div = document.createElement('div');
+                div.className = 'px-4 py-2 cursor-pointer hover:bg-blue-50 text-sm';
+                div.textContent = b.name;
+                div.addEventListener('mousedown', function(e) {{
+                    e.preventDefault();
+                    brandInput.value = b.name;
+                    brandIdInput.value = b.id;
+                    brandNameHid.value = '';
+                    brandDropdown.classList.add('hidden');
+                }});
+                brandDropdown.appendChild(div);
+            }});
+        }}
+        const tip = document.createElement('div');
+        tip.className = 'px-4 py-2 text-xs text-gray-400 border-t border-gray-100';
+        tip.textContent = items.length > 0
+            ? '↑ 选择已有品牌，或直接保存以自动新增「' + keyword + '」'
+            : '未找到匹配品牌，保存时将自动新增「' + keyword + '」';
+        brandDropdown.appendChild(tip);
+        brandDropdown.classList.remove('hidden');
+    }}
+
+    if (brandInput) {{
+        brandInput.addEventListener('input', function() {{
+            const kw = this.value.trim();
+            brandIdInput.value = '';
+            brandNameHid.value = kw;
+            clearTimeout(brandTimer);
+            if (!kw) {{ brandDropdown.classList.add('hidden'); return; }}
+            brandTimer = setTimeout(function() {{
+                fetch('/api/v1/brands?q=' + encodeURIComponent(kw) + '&limit=10')
+                    .then(r => r.json())
+                    .then(function(d) {{ renderBrandDropdown(d.data || [], kw); }});
+            }}, 200);
+        }});
+        brandInput.addEventListener('blur', function() {{
+            setTimeout(function() {{ brandDropdown.classList.add('hidden'); }}, 150);
+        }});
+    }}
+
+    // 分类 combobox
+    const catInput    = document.getElementById('category_name_input');
+    const catIdInput  = document.getElementById('category_id');
+    const catNameHid  = document.getElementById('category_name');
+    const catDropdown = document.getElementById('category_dropdown');
+    let catTimer = null;
+
+    function renderCatDropdown(items, keyword) {{
+        catDropdown.innerHTML = '';
+        if (items.length > 0) {{
+            items.forEach(function(c) {{
+                const div = document.createElement('div');
+                div.className = 'px-4 py-2 cursor-pointer hover:bg-blue-50 text-sm';
+                div.textContent = c.name;
+                div.addEventListener('mousedown', function(e) {{
+                    e.preventDefault();
+                    catInput.value = c.name;
+                    catIdInput.value = c.id;
+                    catNameHid.value = '';
+                    catDropdown.classList.add('hidden');
+                }});
+                catDropdown.appendChild(div);
+            }});
+        }}
+        const tip = document.createElement('div');
+        tip.className = 'px-4 py-2 text-xs text-gray-400 border-t border-gray-100';
+        tip.textContent = items.length > 0
+            ? '↑ 选择已有分类，或直接保存以自动新增「' + keyword + '」'
+            : '未找到匹配分类，保存时将自动新增「' + keyword + '」';
+        catDropdown.appendChild(tip);
+        catDropdown.classList.remove('hidden');
+    }}
+
+    if (catInput) {{
+        catInput.addEventListener('input', function() {{
+            const kw = this.value.trim();
+            catIdInput.value = '';
+            catNameHid.value = kw;
+            clearTimeout(catTimer);
+            if (!kw) {{ catDropdown.classList.add('hidden'); return; }}
+            catTimer = setTimeout(function() {{
+                fetch('/api/v1/categories?q=' + encodeURIComponent(kw) + '&limit=10')
+                    .then(r => r.json())
+                    .then(function(d) {{ renderCatDropdown(d.data || [], kw); }});
+            }}, 200);
+        }});
+        catInput.addEventListener('blur', function() {{
+            setTimeout(function() {{ catDropdown.classList.add('hidden'); }}, 150);
+        }});
+    }}
+
+    // 供应商 combobox
+    const supInput    = document.getElementById('supplier_name_input');
+    const supIdInput  = document.getElementById('supplier_id');
+    const supDropdown = document.getElementById('supplier_dropdown');
+    let supTimer = null;
+
+    function renderSupDropdown(items) {{
+        supDropdown.innerHTML = '';
+        if (items.length === 0) {{
+            const tip = document.createElement('div');
+            tip.className = 'px-4 py-2 text-xs text-gray-400';
+            tip.textContent = '未找到匹配供应商';
+            supDropdown.appendChild(tip);
+        }} else {{
+            items.forEach(function(s) {{
+                const div = document.createElement('div');
+                div.className = 'px-4 py-2 cursor-pointer hover:bg-blue-50 text-sm';
+                div.textContent = s.name;
+                div.addEventListener('mousedown', function(e) {{
+                    e.preventDefault();
+                    supInput.value = s.name;
+                    supIdInput.value = s.id;
+                    supDropdown.classList.add('hidden');
+                }});
+                supDropdown.appendChild(div);
+            }});
+        }}
+        supDropdown.classList.remove('hidden');
+    }}
+
+    if (supInput) {{
+        supInput.addEventListener('input', function() {{
+            const kw = this.value.trim();
+            supIdInput.value = '';
+            clearTimeout(supTimer);
+            if (!kw) {{ supDropdown.classList.add('hidden'); return; }}
+            supTimer = setTimeout(function() {{
+                fetch('/api/v1/suppliers?keyword=' + encodeURIComponent(kw) + '&page_size=10')
+                    .then(r => r.json())
+                    .then(function(d) {{
+                        const items = (d.data && d.data.items) ? d.data.items : [];
+                        renderSupDropdown(items);
+                    }});
+            }}, 200);
+        }});
+        supInput.addEventListener('blur', function() {{
+            setTimeout(function() {{ supDropdown.classList.add('hidden'); }}, 150);
+        }});
+    }}
+}})();
+</script>"#);
+
+    render_layout("新增产品", "products", Some(user), &content)
 }
 
 /// 创建产品表单数据
@@ -1368,12 +1927,17 @@ pub struct ProductForm {
     // 产品基本信息（product_code 由系统自动生成）
     name: String,
     name_en: Option<String>,
+    model: Option<String>,
+    unit: Option<String>,
     #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     category_id: Option<i64>,
+    category_name: Option<String>,  // 新分类名称，category_id 为空时自动创建
     #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     brand_id: Option<i64>,
+    brand_name: Option<String>,  // 新品牌名称，brand_id 为空时自动创建
     #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     supplier_id: Option<i64>,
+    supplier_name: Option<String>,  // 新供应商名称，supplier_id 为空时自动创建
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     weight: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
@@ -1392,25 +1956,46 @@ pub struct ProductForm {
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_exchange_rate: Option<f64>,
     cost_notes: Option<String>,
-    // 参考售价（可选）
+    // 参考售价 - 新三平台独立定价
     price_platform: Option<String>,
+    // AliExpress (主输入: CNY)
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    ae_sale_price_cny: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    ae_fee_rate: Option<f64>,
+    // Alibaba (主输入: USD)
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    ali_sale_price_usd: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    ali_fee_rate: Option<f64>,
+    // Website
+    web_mode: Option<String>,
+    web_adj_type: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    web_adj_value: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    web_sale_price_cny: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    web_fee_rate: Option<f64>,
+    // 全局汇率
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    price_exchange_rate: Option<f64>,
+    // 遗留字段（向后兼容，已废弃）
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     sale_price_cny: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     sale_price_usd: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    price_exchange_rate: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     profit_margin: Option<f64>,
+    price_notes: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    platform_fee_rate: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    fee_rate_website: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     fee_rate_alibaba: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     fee_rate_aliexpress: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    fee_rate_website: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    platform_fee_rate: Option<f64>,  // backward-compat
-    price_notes: Option<String>,
 }
 
 /// 创建产品处理
@@ -1420,17 +2005,71 @@ pub async fn product_create_handler(
 ) -> Result<impl IntoResponse, Html<String>> {
     let queries = ProductQueries::new(state.db.pool());
 
+    // 如果 brand_id 为空但填写了 brand_name，自动创建品牌
+    let resolved_brand_id = if form.brand_id.is_none() {
+        if let Some(ref bname) = form.brand_name {
+            let bname = bname.trim();
+            if !bname.is_empty() {
+                let brand_queries = cicierp_db::queries::brands::BrandQueries::new(state.db.pool());
+                brand_queries.find_or_create(bname).await.ok().map(|b| b.id)
+            } else { None }
+        } else { None }
+    } else {
+        form.brand_id
+    };
+
+    // 如果 category_id 为空但填写了 category_name，自动创建分类
+    let resolved_category_id = if form.category_id.is_none() {
+        if let Some(ref cname) = form.category_name {
+            let cname = cname.trim();
+            if !cname.is_empty() {
+                let cat_queries = cicierp_db::queries::categories::CategoryQueries::new(state.db.pool());
+                cat_queries.find_or_create(cname).await.ok().map(|c| c.id)
+            } else { None }
+        } else { None }
+    } else {
+        form.category_id
+    };
+
+    // 如果 supplier_id 为空但填写了 supplier_name，创建供应商（仅当名称非空且不重复）
+    let resolved_supplier_id = form.supplier_id;
+
+    // 获取缓冲汇率作为默认值
+    let buffered_rate = {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        let rate = eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
+        ((rate - 0.05) * 100.0).round() / 100.0
+    };
+
+    // BUG-027: 数值校验
+    if let Some(r) = form.cost_exchange_rate { if r <= 0.0 { return Err(render_product_form_error("汇率必须大于0", &form)); } }
+    if let Some(r) = form.price_exchange_rate { if r <= 0.0 { return Err(render_product_form_error("汇率必须大于0", &form)); } }
+    if let Some(p) = form.sale_price_usd { if p < 0.0 { return Err(render_product_form_error("售价不能为负数", &form)); } }
+
+    // BUG-030/036: 无售价时强制草稿状态
+    let effective_status = {
+        let has_price = form.ae_sale_price_cny.map(|v| v > 0.0).unwrap_or(false)
+            || form.ali_sale_price_usd.map(|v| v > 0.0).unwrap_or(false)
+            || form.web_sale_price_cny.map(|v| v > 0.0).unwrap_or(false);
+        if !has_price {
+            Some(3) // 草稿
+        } else {
+            form.status
+        }
+    };
+
     // 产品编码由系统自动生成，不再需要检查
 
     let req = CreateProductRequest {
         product_code: None,  // 自动生成
         name: form.name.clone(),
-        model: None,
+        model: form.model.clone(),
         name_en: form.name_en.clone(),
         slug: None,
-        category_id: form.category_id,
-        brand_id: form.brand_id,
-        supplier_id: form.supplier_id,
+        category_id: resolved_category_id,
+        brand_id: resolved_brand_id,
+        supplier_id: resolved_supplier_id,
         weight: form.weight,
         volume: form.volume,
         description: form.description.clone(),
@@ -1438,10 +2077,11 @@ pub async fn product_create_handler(
         specifications: None,
         main_image: None,
         images: None,
-        status: form.status,
+        status: effective_status,
         is_featured: Some(form.is_featured.is_some()),
         is_new: Some(form.is_new.is_some()),
         notes: form.notes.clone(),
+        unit: form.unit.clone(),
     };
 
     match queries.create(&req).await {
@@ -1456,9 +2096,9 @@ pub async fn product_create_handler(
                         product_id: product.id,
                         supplier_id: form.supplier_id,
                         cost_cny,
-                        cost_usd: form.cost_usd,
+                        cost_usd: Some(cost_cny / buffered_rate),  // 始终用当前缓冲汇率计算
                         currency: Some("CNY".to_string()),
-                        exchange_rate: form.cost_exchange_rate.or(Some(7.2)),
+                        exchange_rate: Some(buffered_rate),  // 始终存储当前缓冲汇率
                         profit_margin: Some(0.15),
                         platform_fee_rate: Some(0.025),
                         platform_fee: None,
@@ -1475,72 +2115,131 @@ pub async fn product_create_handler(
                 }
             }
 
-            // 如果有参考售价，创建价格记录（website、alibaba、aliexpress 三个平台）
-            if let Some(sale_price_cny) = form.sale_price_cny {
-                if sale_price_cny > 0.0 {
-                    let price_queries = ProductPriceQueries::new(state.db.pool());
-                    let exchange_rate = form.price_exchange_rate.unwrap_or(7.2);
-                    let profit_margin = form.profit_margin.map(|v| v / 100.0).or(Some(0.15));
+            // === 保存三平台独立售价 ===
+            let price_queries = ProductPriceQueries::new(state.db.pool());
+            let exchange_rate = form.price_exchange_rate.unwrap_or(buffered_rate);
 
-                    // Website fee rate: use fee_rate_website, fall back to platform_fee_rate, default 2.5%
-                    let website_fee = form.fee_rate_website
-                        .or(form.platform_fee_rate)
-                        .map(|v| v / 100.0)
-                        .unwrap_or(0.025);
-                    let price_req = CreateProductPriceRequest {
-                        product_id: product.id,
-                        platform: Some("website".to_string()),
-                        sale_price_cny,
-                        sale_price_usd: form.sale_price_usd,
-                        exchange_rate: Some(exchange_rate),
-                        profit_margin,
-                        platform_fee_rate: Some(website_fee),
-                        platform_fee: None,
-                        is_reference: Some(true),
-                        effective_date: None,
-                        notes: form.price_notes.clone(),
-                    };
-                    if let Err(e) = price_queries.create(&price_req).await {
-                        info!("Failed to create website price: {}", e);
-                    }
-
-                    // Alibaba fee rate (default 3%)
-                    let ali_fee = form.fee_rate_alibaba.map(|v| v / 100.0).unwrap_or(0.03);
-                    let ali_req = CreateProductPriceRequest {
-                        product_id: product.id,
-                        platform: Some("alibaba".to_string()),
-                        sale_price_cny,
-                        sale_price_usd: form.sale_price_usd,
-                        exchange_rate: Some(exchange_rate),
-                        profit_margin,
-                        platform_fee_rate: Some(ali_fee),
-                        platform_fee: None,
-                        is_reference: Some(true),
-                        effective_date: None,
-                        notes: None,
-                    };
-                    if let Err(e) = price_queries.create(&ali_req).await {
-                        info!("Failed to create alibaba price: {}", e);
-                    }
-
-                    // AliExpress fee rate (default 5%)
-                    let ae_fee = form.fee_rate_aliexpress.map(|v| v / 100.0).unwrap_or(0.05);
-                    let ae_req = CreateProductPriceRequest {
+            // AliExpress: 主输入CNY
+            if let Some(ae_cny) = form.ae_sale_price_cny {
+                if ae_cny > 0.0 {
+                    let ae_usd = ae_cny / exchange_rate;
+                    let ae_fee = form.ae_fee_rate.map(|v| v / 100.0);
+                    let req = CreateProductPriceRequest {
                         product_id: product.id,
                         platform: Some("aliexpress".to_string()),
-                        sale_price_cny,
-                        sale_price_usd: form.sale_price_usd,
+                        sale_price_cny: ae_cny,
+                        sale_price_usd: Some(ae_usd),
                         exchange_rate: Some(exchange_rate),
-                        profit_margin,
-                        platform_fee_rate: Some(ae_fee),
+                        profit_margin: Some(0.15),
+                        platform_fee_rate: ae_fee.or(Some(0.05)),
                         platform_fee: None,
                         is_reference: Some(true),
                         effective_date: None,
                         notes: None,
+                        pricing_mode: Some("margin".to_string()),
+                        input_currency: Some("CNY".to_string()),
+                        reference_platform: None,
+                        adjustment_type: None,
+                        adjustment_value: None,
                     };
-                    if let Err(e) = price_queries.create(&ae_req).await {
+                    if let Err(e) = price_queries.create(&req).await {
                         info!("Failed to create aliexpress price: {}", e);
                     }
+                }
+            }
+
+            // Alibaba: 主输入USD
+            if let Some(ali_usd) = form.ali_sale_price_usd {
+                if ali_usd > 0.0 {
+                    let ali_cny = ali_usd * exchange_rate;
+                    let ali_fee = form.ali_fee_rate.map(|v| v / 100.0);
+                    let req = CreateProductPriceRequest {
+                        product_id: product.id,
+                        platform: Some("alibaba".to_string()),
+                        sale_price_cny: ali_cny,
+                        sale_price_usd: Some(ali_usd),
+                        exchange_rate: Some(exchange_rate),
+                        profit_margin: Some(0.15),
+                        platform_fee_rate: ali_fee.or(Some(0.03)),
+                        platform_fee: None,
+                        is_reference: Some(true),
+                        effective_date: None,
+                        notes: None,
+                        pricing_mode: Some("markup".to_string()),
+                        input_currency: Some("USD".to_string()),
+                        reference_platform: None,
+                        adjustment_type: None,
+                        adjustment_value: None,
+                    };
+                    if let Err(e) = price_queries.create(&req).await {
+                        info!("Failed to create alibaba price: {}", e);
+                    }
+                }
+            }
+
+            // Website: 独立定价或跟随
+            let web_mode = form.web_mode.as_deref().unwrap_or("independent");
+            let web_cny = match web_mode {
+                "follow_ae" => {
+                    let ae_cny = form.ae_sale_price_cny.unwrap_or(0.0);
+                    if ae_cny > 0.0 {
+                        let adj_type = form.web_adj_type.as_deref().unwrap_or("fixed_add");
+                        let adj_val = form.web_adj_value.unwrap_or(0.0);
+                        Some(match adj_type {
+                            "fixed_add" => ae_cny + adj_val,
+                            "fixed_sub" => (ae_cny - adj_val).max(0.01),
+                            "percent_up" => ae_cny * (1.0 + adj_val / 100.0),
+                            "percent_down" => ae_cny * (1.0 - adj_val / 100.0).max(0.01),
+                            _ => ae_cny,
+                        })
+                    } else { None }
+                },
+                "follow_ali" => {
+                    let ali_usd = form.ali_sale_price_usd.unwrap_or(0.0);
+                    if ali_usd > 0.0 {
+                        let ali_cny = ali_usd * exchange_rate;
+                        let adj_type = form.web_adj_type.as_deref().unwrap_or("fixed_add");
+                        let adj_val = form.web_adj_value.unwrap_or(0.0);
+                        Some(match adj_type {
+                            "fixed_add" => ali_cny + adj_val,
+                            "fixed_sub" => (ali_cny - adj_val).max(0.01),
+                            "percent_up" => ali_cny * (1.0 + adj_val / 100.0),
+                            "percent_down" => ali_cny * (1.0 - adj_val / 100.0).max(0.01),
+                            _ => ali_cny,
+                        })
+                    } else { None }
+                },
+                _ => form.web_sale_price_cny.filter(|&v| v > 0.0),
+            };
+
+            if let Some(web_cny) = web_cny {
+                let web_usd = web_cny / exchange_rate;
+                let web_fee = form.web_fee_rate.map(|v| v / 100.0);
+                let ref_platform = match web_mode {
+                    "follow_ae" => Some("aliexpress".to_string()),
+                    "follow_ali" => Some("alibaba".to_string()),
+                    _ => None,
+                };
+                let req = CreateProductPriceRequest {
+                    product_id: product.id,
+                    platform: Some("website".to_string()),
+                    sale_price_cny: web_cny,
+                    sale_price_usd: Some(web_usd),
+                    exchange_rate: Some(exchange_rate),
+                    profit_margin: Some(0.15),
+                    platform_fee_rate: web_fee.or(Some(0.025)),
+                    platform_fee: None,
+                    is_reference: Some(true),
+                    effective_date: None,
+                    notes: None,
+                    pricing_mode: Some(if web_mode == "independent" { "margin".to_string() } else { "reference".to_string() }),
+                    input_currency: Some("CNY".to_string()),
+                    reference_platform: ref_platform,
+                    adjustment_type: form.web_adj_type.clone(),
+                    adjustment_value: form.web_adj_value,
+                };
+                if let Err(e) = price_queries.create(&req).await {
+                    info!("Failed to create website price: {}", e);
                 }
             }
 
@@ -1623,7 +2322,7 @@ fn render_product_form_error(error: &str, form: &ProductForm) -> Html<String> {
                 <select id="status" name="status"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="3" {}>草稿</option>
-                    <option value="1" {}>上架</option>
+                    <option value="1" {}>上架 (需已设置售价)</option>
                     <option value="2" {}>下架</option>
                 </select>
             </div>
@@ -1674,6 +2373,7 @@ pub async fn product_detail_page(
     let user = get_user_from_extension(&auth_user);
 
     let queries = ProductQueries::new(state.db.pool());
+    let pool = state.db.pool();
 
     // 获取产品信息
     let product = match queries.get_by_id(id).await {
@@ -1688,19 +2388,34 @@ pub async fn product_detail_page(
         }
     };
 
-    // 获取 SKU 列表
-    let skus = queries.get_skus(id).await.unwrap_or_default();
-
     // 获取成本信息
-    let cost_queries = ProductCostQueries::new(state.db.pool());
+    let cost_queries = ProductCostQueries::new(pool);
     let product_cost = cost_queries.get_reference_cost(id).await.unwrap_or(None);
 
-    // 获取价格信息
-    let price_queries = ProductPriceQueries::new(state.db.pool());
-    let product_price = price_queries.get_reference_price(id, "website").await.unwrap_or(None);
+    // 获取三个平台价格
+    let price_queries = ProductPriceQueries::new(pool);
+    let price_website = price_queries.get_reference_price(id, "website").await.unwrap_or(None);
+    let price_alibaba = price_queries.get_reference_price(id, "alibaba").await.unwrap_or(None);
+    let price_aliexpress = price_queries.get_reference_price(id, "aliexpress").await.unwrap_or(None);
+
+    // 获取供应商、品牌、分类名称
+    let supplier_name: String = if let Some(sid) = product.supplier_id {
+        sqlx::query_scalar("SELECT name FROM suppliers WHERE id = ?")
+            .bind(sid).fetch_optional(pool).await.ok().flatten().unwrap_or_default()
+    } else { String::new() };
+
+    let brand_name: String = if let Some(bid) = product.brand_id {
+        sqlx::query_scalar("SELECT name FROM brands WHERE id = ?")
+            .bind(bid).fetch_optional(pool).await.ok().flatten().unwrap_or_default()
+    } else { String::new() };
+
+    let category_name: String = if let Some(cid) = product.category_id {
+        sqlx::query_scalar("SELECT name FROM categories WHERE id = ?")
+            .bind(cid).fetch_optional(pool).await.ok().flatten().unwrap_or_default()
+    } else { String::new() };
 
     // 获取内容信息
-    let content_queries = ProductContentQueries::new(state.db.pool());
+    let content_queries = ProductContentQueries::new(pool);
     let product_content = content_queries.get_by_product_id(id).await.unwrap_or(None);
 
     let status_badge = match product.status {
@@ -1709,65 +2424,77 @@ pub async fn product_detail_page(
         _ => r#"<span class="px-3 py-1 text-sm font-medium bg-yellow-100 text-yellow-700 rounded-full">草稿</span>"#,
     };
 
-    // SKU 列表 HTML
-    let sku_rows: String = if skus.is_empty() {
-        r#"<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">暂无 SKU 数据</td></tr>"#.to_string()
-    } else {
-        skus.iter().map(|sku| {
-            let sku_status = if sku.status == 1 {
-                r#"<span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">正常</span>"#
+    let featured_badge = if product.is_featured {
+        r#"<span class="px-2 py-0.5 text-xs bg-amber-100 text-amber-700 rounded-full">精选</span>"#
+    } else { "" };
+
+    let new_badge = if product.is_new {
+        r#"<span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">新品</span>"#
+    } else { "" };
+
+    // 帮助函数：格式化平台价格区块（platform: "ae"=只CNY, "ali"=USD主+CNY副, 其他=只CNY）
+    let fmt_platform_price = |platform_label: &str, platform: &str, price: Option<&cicierp_models::product::ProductPrice>| -> String {
+        if let Some(p) = price {
+            let price_rows = if platform == "ali" {
+                // Alibaba: USD 为主，CNY 为辅
+                format!(
+                    r#"<div><p class="text-xs text-gray-400">售价(USD) ★</p><p class="font-medium">{}</p></div>
+        <div><p class="text-xs text-gray-400">售价(CNY)</p><p class="font-medium">¥{:.2}</p></div>"#,
+                    p.sale_price_usd.map(|v| format!("${:.2}", v)).unwrap_or("-".to_string()),
+                    p.sale_price_cny,
+                )
             } else {
-                r#"<span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">禁用</span>"#
+                // AliExpress / Website: 只显示 CNY
+                format!(
+                    r#"<div class="col-span-2"><p class="text-xs text-gray-400">售价(CNY)</p><p class="font-medium">¥{:.2}</p></div>"#,
+                    p.sale_price_cny,
+                )
             };
             format!(
-                r#"<tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3"><span class="font-mono text-sm">{}</span></td>
-                    <td class="px-4 py-3 text-right">¥{:.2}</td>
-                    <td class="px-4 py-3 text-right">¥{:.2}</td>
-                    <td class="px-4 py-3 text-right">{}</td>
-                    <td class="px-4 py-3 text-center">{}</td>
-                </tr>"#,
-                sku.sku_code,
-                sku.cost_price,
-                sku.sale_price,
-                sku.stock_quantity,
-                sku_status
+                r#"<div class="bg-gray-50 rounded-lg p-3">
+    <p class="text-xs font-semibold text-gray-500 mb-2 uppercase">{}</p>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+        {}
+        <div><p class="text-xs text-gray-400">平台费率</p><p class="font-medium">{:.1}%</p></div>
+    </div>
+    {}
+</div>"#,
+                platform_label,
+                price_rows,
+                p.platform_fee_rate * 100.0,
+                p.notes.as_deref().map(|n| format!(r#"<p class="text-xs text-gray-400 mt-1">备注: {}</p>"#, n)).unwrap_or_default()
             )
-        }).collect()
+        } else {
+            format!(
+                r#"<div class="bg-gray-50 rounded-lg p-3">
+    <p class="text-xs font-semibold text-gray-500 mb-2 uppercase">{}</p>
+    <p class="text-sm text-gray-400">暂无价格</p>
+</div>"#,
+                platform_label
+            )
+        }
     };
+
+    let price_alibaba_html = fmt_platform_price("Alibaba", "ali", price_alibaba.as_ref());
+    let price_aliexpress_html = fmt_platform_price("AliExpress", "ae", price_aliexpress.as_ref());
+    let price_website_html = fmt_platform_price("Website", "web", price_website.as_ref());
 
     // 成本信息 HTML
     let cost_section = if let Some(ref cost) = product_cost {
         format!(
             r#"<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
     <h3 class="text-base font-semibold text-gray-800 mb-4">💰 成本信息</h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div>
-            <p class="text-xs text-gray-500">成本 (CNY)</p>
-            <p class="text-lg font-semibold text-gray-800">¥{:.2}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500">成本 (USD)</p>
-            <p class="text-lg font-semibold text-gray-800">{}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500">利润率</p>
-            <p class="text-lg font-semibold text-gray-800">{:.1}%</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500">平台费率</p>
-            <p class="text-lg font-semibold text-gray-800">{:.1}%</p>
-        </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div><p class="text-xs text-gray-500">成本(CNY)</p><p class="text-lg font-semibold">¥{:.2}</p></div>
+        <div><p class="text-xs text-gray-500">成本(USD)</p><p class="text-lg font-semibold">{}</p></div>
+        <div><p class="text-xs text-gray-500">汇率</p><p class="font-medium">{:.4}</p></div>
     </div>
-    <div class="mt-4 pt-4 border-t border-gray-100">
-        <p class="text-xs text-gray-500">备注: {}</p>
-    </div>
+    {}
 </div>"#,
             cost.cost_cny,
             cost.cost_usd.map(|v| format!("${:.2}", v)).unwrap_or("-".to_string()),
-            cost.profit_margin * 100.0,
-            cost.platform_fee_rate * 100.0,
-            cost.notes.as_deref().unwrap_or("无")
+            cost.exchange_rate,
+            cost.notes.as_deref().map(|n| format!(r#"<div class="mt-3 pt-3 border-t border-gray-100"><p class="text-xs text-gray-500">备注: {}</p></div>"#, n)).unwrap_or_default()
         )
     } else {
         r#"<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
@@ -1781,31 +2508,21 @@ pub async fn product_detail_page(
         format!(
             r#"<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
     <h3 class="text-base font-semibold text-gray-800 mb-4">📝 内容信息</h3>
-    <div class="space-y-4">
-        <div>
-            <p class="text-xs text-gray-500 mb-1">英文标题</p>
-            <p class="text-sm text-gray-800">{}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500 mb-1">描述</p>
-            <p class="text-sm text-gray-800">{}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500 mb-1">SEO 标题</p>
-            <p class="text-sm text-gray-800">{}</p>
-        </div>
+    <div class="space-y-3">
+        <div><p class="text-xs text-gray-500 mb-1">英文标题</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">描述</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">SEO 标题</p><p class="text-sm text-gray-800">{}</p></div>
     </div>
 </div>"#,
             content.title_en.as_deref().unwrap_or("-"),
-            content.description.as_deref().map(|d| if d.len() > 200 { &d[..200] } else { d }).unwrap_or("-"),
+            content.description.as_deref().map(|d| if d.len() > 300 { &d[..300] } else { d }).unwrap_or("-"),
             content.meta_title.as_deref().unwrap_or("-")
         )
     } else {
-        r#"<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-    <h3 class="text-base font-semibold text-gray-800 mb-4">📝 内容信息</h3>
-    <p class="text-gray-500 text-sm">暂无内容数据</p>
-</div>"#.to_string()
+        String::new()
     };
+
+    let unit_display = product.unit.as_deref().unwrap_or("-").to_string();
 
     let content = format!(
         r#"<!-- 页面标题 -->
@@ -1816,17 +2533,15 @@ pub async fn product_detail_page(
         <span class="text-gray-800">{}</span>
     </div>
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
             <h1 class="text-xl sm:text-2xl font-bold text-gray-800">{}</h1>
+            {}
+            {}
             {}
         </div>
         <div class="flex items-center gap-2">
-            <a href="/products/{}/edit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                编辑
-            </a>
-            <a href="/products" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">
-                返回列表
-            </a>
+            <a href="/products/{}/edit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">编辑</a>
+            <a href="/products" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">返回列表</a>
         </div>
     </div>
 </div>
@@ -1835,94 +2550,66 @@ pub async fn product_detail_page(
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
     <h3 class="text-base font-semibold text-gray-800 mb-4">📦 基本信息</h3>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-        <div>
-            <p class="text-xs text-gray-500 mb-1">产品编码</p>
-            <p class="font-mono text-sm text-gray-800">{}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500 mb-1">产品名称</p>
-            <p class="text-sm text-gray-800 font-medium">{}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500 mb-1">英文名称</p>
-            <p class="text-sm text-gray-800">{}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500 mb-1">创建时间</p>
-            <p class="text-sm text-gray-800">{}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500 mb-1">参考成本 (CNY)</p>
-            <p class="text-lg font-semibold text-gray-800">¥{:.2}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500 mb-1">参考售价 (USD)</p>
-            <p class="text-lg font-semibold text-green-600">${:.2}</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500 mb-1">重量</p>
-            <p class="text-sm text-gray-800">{} kg</p>
-        </div>
-        <div>
-            <p class="text-xs text-gray-500 mb-1">体积</p>
-            <p class="text-sm text-gray-800">{} m³</p>
-        </div>
+        <div><p class="text-xs text-gray-500 mb-1">产品编码</p><p class="font-mono text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">产品名称</p><p class="text-sm font-medium text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">英文名称</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">型号</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">分类</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">品牌</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">供应商</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">创建时间</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">重量</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">体积</p><p class="text-sm text-gray-800">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">单位</p><p class="text-sm text-gray-800">{unit_display}</p></div>
     </div>
-    <div class="mt-4 pt-4 border-t border-gray-100">
-        <p class="text-xs text-gray-500 mb-1">产品描述</p>
-        <p class="text-sm text-gray-700">{}</p>
-    </div>
-    <div class="mt-4 pt-4 border-t border-gray-100">
-        <p class="text-xs text-gray-500 mb-1">备注</p>
-        <p class="text-sm text-gray-700">{}</p>
+    <div class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><p class="text-xs text-gray-500 mb-1">产品描述</p><p class="text-sm text-gray-700">{}</p></div>
+        <div><p class="text-xs text-gray-500 mb-1">备注</p><p class="text-sm text-gray-700">{}</p></div>
     </div>
 </div>
 
-<!-- 成本和内容信息 -->
+<!-- 售价信息（三平台） -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
+    <h3 class="text-base font-semibold text-gray-800 mb-4">💵 售价信息</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {}
+        {}
+        {}
+    </div>
+</div>
+
+<!-- 成本 + 内容 -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     {}
     {}
-</div>
-
-<!-- SKU 列表 -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
-    <div class="p-4 sm:p-6 border-b border-gray-100">
-        <h3 class="text-base font-semibold text-gray-800">SKU 列表</h3>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="w-full min-w-[500px]">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">SKU编码</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">成本价</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">售价</th>
-                    <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">库存</th>
-                    <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">状态</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                {}
-            </tbody>
-        </table>
-    </div>
 </div>"#,
+        // breadcrumb + title
         product.name,
         product.name,
         status_badge,
+        featured_badge,
+        new_badge,
         product.id,
+        // basic info grid
         product.product_code,
         product.name,
         product.name_en.as_deref().unwrap_or("-"),
+        product.model.as_deref().unwrap_or("-"),
+        if category_name.is_empty() { "-".to_string() } else { category_name },
+        if brand_name.is_empty() { "-".to_string() } else { brand_name },
+        if supplier_name.is_empty() { "-".to_string() } else { supplier_name },
         product.created_at.format("%Y-%m-%d %H:%M"),
-        product_cost.as_ref().map(|c| c.cost_cny).unwrap_or(0.0),
-        product_price.as_ref().and_then(|p| p.sale_price_usd).unwrap_or(0.0),
-        product.weight.map(|w| format!("{:.3}", w)).unwrap_or("-".to_string()),
-        product.volume.map(|v| format!("{:.4}", v)).unwrap_or("-".to_string()),
+        product.weight.map(|w| format!("{:.3} kg", w)).unwrap_or("-".to_string()),
+        product.volume.map(|v| format!("{:.4} m³", v)).unwrap_or("-".to_string()),
         product.description.as_deref().unwrap_or("无描述"),
         product.notes.as_deref().unwrap_or("无"),
+        // price section
+        price_alibaba_html,
+        price_aliexpress_html,
+        price_website_html,
+        // cost + content
         cost_section,
-        content_section,
-        sku_rows
+        content_section
     );
 
     render_layout("产品详情", "products", Some(user), &content)
@@ -1955,21 +2642,81 @@ pub async fn product_edit_page(
     let cost_queries = ProductCostQueries::new(state.db.pool());
     let product_cost = cost_queries.get_reference_cost(id).await.unwrap_or(None);
 
+    // 获取供应商、品牌、分类名称（用于显示在编辑表单中）
+    let supplier_name: String = if let Some(sid) = product.supplier_id {
+        sqlx::query_scalar("SELECT name FROM suppliers WHERE id = ?")
+            .bind(sid).fetch_optional(state.db.pool()).await.ok().flatten().unwrap_or_default()
+    } else { String::new() };
+
+    let brand_name: String = if let Some(bid) = product.brand_id {
+        sqlx::query_scalar("SELECT name FROM brands WHERE id = ?")
+            .bind(bid).fetch_optional(state.db.pool()).await.ok().flatten().unwrap_or_default()
+    } else { String::new() };
+
+    let category_name: String = if let Some(cid) = product.category_id {
+        sqlx::query_scalar("SELECT name FROM categories WHERE id = ?")
+            .bind(cid).fetch_optional(state.db.pool()).await.ok().flatten().unwrap_or_default()
+    } else { String::new() };
+
     // 获取价格信息（三个平台）
     let price_queries = ProductPriceQueries::new(state.db.pool());
     let product_price = price_queries.get_reference_price(id, "website").await.unwrap_or(None);
     let price_alibaba = price_queries.get_reference_price(id, "alibaba").await.unwrap_or(None);
     let price_aliexpress = price_queries.get_reference_price(id, "aliexpress").await.unwrap_or(None);
 
+    // 获取缓冲汇率（市场汇率 - 0.05）作为无数据时的默认值
+    let buffered_rate_str = {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        let rate = eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
+        format!("{:.2}", (rate - 0.05).max(0.0))
+    };
+
     // 状态选中
     let status_options = format!(
         r#"<option value="3" {}>草稿</option>
-            <option value="1" {}>上架</option>
+            <option value="1" {}>上架 (需已设置售价)</option>
             <option value="2" {}>下架</option>"#,
         if product.status == 3 { "selected" } else { "" },
         if product.status == 1 { "selected" } else { "" },
         if product.status == 2 { "selected" } else { "" }
     );
+
+    // 预计算 unit 用于模板隐式捕获
+    let unit_options = {
+        let u = product.unit.as_deref().unwrap_or("pcs");
+        format!(
+            r#"<option value="pcs"{s_pcs}>件 (pcs)</option>
+                        <option value="set"{s_set}>套 (set)</option>
+                        <option value="pair"{s_pair}>对 (pair)</option>
+                        <option value="box"{s_box}>箱 (box)</option>
+                        <option value="m"{s_m}>米 (m)</option>
+                        <option value="kg"{s_kg}>千克 (kg)</option>"#,
+            s_pcs = if u == "pcs" { " selected" } else { "" },
+            s_set = if u == "set" { " selected" } else { "" },
+            s_pair = if u == "pair" { " selected" } else { "" },
+            s_box = if u == "box" { " selected" } else { "" },
+            s_m = if u == "m" { " selected" } else { "" },
+            s_kg = if u == "kg" { " selected" } else { "" },
+        )
+    };
+
+    // 预计算定价相关变量（用于 format! 模板捕获）
+    let ae_price_cny = price_aliexpress.as_ref().map(|p| format!("{:.2}", p.sale_price_cny)).unwrap_or_default();
+    let ae_fee = price_aliexpress.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "12.0".to_string());
+    let ali_price_usd = price_alibaba.as_ref().map(|p| p.sale_price_usd.map(|v| format!("{:.2}", v)).unwrap_or_default()).unwrap_or_default();
+    let ali_fee = price_alibaba.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "2.5".to_string());
+    let web_price_cny = product_price.as_ref().map(|p| format!("{:.2}", p.sale_price_cny)).unwrap_or_default();
+    let web_fee = product_price.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "0.0".to_string());
+    let web_mode_str = product_price.as_ref()
+        .and_then(|p| p.reference_platform.as_ref())
+        .map(|rp| if rp == "alibaba" { "follow_ali".to_string() } else { "follow_ae".to_string() })
+        .unwrap_or_else(|| "independent".to_string());
+    let web_sel_ind: &str = if web_mode_str == "independent" { "selected" } else { "" };
+    let web_sel_ae: &str = if web_mode_str == "follow_ae" { "selected" } else { "" };
+    let web_sel_ali: &str = if web_mode_str == "follow_ali" { "selected" } else { "" };
+    let web_adj_val = product_price.as_ref().and_then(|p| p.adjustment_value).map(|v| format!("{:.2}", v)).unwrap_or_default();
+    let rate_val = product_price.as_ref().map(|p| format!("{:.2}", p.exchange_rate)).unwrap_or_else(|| buffered_rate_str.clone());
 
     let content = format!(
         r#"<!-- 页面标题 -->
@@ -1977,7 +2724,7 @@ pub async fn product_edit_page(
     <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
         <a href="/products" class="hover:text-blue-600">产品列表</a>
         <span>/</span>
-        <a href="/products/{}" class="hover:text-blue-600">{}</a>
+        <a href="/products/{id}" class="hover:text-blue-600">{}</a>
         <span>/</span>
         <span class="text-gray-800">编辑</span>
     </div>
@@ -2022,10 +2769,68 @@ pub async fn product_edit_page(
                            placeholder="English Name">
                 </div>
 
+                <!-- 型号 -->
+                <div>
+                    <label for="model" class="block text-sm font-medium text-gray-700 mb-2">
+                        型号
+                    </label>
+                    <input type="text" id="model" name="model" value="{}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="对外展示的型号，如 V3.0 / Pro Max">
+                    <p class="text-xs text-gray-400 mt-1">对外展示字段，用于报价单和产品资料</p>
+                </div>
+
+                <!-- 单位 -->
+                <div>
+                    <label for="unit" class="block text-sm font-medium text-gray-700 mb-2">单位</label>
+                    <select id="unit" name="unit" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        {unit_options}
+                    </select>
+                </div>
+
+                <!-- 分类 -->
+                <div>
+                    <label for="edit_category_name_input" class="block text-sm font-medium text-gray-700 mb-2">分类</label>
+                    <div class="relative">
+                        <input type="text" id="edit_category_name_input" autocomplete="off" value="{}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="输入分类名称搜索或新增">
+                        <input type="hidden" id="edit_category_id" name="category_id" value="{}">
+                        <input type="hidden" id="edit_category_name" name="category_name" value="{}">
+                        <div id="edit_category_dropdown" class="hidden absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <!-- 品牌 -->
+                <div>
+                    <label for="edit_brand_name_input" class="block text-sm font-medium text-gray-700 mb-2">品牌</label>
+                    <div class="relative">
+                        <input type="text" id="edit_brand_name_input" autocomplete="off" value="{}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="输入品牌名称搜索或新增">
+                        <input type="hidden" id="edit_brand_id" name="brand_id" value="{}">
+                        <input type="hidden" id="edit_brand_name" name="brand_name" value="{}">
+                        <div id="edit_brand_dropdown" class="hidden absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <!-- 供应商 -->
+                <div>
+                    <label for="edit_supplier_name_input" class="block text-sm font-medium text-gray-700 mb-2">供应商</label>
+                    <div class="relative">
+                        <input type="text" id="edit_supplier_name_input" autocomplete="off" value="{}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="输入供应商名称搜索或新增">
+                        <input type="hidden" id="edit_supplier_id" name="supplier_id" value="{}">
+                        <input type="hidden" id="edit_supplier_name" name="supplier_name" value="{}">
+                        <div id="edit_supplier_dropdown" class="hidden absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto"></div>
+                    </div>
+                </div>
+
                 <!-- 重量 -->
                 <div>
                     <label for="weight" class="block text-sm font-medium text-gray-700 mb-2">
-                        重量 (kg)
+                        重量 (kg) <span class="text-xs text-gray-400">(仅记录)</span>
                     </label>
                     <input type="number" id="weight" name="weight" step="0.001" min="0" value="{}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -2035,7 +2840,7 @@ pub async fn product_edit_page(
                 <!-- 体积 -->
                 <div>
                     <label for="volume" class="block text-sm font-medium text-gray-700 mb-2">
-                        体积 (m³)
+                        体积 (m³) <span class="text-xs text-gray-400">(仅记录)</span>
                     </label>
                     <input type="number" id="volume" name="volume" step="0.0001" min="0" value="{}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -2051,6 +2856,18 @@ pub async fn product_edit_page(
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         {}
                     </select>
+                </div>
+
+                <!-- 标记 -->
+                <div class="flex items-center gap-4 pt-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="is_featured" value="true" {} class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                        <span class="text-sm text-gray-700">推荐产品</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="is_new" value="true" {} class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                        <span class="text-sm text-gray-700">新品</span>
+                    </label>
                 </div>
 
                 <!-- 描述 -->
@@ -2091,24 +2908,15 @@ pub async fn product_edit_page(
                            placeholder="0.00">
                 </div>
 
-                <!-- 成本 USD -->
+                <!-- 成本 USD（只读，自动由CNY/当前汇率计算） -->
                 <div>
                     <label for="cost_usd" class="block text-sm font-medium text-gray-700 mb-2">
-                        成本 (USD)
+                        成本 (USD) <span class="text-xs text-gray-400">(自动)</span>
                     </label>
                     <input type="number" id="cost_usd" name="cost_usd" step="0.01" min="0" value="{}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="0.00">
-                </div>
-
-                <!-- 汇率 -->
-                <div>
-                    <label for="cost_exchange_rate" class="block text-sm font-medium text-gray-700 mb-2">
-                        汇率
-                    </label>
-                    <input type="number" id="cost_exchange_rate" name="cost_exchange_rate" step="0.01" min="0" value="{}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="7.20">
+                           class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                           readonly>
+                    <p class="text-xs text-gray-400 mt-1" id="cost_formula_hint">公式: 成本(CNY) ÷ 汇率 = 成本(USD)</p>
                 </div>
 
                 <!-- 成本备注 -->
@@ -2123,99 +2931,178 @@ pub async fn product_edit_page(
             </div>
         </div>
 
-        <!-- 第三部分：参考售价 -->
+        <!-- 第三部分：定价（三平台独立） -->
         <div class="mb-8">
             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                🏷️ 参考售价 <span class="text-sm font-normal text-gray-500">(可选，不影响历史订单)</span>
+                🏷️ 平台定价 <span class="text-sm font-normal text-gray-500">(按平台分别设置)</span>
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                <!-- 销售平台 -->
-                <div>
-                    <label for="price_platform" class="block text-sm font-medium text-gray-700 mb-2">
-                        销售平台
-                    </label>
-                    <select id="price_platform" name="price_platform"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="website" {}>独立站 (Website)</option>
-                        <option value="alibaba" {}>阿里巴巴 (Alibaba)</option>
-                        <option value="amazon" {}>亚马逊 (Amazon)</option>
-                    </select>
-                </div>
 
-                <!-- 售价 CNY -->
-                <div>
-                    <label for="sale_price_cny" class="block text-sm font-medium text-gray-700 mb-2">
-                        售价 (CNY)
-                    </label>
-                    <input type="number" id="sale_price_cny" name="sale_price_cny" step="0.01" min="0" value="{}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="0.00">
-                </div>
+            <!-- 全局汇率 -->
+            <div class="mb-4 p-3 bg-blue-50 rounded-lg flex items-center gap-4">
+                <label class="text-sm font-medium text-blue-800 whitespace-nowrap">💱 参考汇率 (USD/CNY)</label>
+                <input type="number" id="price_exchange_rate" name="price_exchange_rate" step="0.01" min="0"
+                       value="{rate_val}"
+                       class="w-32 px-3 py-1.5 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                <span class="text-xs text-blue-600">成本和售价的CNY/USD换算共用此汇率</span>
+            </div>
 
-                <!-- 售价 USD -->
-                <div>
-                    <label for="sale_price_usd" class="block text-sm font-medium text-gray-700 mb-2">
-                        售价 (USD)
-                    </label>
-                    <input type="number" id="sale_price_usd" name="sale_price_usd" step="0.01" min="0" value="{}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="0.00">
+            <!-- AliExpress 区块 -->
+            <div class="mb-4 p-4 border border-orange-200 rounded-xl bg-orange-50">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-sm font-semibold text-orange-700">🛒 AliExpress</span>
+                    <span class="text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">主输入: RMB</span>
                 </div>
-
-                <!-- 汇率 -->
-                <div>
-                    <label for="price_exchange_rate" class="block text-sm font-medium text-gray-700 mb-2">
-                        汇率
-                    </label>
-                    <input type="number" id="price_exchange_rate" name="price_exchange_rate" step="0.01" min="0" value="{}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="7.20">
-                </div>
-
-                <!-- 利润率 -->
-                <div>
-                    <label for="profit_margin" class="block text-sm font-medium text-gray-700 mb-2">
-                        目标利润率 (%)
-                    </label>
-                    <input type="number" id="profit_margin" name="profit_margin" step="0.01" min="0" value="{}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="15">
-                </div>
-
-                <!-- 各平台费率 -->
-                <div class="md:col-span-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">各平台费率 (%)</label>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="text-xs text-gray-500 mb-1 block">Alibaba</label>
-                            <input type="number" id="fee_rate_alibaba" name="fee_rate_alibaba" step="0.01" min="0" value="{}"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                   placeholder="3.0">
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500 mb-1 block">AliExpress</label>
-                            <input type="number" id="fee_rate_aliexpress" name="fee_rate_aliexpress" step="0.01" min="0" value="{}"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                   placeholder="5.0">
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500 mb-1 block">网站/其他</label>
-                            <input type="number" id="fee_rate_website" name="fee_rate_website" step="0.01" min="0" value="{}"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                   placeholder="2.5">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
+                        <input type="number" id="ae_fee_rate" name="ae_fee_rate" step="0.01" min="0" value="{ae_fee}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                               placeholder="5.0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-orange-600">★</span></label>
+                        <input type="number" id="ae_sale_price_cny" name="ae_sale_price_cny" step="0.01" min="0" value="{ae_price_cny}"
+                               class="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                               placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="ae_sale_price_usd" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                    <div class="flex items-end">
+                        <div id="ae_profit_preview" class="w-full p-2 rounded-lg bg-white border border-orange-200 text-xs text-gray-600">
+                            <div>利润: <span id="ae_profit_val" class="font-medium">-</span></div>
+                            <div>利润率: <span id="ae_profit_pct" class="font-medium">-</span></div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- 售价备注 -->
-                <div class="md:col-span-3">
-                    <label for="price_notes" class="block text-sm font-medium text-gray-700 mb-2">
-                        售价备注
-                    </label>
-                    <input type="text" id="price_notes" name="price_notes" value="{}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="售价相关备注信息">
+            <!-- Alibaba 区块 -->
+            <div class="mb-4 p-4 border border-yellow-200 rounded-xl bg-yellow-50">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-sm font-semibold text-yellow-700">🏪 Alibaba</span>
+                    <span class="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">主输入: USD</span>
                 </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
+                        <input type="number" id="ali_fee_rate" name="ali_fee_rate" step="0.01" min="0" value="{ali_fee}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+                               placeholder="3.0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-yellow-600">★</span></label>
+                        <input type="number" id="ali_sale_price_usd" name="ali_sale_price_usd" step="0.01" min="0" value="{ali_price_usd}"
+                               class="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500"
+                               placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="ali_sale_price_cny" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                    <div class="flex items-end">
+                        <div id="ali_profit_preview" class="w-full p-2 rounded-lg bg-white border border-yellow-200 text-xs text-gray-600">
+                            <div>利润: <span id="ali_profit_val" class="font-medium">-</span></div>
+                            <div>利润率: <span id="ali_profit_pct" class="font-medium">-</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Website 区块 -->
+            <div class="p-4 border border-blue-200 rounded-xl bg-blue-50">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-sm font-semibold text-blue-700">🌐 Website</span>
+                    <span class="text-xs text-blue-500 bg-blue-100 px-2 py-0.5 rounded-full">独立站</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
+                        <input type="number" id="web_fee_rate" name="web_fee_rate" step="0.01" min="0" value="{web_fee}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                               placeholder="2.5">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">定价模式</label>
+                        <select id="web_mode" name="web_mode"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                onchange="updateWebModeUI()">
+                            <option value="independent" {web_sel_ind}>独立定价</option>
+                            <option value="follow_ae" {web_sel_ae}>跟随 AE 价格</option>
+                            <option value="follow_ali" {web_sel_ali}>跟随 ALI 价格</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- 独立定价输入 -->
+                <div id="web_independent_section" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-blue-600">★</span></label>
+                        <input type="number" id="web_sale_price_cny" name="web_sale_price_cny" step="0.01" min="0" value="{web_price_cny}"
+                               class="w-full px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                               placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">售价 USD <span class="text-xs text-gray-400">(自动)</span></label>
+                        <input type="number" id="web_sale_price_usd" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                    <div class="flex items-end">
+                        <div id="web_profit_preview" class="w-full p-2 rounded-lg bg-white border border-blue-200 text-xs text-gray-600">
+                            <div>利润: <span id="web_profit_val" class="font-medium">-</span></div>
+                            <div>利润率: <span id="web_profit_pct" class="font-medium">-</span></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 跟随模式调整 -->
+                <div id="web_follow_section" class="hidden grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">参考平台价格 (CNY)</label>
+                        <input type="number" id="web_ref_price_cny" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">调整方式</label>
+                        <select id="web_adj_type" name="web_adj_type"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                onchange="calcWebFollowPrice()">
+                            <option value="fixed_add">固定加价 (+CNY)</option>
+                            <option value="fixed_sub">固定减价 (-CNY)</option>
+                            <option value="percent_up">百分比上调 (+%)</option>
+                            <option value="percent_down">百分比下调 (-%)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">调整值</label>
+                        <input type="number" id="web_adj_value" name="web_adj_value" step="0.01" min="0" value="{web_adj_val}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                               placeholder="0" oninput="calcWebFollowPrice()">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">计算结果 (CNY)</label>
+                        <input type="number" id="web_follow_result_cny" step="0.01" min="0"
+                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-blue-100 text-blue-800 cursor-not-allowed"
+                               readonly placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自动计算按钮 -->
+            <div class="mt-3 flex gap-2">
+                <button type="button" onclick="autoCalcAE()"
+                        class="text-xs px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200">
+                    💡 AE自动计算 (15%利润率)
+                </button>
+                <button type="button" onclick="autoCalcALI()"
+                        class="text-xs px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200">
+                    💡 ALI自动计算 (15%利润率)
+                </button>
             </div>
         </div>
 
@@ -2225,40 +3112,293 @@ pub async fn product_edit_page(
                     class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 保存修改
             </button>
-            <a href="/products/{}" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+            <a href="/products/{id}" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                 取消
             </a>
         </div>
     </form>
-</div>"#,
-        product.id,
+</div>
+<script>
+(function() {{
+    function makeCombobox(inputId, idFieldId, nameFieldId, dropdownId, searchUrl) {{
+        const input = document.getElementById(inputId);
+        const idField = document.getElementById(idFieldId);
+        const nameField = document.getElementById(nameFieldId);
+        const dropdown = document.getElementById(dropdownId);
+        if (!input) return;
+        let timeout;
+        input.addEventListener('input', function() {{
+            clearTimeout(timeout);
+            const q = this.value.trim();
+            idField.value = '';
+            nameField.value = q;
+            if (q.length < 1) {{ dropdown.classList.add('hidden'); return; }}
+            timeout = setTimeout(async () => {{
+                try {{
+                    const res = await fetch(searchUrl + encodeURIComponent(q));
+                    const data = await res.json();
+                    const items = data.data?.items || data.data || [];
+                    if (items.length === 0) {{ dropdown.classList.add('hidden'); return; }}
+                    dropdown.innerHTML = items.map(item =>
+                        `<div class="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm" data-id="${{item.id}}" data-name="${{item.name}}">${{item.name}}</div>`
+                    ).join('');
+                    dropdown.classList.remove('hidden');
+                    dropdown.querySelectorAll('[data-id]').forEach(el => {{
+                        el.addEventListener('click', function() {{
+                            idField.value = this.dataset.id;
+                            nameField.value = this.dataset.name;
+                            input.value = this.dataset.name;
+                            dropdown.classList.add('hidden');
+                        }});
+                    }});
+                }} catch(e) {{}}
+            }}, 200);
+        }});
+        document.addEventListener('click', e => {{ if (!input.contains(e.target)) dropdown.classList.add('hidden'); }});
+    }}
+    makeCombobox('edit_category_name_input', 'edit_category_id', 'edit_category_name', 'edit_category_dropdown', '/api/v1/categories?keyword=');
+    makeCombobox('edit_brand_name_input', 'edit_brand_id', 'edit_brand_name', 'edit_brand_dropdown', '/api/v1/brands?keyword=');
+    makeCombobox('edit_supplier_name_input', 'edit_supplier_id', 'edit_supplier_name', 'edit_supplier_dropdown', '/api/v1/suppliers?keyword=');
+}})();
+</script>
+<script>
+(function() {{
+    function calcCostUsd() {{
+        const cny  = parseFloat(document.getElementById('cost_cny')?.value) || 0;
+        const rate = parseFloat(document.getElementById('price_exchange_rate')?.value) || {buffered_rate_str};
+        const costUsdEl = document.getElementById('cost_usd');
+        if (cny > 0 && costUsdEl) {{
+            costUsdEl.value = (cny / rate).toFixed(2);
+            const hint = document.getElementById('cost_formula_hint');
+            if (hint) hint.textContent = `¥${{cny.toFixed(2)}} ÷ ${{rate.toFixed(2)}} = $${{(cny/rate).toFixed(2)}}`;
+        }} else if (costUsdEl) {{
+            costUsdEl.value = '';
+        }}
+    }}
+
+    // === 新定价系统 ===
+    const rate = () => parseFloat(document.getElementById('price_exchange_rate')?.value) || {buffered_rate_str};
+    const costCnyVal = () => parseFloat(document.getElementById('cost_cny')?.value) || 0;
+    const costUsdVal = () => costCnyVal() / rate();
+
+    function calcAEPrices() {{
+        const cny = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+        const r = rate();
+        const usdEl = document.getElementById('ae_sale_price_usd');
+        if (usdEl && cny > 0) usdEl.value = (cny / r).toFixed(2);
+        updateAEProfit();
+    }}
+
+    function updateAEProfit() {{
+        const cny = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+        const fee = (parseFloat(document.getElementById('ae_fee_rate')?.value) || 12) / 100;
+        const cost = costCnyVal();
+        if (cny > 0 && cost > 0) {{
+            const profit = cny - cost - cny * fee;
+            const pct = cny > 0 ? (profit / cny * 100).toFixed(1) : 0;
+            document.getElementById('ae_profit_val').textContent = profit.toFixed(2) + ' CNY';
+            document.getElementById('ae_profit_pct').textContent = pct + '%';
+            document.getElementById('ae_profit_preview').className =
+                'w-full p-2 rounded-lg border text-xs ' +
+                (profit > 0 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700');
+        }}
+    }}
+
+    function calcALIPrices() {{
+        const usd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+        const r = rate();
+        const cnyEl = document.getElementById('ali_sale_price_cny');
+        if (cnyEl && usd > 0) cnyEl.value = (usd * r).toFixed(2);
+        updateALIProfit();
+    }}
+
+    function updateALIProfit() {{
+        const usd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+        const fee = (parseFloat(document.getElementById('ali_fee_rate')?.value) || 2.5) / 100;
+        const cUsd = costUsdVal();
+        if (usd > 0 && cUsd > 0) {{
+            const profit = usd - cUsd - usd * fee;
+            const pct = usd > 0 ? (profit / usd * 100).toFixed(1) : 0;
+            document.getElementById('ali_profit_val').textContent = '$' + profit.toFixed(2);
+            document.getElementById('ali_profit_pct').textContent = pct + '%';
+            document.getElementById('ali_profit_preview').className =
+                'w-full p-2 rounded-lg border text-xs ' +
+                (profit > 0 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700');
+        }}
+    }}
+
+    function updateWebModeUI() {{
+        const mode = document.getElementById('web_mode')?.value;
+        const indSection = document.getElementById('web_independent_section');
+        const followSection = document.getElementById('web_follow_section');
+        if (mode === 'independent') {{
+            indSection?.classList.remove('hidden');
+            followSection?.classList.add('hidden');
+        }} else {{
+            indSection?.classList.add('hidden');
+            followSection?.classList.remove('hidden');
+            updateWebRefPrice();
+        }}
+        updateWebProfit();
+    }}
+
+    function updateWebRefPrice() {{
+        const mode = document.getElementById('web_mode')?.value;
+        const refEl = document.getElementById('web_ref_price_cny');
+        if (!refEl) return;
+        if (mode === 'follow_ae') {{
+            const aePrice = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+            refEl.value = aePrice > 0 ? aePrice.toFixed(2) : '';
+        }} else if (mode === 'follow_ali') {{
+            const aliUsd = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+            refEl.value = aliUsd > 0 ? (aliUsd * rate()).toFixed(2) : '';
+        }}
+        calcWebFollowPrice();
+    }}
+
+    function calcWebFollowPrice() {{
+        const refCny = parseFloat(document.getElementById('web_ref_price_cny')?.value) || 0;
+        const adjType = document.getElementById('web_adj_type')?.value || 'fixed_add';
+        const adjVal = parseFloat(document.getElementById('web_adj_value')?.value) || 0;
+        let result = refCny;
+        if (adjType === 'fixed_add') result = refCny + adjVal;
+        else if (adjType === 'fixed_sub') result = refCny - adjVal;
+        else if (adjType === 'percent_up') result = refCny * (1 + adjVal / 100);
+        else if (adjType === 'percent_down') result = refCny * (1 - adjVal / 100);
+        const resultEl = document.getElementById('web_follow_result_cny');
+        if (resultEl) resultEl.value = result > 0 ? result.toFixed(2) : '';
+        updateWebProfit();
+    }}
+
+    function calcWebIndependentPrices() {{
+        const cny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
+        const usdEl = document.getElementById('web_sale_price_usd');
+        if (usdEl && cny > 0) usdEl.value = (cny / rate()).toFixed(2);
+        updateWebProfit();
+    }}
+
+    function updateWebProfit() {{
+        const mode = document.getElementById('web_mode')?.value || 'independent';
+        let priceCny = 0;
+        if (mode === 'independent') {{
+            priceCny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
+        }} else {{
+            priceCny = parseFloat(document.getElementById('web_follow_result_cny')?.value) || 0;
+        }}
+        const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
+        const cost = costCnyVal();
+        if (priceCny > 0 && cost > 0) {{
+            const profit = priceCny - cost - priceCny * fee;
+            const pct = priceCny > 0 ? (profit / priceCny * 100).toFixed(1) : 0;
+            document.getElementById('web_profit_val').textContent = profit.toFixed(2) + ' CNY';
+            document.getElementById('web_profit_pct').textContent = pct + '%';
+            document.getElementById('web_profit_preview').className =
+                'w-full p-2 rounded-lg border text-xs ' +
+                (profit > 0 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700');
+        }}
+    }}
+
+    function autoCalcAE() {{
+        const cost = costCnyVal();
+        if (cost <= 0) {{ alert('请先填写成本(CNY)'); return; }}
+        const fee = (parseFloat(document.getElementById('ae_fee_rate')?.value) || 12) / 100;
+        const margin = 0.15;
+        const denom = 1 - margin - fee;
+        if (denom <= 0) return;
+        const price = cost / denom;
+        const el = document.getElementById('ae_sale_price_cny');
+        if (el) {{ el.value = price.toFixed(2); calcAEPrices(); }}
+    }}
+
+    function autoCalcALI() {{
+        const cost = costCnyVal();
+        if (cost <= 0) {{ alert('请先填写成本(CNY)'); return; }}
+        const fee = (parseFloat(document.getElementById('ali_fee_rate')?.value) || 2.5) / 100;
+        const margin = 0.15;
+        const denom = 1 - margin - fee;
+        if (denom <= 0) return;
+        const priceUsd = (cost / denom) / rate();
+        const el = document.getElementById('ali_sale_price_usd');
+        if (el) {{ el.value = Math.max(priceUsd, 1.0).toFixed(2); calcALIPrices(); }}
+    }}
+
+    document.getElementById('ae_sale_price_cny')?.addEventListener('input', calcAEPrices);
+    document.getElementById('ae_fee_rate')?.addEventListener('input', updateAEProfit);
+    document.getElementById('ali_sale_price_usd')?.addEventListener('input', calcALIPrices);
+    document.getElementById('ali_fee_rate')?.addEventListener('input', updateALIProfit);
+    document.getElementById('web_sale_price_cny')?.addEventListener('input', calcWebIndependentPrices);
+    document.getElementById('web_fee_rate')?.addEventListener('input', updateWebProfit);
+    document.getElementById('price_exchange_rate')?.addEventListener('input', function() {{
+        calcCostUsd();
+        calcAEPrices();
+        calcALIPrices();
+        calcWebIndependentPrices();
+    }});
+    document.getElementById('cost_cny')?.addEventListener('input', function() {{
+        calcCostUsd();
+        updateAEProfit();
+        updateALIProfit();
+        updateWebProfit();
+    }});
+
+    updateWebModeUI();
+    calcAEPrices();
+    calcALIPrices();
+    calcWebIndependentPrices();
+
+    document.getElementById('status')?.addEventListener('change', function() {{
+        if (this.value === '1') {{
+            const aePrice = parseFloat(document.getElementById('ae_sale_price_cny')?.value) || 0;
+            const aliPrice = parseFloat(document.getElementById('ali_sale_price_usd')?.value) || 0;
+            const webPrice = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
+            if (aePrice <= 0 && aliPrice <= 0 && webPrice <= 0) {{
+                alert('⚠️ 请先设置售价，再将产品设为上架状态。');
+                this.value = '3';
+            }}
+        }}
+    }});
+
+    document.querySelector('form').addEventListener('submit', function(e) {{
+        const costCnyInput = parseFloat(document.getElementById('cost_cny')?.value);
+        const rateVal = parseFloat(document.getElementById('price_exchange_rate')?.value);
+        if (costCnyInput !== undefined && !isNaN(costCnyInput) && costCnyInput < 0) {{
+            e.preventDefault(); alert('成本不能为负数'); return;
+        }}
+        if (rateVal !== undefined && !isNaN(rateVal) && rateVal <= 0) {{
+            e.preventDefault(); alert('汇率必须大于0'); return;
+        }}
+    }});
+}})();
+</script>"#,
         product.name,
         product.id,
         product.product_code,
         product.name,
         product.name_en.as_deref().unwrap_or(""),
+        product.model.as_deref().unwrap_or(""),
+        &category_name,
+        &product.category_id.map(|id| id.to_string()).unwrap_or_default(),
+        &category_name,
+        &brand_name,
+        &product.brand_id.map(|id| id.to_string()).unwrap_or_default(),
+        &brand_name,
+        &supplier_name,
+        &product.supplier_id.map(|id| id.to_string()).unwrap_or_default(),
+        &supplier_name,
         product.weight.map(|w| format!("{:.3}", w)).unwrap_or_default(),
         product.volume.map(|v| format!("{:.4}", v)).unwrap_or_default(),
         status_options,
+        if product.is_featured { "checked" } else { "" },
+        if product.is_new { "checked" } else { "" },
         product.description.as_deref().unwrap_or(""),
         product.notes.as_deref().unwrap_or(""),
         product_cost.as_ref().map(|c| format!("{:.2}", c.cost_cny)).unwrap_or_default(),
-        product_cost.as_ref().and_then(|c| c.cost_usd.map(|v| format!("{:.2}", v))).unwrap_or_default(),
-        product_cost.as_ref().map(|c| format!("{:.2}", c.exchange_rate)).unwrap_or_else(|| "7.2".to_string()),
+        // 成本USD：始终用当前缓冲汇率从CNY重新计算（采购只用RMB结算，USD仅供参考）
+        product_cost.as_ref().map(|c| {
+            let rate: f64 = buffered_rate_str.parse().unwrap_or(6.84);
+            format!("{:.2}", c.cost_cny / rate)
+        }).unwrap_or_default(),
         product_cost.as_ref().and_then(|c| c.notes.clone()).unwrap_or_default(),
-        if product_price.as_ref().map(|p| p.platform.as_str()) == Some("website") { "selected" } else { "" },
-        if product_price.as_ref().map(|p| p.platform.as_str()) == Some("alibaba") { "selected" } else { "" },
-        if product_price.as_ref().map(|p| p.platform.as_str()) == Some("amazon") { "selected" } else { "" },
-        product_price.as_ref().map(|p| format!("{:.2}", p.sale_price_cny)).unwrap_or_default(),
-        product_price.as_ref().and_then(|p| p.sale_price_usd.map(|v| format!("{:.2}", v))).unwrap_or_default(),
-        product_price.as_ref().map(|p| format!("{:.2}", p.exchange_rate)).unwrap_or_else(|| "7.2".to_string()),
-        product_price.as_ref().map(|p| format!("{:.1}", p.profit_margin * 100.0)).unwrap_or_else(|| "15".to_string()),
-        // 三个平台费率：Alibaba, AliExpress, Website
-        price_alibaba.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "3.0".to_string()),
-        price_aliexpress.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "5.0".to_string()),
-        product_price.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "2.5".to_string()),
-        product_price.as_ref().and_then(|p| p.notes.clone()).unwrap_or_default(),
-        product.id
     );
 
     render_layout("编辑产品", "products", Some(user), &content)
@@ -2270,6 +3410,17 @@ pub struct ProductEditForm {
     // 产品基本信息（不含 product_code，不可编辑）
     name: String,
     name_en: Option<String>,
+    model: Option<String>,
+    unit: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
+    category_id: Option<i64>,
+    category_name: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
+    brand_id: Option<i64>,
+    brand_name: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
+    supplier_id: Option<i64>,
+    supplier_name: Option<String>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     weight: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
@@ -2277,6 +3428,8 @@ pub struct ProductEditForm {
     description: Option<String>,
     #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     status: Option<i64>,
+    is_featured: Option<String>,
+    is_new: Option<String>,
     notes: Option<String>,
     // 参考成本（可选）
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
@@ -2286,25 +3439,46 @@ pub struct ProductEditForm {
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     cost_exchange_rate: Option<f64>,
     cost_notes: Option<String>,
-    // 参考售价（可选）
+    // 参考售价 - 新三平台独立定价
     price_platform: Option<String>,
+    // AliExpress (主输入: CNY)
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    ae_sale_price_cny: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    ae_fee_rate: Option<f64>,
+    // Alibaba (主输入: USD)
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    ali_sale_price_usd: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    ali_fee_rate: Option<f64>,
+    // Website
+    web_mode: Option<String>,
+    web_adj_type: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    web_adj_value: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    web_sale_price_cny: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    web_fee_rate: Option<f64>,
+    // 全局汇率
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    price_exchange_rate: Option<f64>,
+    // 遗留字段（向后兼容，已废弃）
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     sale_price_cny: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     sale_price_usd: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    price_exchange_rate: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     profit_margin: Option<f64>,
+    price_notes: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    platform_fee_rate: Option<f64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
+    fee_rate_website: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     fee_rate_alibaba: Option<f64>,
     #[serde(default, deserialize_with = "empty_string_as_none_f64")]
     fee_rate_aliexpress: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    fee_rate_website: Option<f64>,
-    #[serde(default, deserialize_with = "empty_string_as_none_f64")]
-    platform_fee_rate: Option<f64>,  // backward-compat
-    price_notes: Option<String>,
 }
 pub async fn product_update_handler(
     State(state): State<AppState>,
@@ -2323,15 +3497,80 @@ pub async fn product_update_handler(
         return Err(Html(error_content.to_string()));
     }
 
+    // 如果 brand_id 为空但填写了 brand_name，自动创建品牌
+    let resolved_brand_id = if form.brand_id.is_none() {
+        if let Some(ref bname) = form.brand_name {
+            let bname = bname.trim();
+            if !bname.is_empty() {
+                let brand_queries = cicierp_db::queries::brands::BrandQueries::new(state.db.pool());
+                brand_queries.find_or_create(bname).await.ok().map(|b| b.id)
+            } else { None }
+        } else { None }
+    } else {
+        form.brand_id
+    };
+
+    // 如果 category_id 为空但填写了 category_name，自动创建分类
+    let resolved_category_id = if form.category_id.is_none() {
+        if let Some(ref cname) = form.category_name {
+            let cname = cname.trim();
+            if !cname.is_empty() {
+                let cat_queries = cicierp_db::queries::categories::CategoryQueries::new(state.db.pool());
+                cat_queries.find_or_create(cname).await.ok().map(|c| c.id)
+            } else { None }
+        } else { None }
+    } else {
+        form.category_id
+    };
+
+    // BUG-027: 数值校验
+    if let Some(r) = form.cost_exchange_rate { if r <= 0.0 {
+        let e = Html(format!(r#"<div class="text-center py-12"><p class="text-4xl mb-4">❌</p><p class="text-gray-600 mb-4">汇率必须大于0</p><a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a></div>"#, id));
+        return Err(e);
+    }}
+    if let Some(r) = form.price_exchange_rate { if r <= 0.0 {
+        let e = Html(format!(r#"<div class="text-center py-12"><p class="text-4xl mb-4">❌</p><p class="text-gray-600 mb-4">汇率必须大于0</p><a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a></div>"#, id));
+        return Err(e);
+    }}
+    if let Some(p) = form.sale_price_usd { if p < 0.0 {
+        let e = Html(format!(r#"<div class="text-center py-12"><p class="text-4xl mb-4">❌</p><p class="text-gray-600 mb-4">售价不能为负数</p><a href="/products/{}/edit" class="text-blue-600 hover:text-blue-800">返回编辑</a></div>"#, id));
+        return Err(e);
+    }}
+
+    // BUG-036: 上架状态需要有售价（检查新三平台字段）
+    let effective_status = if form.status == Some(1) {
+        let has_form_price = form.ae_sale_price_cny.map(|v| v > 0.0).unwrap_or(false)
+            || form.ali_sale_price_usd.map(|v| v > 0.0).unwrap_or(false)
+            || form.web_sale_price_cny.map(|v| v > 0.0).unwrap_or(false);
+        if !has_form_price {
+            let price_queries = ProductPriceQueries::new(state.db.pool());
+            let has_db_price = price_queries.get_reference_price(id, "aliexpress").await
+                .ok().flatten().map(|p| p.sale_price_cny > 0.0).unwrap_or(false)
+                || price_queries.get_reference_price(id, "alibaba").await
+                    .ok().flatten().map(|p| p.sale_price_cny > 0.0).unwrap_or(false)
+                || price_queries.get_reference_price(id, "website").await
+                    .ok().flatten().map(|p| p.sale_price_cny > 0.0).unwrap_or(false);
+            if !has_db_price {
+                Some(3) // 草稿
+            } else {
+                form.status
+            }
+        } else {
+            form.status
+        }
+    } else {
+        form.status
+    };
+
     // 更新产品基本信息
     let update_req = UpdateProductRequest {
         name: Some(form.name.clone()),
-        model: None,
+        model: form.model.clone(),
         name_en: form.name_en.clone(),
         slug: None,
-        category_id: None,
-        brand_id: None,
-        supplier_id: None,
+        category_id: resolved_category_id,
+        brand_id: resolved_brand_id,
+        supplier_id: form.supplier_id,
         weight: form.weight,
         volume: form.volume,
         description: form.description.clone(),
@@ -2339,10 +3578,11 @@ pub async fn product_update_handler(
         specifications: None,
         main_image: None,
         images: None,
-        status: form.status,
-        is_featured: None,
-        is_new: None,
+        status: effective_status,
+        is_featured: Some(form.is_featured.is_some()),
+        is_new: Some(form.is_new.is_some()),
         notes: form.notes.clone(),
+        unit: form.unit.clone(),
     };
 
     if let Err(e) = queries.update(id, &update_req).await {
@@ -2357,16 +3597,25 @@ pub async fn product_update_handler(
 
     info!("Product updated: id={}", id);
 
+    // 获取缓冲汇率作为默认值
+    let buffered_rate = {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        let rate = eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
+        ((rate - 0.05) * 100.0).round() / 100.0
+    };
+
     // 更新参考成本（如果有）
     if let Some(cost_cny) = form.cost_cny {
         if cost_cny > 0.0 {
             let cost_queries = ProductCostQueries::new(state.db.pool());
+            let cost_usd = Some(cost_cny / buffered_rate);  // 始终用当前缓冲汇率
             // 尝试更新现有参考成本，如果不存在则创建
             if let Err(_) = cost_queries.update_reference_cost(
                 id,
                 cost_cny,
-                form.cost_usd,
-                form.cost_exchange_rate.unwrap_or(7.2),
+                cost_usd,
+                buffered_rate,  // 始终存储当前缓冲汇率
                 form.cost_notes.clone(),
             ).await {
                 // 更新失败，尝试创建新的
@@ -2374,9 +3623,9 @@ pub async fn product_update_handler(
                     product_id: id,
                     supplier_id: None,
                     cost_cny,
-                    cost_usd: form.cost_usd,
+                    cost_usd,
                     currency: Some("CNY".to_string()),
-                    exchange_rate: form.cost_exchange_rate.or(Some(7.2)),
+                    exchange_rate: Some(buffered_rate),
                     profit_margin: Some(0.15),
                     platform_fee_rate: Some(0.025),
                     platform_fee: None,
@@ -2392,39 +3641,466 @@ pub async fn product_update_handler(
         }
     }
 
-    // 更新参考售价（三个平台）
-    if let Some(sale_price_cny) = form.sale_price_cny {
-        if sale_price_cny > 0.0 {
-            let price_queries = ProductPriceQueries::new(state.db.pool());
-            let exchange_rate = form.price_exchange_rate.unwrap_or(7.2);
-            let profit_margin = form.profit_margin.map(|v| v / 100.0);
+    // === 保存三平台独立售价 ===
+    {
+        let price_queries = ProductPriceQueries::new(state.db.pool());
+        let exchange_rate = form.price_exchange_rate.unwrap_or(buffered_rate);
 
-            // Website
-            let website_fee = form.fee_rate_website
-                .or(form.platform_fee_rate)
-                .map(|v| v / 100.0);
-            let _ = price_queries.update_reference_price(
-                id, "website", sale_price_cny, form.sale_price_usd,
-                exchange_rate, profit_margin, website_fee, form.price_notes.clone(),
-            ).await;
+        // AliExpress: 主输入CNY
+        if let Some(ae_cny) = form.ae_sale_price_cny {
+            if ae_cny > 0.0 {
+                let ae_usd = ae_cny / exchange_rate;
+                let ae_fee = form.ae_fee_rate.map(|v| v / 100.0);
+                let _ = price_queries.update_reference_price_full(
+                    id, "aliexpress", ae_cny, Some(ae_usd), exchange_rate,
+                    Some(0.15), ae_fee,
+                    Some("margin".to_string()), Some("CNY".to_string()),
+                    None, None, None, None,
+                ).await;
+            }
+        }
 
-            // Alibaba
-            let ali_fee = form.fee_rate_alibaba.map(|v| v / 100.0);
-            let _ = price_queries.update_reference_price(
-                id, "alibaba", sale_price_cny, form.sale_price_usd,
-                exchange_rate, profit_margin, ali_fee, None,
-            ).await;
+        // Alibaba: 主输入USD
+        if let Some(ali_usd) = form.ali_sale_price_usd {
+            if ali_usd > 0.0 {
+                let ali_cny = ali_usd * exchange_rate;
+                let ali_fee = form.ali_fee_rate.map(|v| v / 100.0);
+                let _ = price_queries.update_reference_price_full(
+                    id, "alibaba", ali_cny, Some(ali_usd), exchange_rate,
+                    Some(0.15), ali_fee,
+                    Some("markup".to_string()), Some("USD".to_string()),
+                    None, None, None, None,
+                ).await;
+            }
+        }
 
-            // AliExpress
-            let ae_fee = form.fee_rate_aliexpress.map(|v| v / 100.0);
-            let _ = price_queries.update_reference_price(
-                id, "aliexpress", sale_price_cny, form.sale_price_usd,
-                exchange_rate, profit_margin, ae_fee, None,
+        // Website: 独立定价或跟随
+        let web_mode = form.web_mode.as_deref().unwrap_or("independent");
+        let web_cny = match web_mode {
+            "follow_ae" => {
+                let ae_cny = form.ae_sale_price_cny.unwrap_or(0.0);
+                if ae_cny > 0.0 {
+                    let adj_type = form.web_adj_type.as_deref().unwrap_or("fixed_add");
+                    let adj_val = form.web_adj_value.unwrap_or(0.0);
+                    Some(match adj_type {
+                        "fixed_add" => ae_cny + adj_val,
+                        "fixed_sub" => (ae_cny - adj_val).max(0.01),
+                        "percent_up" => ae_cny * (1.0 + adj_val / 100.0),
+                        "percent_down" => ae_cny * (1.0 - adj_val / 100.0).max(0.01),
+                        _ => ae_cny,
+                    })
+                } else { None }
+            },
+            "follow_ali" => {
+                let ali_usd = form.ali_sale_price_usd.unwrap_or(0.0);
+                if ali_usd > 0.0 {
+                    let ali_cny = ali_usd * exchange_rate;
+                    let adj_type = form.web_adj_type.as_deref().unwrap_or("fixed_add");
+                    let adj_val = form.web_adj_value.unwrap_or(0.0);
+                    Some(match adj_type {
+                        "fixed_add" => ali_cny + adj_val,
+                        "fixed_sub" => (ali_cny - adj_val).max(0.01),
+                        "percent_up" => ali_cny * (1.0 + adj_val / 100.0),
+                        "percent_down" => ali_cny * (1.0 - adj_val / 100.0).max(0.01),
+                        _ => ali_cny,
+                    })
+                } else { None }
+            },
+            _ => form.web_sale_price_cny.filter(|&v| v > 0.0),
+        };
+
+        if let Some(web_cny) = web_cny {
+            let web_usd = web_cny / exchange_rate;
+            let web_fee = form.web_fee_rate.map(|v| v / 100.0);
+            let ref_platform = match web_mode {
+                "follow_ae" => Some("aliexpress".to_string()),
+                "follow_ali" => Some("alibaba".to_string()),
+                _ => None,
+            };
+            let _ = price_queries.update_reference_price_full(
+                id, "website", web_cny, Some(web_usd), exchange_rate,
+                Some(0.15), web_fee,
+                Some(if web_mode == "independent" { "margin".to_string() } else { "reference".to_string() }),
+                Some("CNY".to_string()),
+                ref_platform,
+                form.web_adj_type.clone(),
+                form.web_adj_value,
+                None,
             ).await;
         }
     }
 
     Ok(Redirect::to(&format!("/products/{}", id)))
+}
+
+// ============================================================================
+// 产品导出 / 导入
+// ============================================================================
+
+/// 导出所有产品为 Excel
+pub async fn product_export_handler(
+    State(state): State<AppState>,
+    Extension(_auth_user): Extension<AuthUser>,
+) -> impl IntoResponse {
+    use rust_xlsxwriter::{Format, Workbook};
+    use axum::http::{header, StatusCode};
+
+    // 获取缓冲汇率用于 USD 计算
+    let rate = {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate - 0.05).unwrap_or(6.84)
+    };
+
+    let queries = ProductQueries::new(state.db.pool());
+    // 最多导出 10000 条
+    let products = queries.list(1, 10000, None, None, None, None, None, None, None)
+        .await.map(|r| r.items).unwrap_or_default();
+
+    let mut wb = Workbook::new();
+    let ws = wb.add_worksheet();
+
+    // 表头
+    let headers = [
+        "产品编码", "产品名称", "英文名称", "供应商",
+        "成本(CNY)", "成本(USD)", "参考汇率",
+        "售价(CNY)", "售价(USD)",
+        "利润(USD)", "利润率%",
+        "库存", "状态", "分类", "品牌",
+    ];
+    let bold = Format::new().set_bold();
+    for (col, h) in headers.iter().enumerate() {
+        ws.write_with_format(0, col as u16, *h, &bold).ok();
+    }
+
+    // 数据行
+    for (row, p) in products.iter().enumerate() {
+        let r = (row + 1) as u32;
+        let status = match p.status { 1 => "上架", 2 => "下架", _ => "草稿" };
+        let cost_usd = p.cost_cny.map(|c| c / rate);
+
+        ws.write(r, 0, p.product_code.as_str()).ok();
+        ws.write(r, 1, p.name.as_str()).ok();
+        ws.write(r, 2, "").ok();  // name_en not in list item
+        ws.write(r, 3, p.supplier_name.as_deref().unwrap_or("")).ok();
+        if let Some(v) = p.cost_cny { ws.write(r, 4, v).ok(); }
+        if let Some(v) = cost_usd { ws.write(r, 5, (v * 100.0).round() / 100.0).ok(); }
+        ws.write(r, 6, (rate * 100.0).round() / 100.0).ok();
+        if let Some(v) = p.sale_price_cny { ws.write(r, 7, v).ok(); }
+        if let Some(v) = p.sale_price_usd { ws.write(r, 8, v).ok(); }
+        if let Some(v) = p.profit_usd { ws.write(r, 9, v).ok(); }
+        if let Some(v) = p.profit_margin { ws.write(r, 10, (v * 100.0 * 10.0).round() / 10.0).ok(); }
+        if let Some(v) = p.stock_quantity { ws.write(r, 11, v).ok(); }
+        ws.write(r, 12, status).ok();
+        ws.write(r, 13, p.category_name.as_deref().unwrap_or("")).ok();
+        ws.write(r, 14, p.brand_name.as_deref().unwrap_or("")).ok();
+    }
+
+    let buf = match wb.save_to_buffer() {
+        Ok(b) => b,
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR,
+                format!("导出失败: {}", e)).into_response();
+        }
+    };
+
+    (
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            (header::CONTENT_DISPOSITION, "attachment; filename=\"products_export.xlsx\""),
+        ],
+        buf,
+    ).into_response()
+}
+
+/// 下载导入模板
+pub async fn product_import_template_handler(
+    Extension(_auth_user): Extension<AuthUser>,
+) -> impl IntoResponse {
+    use rust_xlsxwriter::{Format, Workbook};
+    use axum::http::{header, StatusCode};
+
+    let mut wb = Workbook::new();
+    let ws = wb.add_worksheet();
+
+    let bold = Format::new().set_bold();
+    let headers = [
+        "产品名称*", "英文名称", "供应商名称",
+        "成本(CNY)*", "售价(CNY)", "售价(USD)",
+        "状态(上架/下架/草稿)", "分类", "品牌", "备注",
+    ];
+    for (col, h) in headers.iter().enumerate() {
+        ws.write_with_format(0, col as u16, *h, &bold).ok();
+    }
+    // 示例行
+    let example = ["示例产品", "Example Product", "COMFAST",
+        "100", "200", "29.00",
+        "上架", "路由器", "COMFAST", "备注信息"];
+    for (col, v) in example.iter().enumerate() {
+        ws.write(1, col as u16, *v).ok();
+    }
+
+    let buf = match wb.save_to_buffer() {
+        Ok(b) => b,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, format!("生成失败: {}", e)).into_response(),
+    };
+
+    (
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            (header::CONTENT_DISPOSITION, "attachment; filename=\"products_import_template.xlsx\""),
+        ],
+        buf,
+    ).into_response()
+}
+
+/// 批量导入产品
+pub async fn product_import_handler(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+    mut multipart: axum::extract::Multipart,
+) -> impl IntoResponse {
+    use calamine::{open_workbook_from_rs, Reader, Xlsx};
+    use std::io::Cursor;
+
+    let user = get_user_from_extension(&auth_user);
+
+    // 读取上传文件
+    let file_bytes = loop {
+        match multipart.next_field().await {
+            Ok(Some(field)) if field.name() == Some("file") => {
+                match field.bytes().await {
+                    Ok(b) => break b,
+                    Err(e) => {
+                        let content = format!(r#"<div class="p-6 text-red-600">读取文件失败: {}</div>"#, e);
+                        return render_layout("导入结果", "products", Some(user), &content);
+                    }
+                }
+            }
+            Ok(Some(_)) => continue,
+            Ok(None) => {
+                let content = r#"<div class="p-6 text-red-600">未收到文件</div>"#;
+                return render_layout("导入结果", "products", Some(user), content);
+            }
+            Err(e) => {
+                let content = format!(r#"<div class="p-6 text-red-600">上传错误: {}</div>"#, e);
+                return render_layout("导入结果", "products", Some(user), &content);
+            }
+        }
+    };
+
+    // 解析 Excel
+    let cursor = Cursor::new(file_bytes.as_ref());
+    let mut workbook: Xlsx<_> = match open_workbook_from_rs(cursor) {
+        Ok(wb) => wb,
+        Err(e) => {
+            let content = format!(r#"<div class="p-6 text-red-600">解析 Excel 失败: {}</div>"#, e);
+            return render_layout("导入结果", "products", Some(user), &content);
+        }
+    };
+
+    let sheet_name = workbook.sheet_names().first().cloned().unwrap_or_default();
+    let range = match workbook.worksheet_range(&sheet_name) {
+        Ok(r) => r,
+        Err(e) => {
+            let content = format!(r#"<div class="p-6 text-red-600">读取工作表失败: {}</div>"#, e);
+            return render_layout("导入结果", "products", Some(user), &content);
+        }
+    };
+
+    // 获取缓冲汇率
+    let buffered_rate = {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        let r = eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
+        ((r - 0.05) * 100.0).round() / 100.0
+    };
+
+    let queries = ProductQueries::new(state.db.pool());
+    let supplier_queries = SupplierQueries::new(state.db.pool());
+    let cost_queries = ProductCostQueries::new(state.db.pool());
+    let price_queries = ProductPriceQueries::new(state.db.pool());
+
+    let mut ok_count = 0usize;
+    let mut skip_count = 0usize;
+    let mut errors: Vec<String> = Vec::new();
+
+    // 跳过第一行（表头），从第二行开始
+    for (row_idx, row) in range.rows().skip(1).enumerate() {
+        let row_num = row_idx + 2;
+
+        let get_str = |col: usize| -> String {
+            row.get(col)
+                .map(|c| c.to_string().trim().to_string())
+                .unwrap_or_default()
+        };
+        let get_f64 = |col: usize| -> Option<f64> {
+            row.get(col).and_then(|c| {
+                let s = c.to_string();
+                let s = s.trim();
+                if s.is_empty() { None } else { s.parse::<f64>().ok() }
+            })
+        };
+
+        let name = get_str(0);
+        if name.is_empty() { skip_count += 1; continue; }
+
+        // 列: 产品名称* | 英文名称 | 供应商名称 | 成本(CNY)* | 售价(CNY) | 售价(USD) | 状态 | 分类 | 品牌 | 备注
+        let name_en = get_str(1);
+        let supplier_name = get_str(2);
+        let cost_cny = get_f64(3);
+        let sale_price_cny = get_f64(4);
+        let sale_price_usd = get_f64(5);
+        let status_str = get_str(6);
+        let _category = get_str(7);
+        let _brand = get_str(8);
+        let notes = get_str(9);
+
+        let status: i64 = match status_str.as_str() {
+            "上架" => 1,
+            "下架" => 2,
+            _ => 3, // 草稿
+        };
+
+        // 查找供应商 ID
+        let supplier_id: Option<i64> = if !supplier_name.is_empty() {
+            supplier_queries.list(1, 100, Some(1), None, None).await
+                .ok().map(|r| r.items)
+                .unwrap_or_default()
+                .into_iter()
+                .find(|s| s.name == supplier_name)
+                .map(|s| s.id)
+        } else {
+            None
+        };
+
+        let req = CreateProductRequest {
+            product_code: None,
+            name: name.clone(),
+            model: None,
+            name_en: if name_en.is_empty() { None } else { Some(name_en) },
+            slug: None,
+            category_id: None,
+            brand_id: None,
+            supplier_id,
+            weight: None,
+            volume: None,
+            description: None,
+            description_en: None,
+            specifications: None,
+            main_image: None,
+            images: None,
+            status: Some(status),
+            is_featured: Some(false),
+            is_new: Some(false),
+            notes: if notes.is_empty() { None } else { Some(notes) },
+            unit: None,
+        };
+
+        let product = match queries.create(&req).await {
+            Ok(p) => p,
+            Err(e) => {
+                errors.push(format!("第 {} 行「{}」创建失败: {}", row_num, name, e));
+                continue;
+            }
+        };
+
+        // 创建参考成本
+        if let Some(cny) = cost_cny {
+            if cny > 0.0 {
+                let cost_req = CreateProductCostRequest {
+                    product_id: product.id,
+                    supplier_id,
+                    cost_cny: cny,
+                    cost_usd: Some(cny / buffered_rate),
+                    currency: Some("CNY".to_string()),
+                    exchange_rate: Some(buffered_rate),
+                    profit_margin: Some(0.15),
+                    platform_fee_rate: Some(0.02),
+                    platform_fee: None,
+                    sale_price_usd: None,
+                    quantity: Some(1),
+                    purchase_order_id: None,
+                    is_reference: Some(true),
+                    effective_date: None,
+                    notes: None,
+                };
+                let _ = cost_queries.create(&cost_req).await;
+            }
+        }
+
+        // 创建参考售价（alibaba 平台）
+        if let Some(sprice_cny) = sale_price_cny {
+            if sprice_cny > 0.0 {
+                use cicierp_models::product::CreateProductPriceRequest;
+                let sprice_usd = sale_price_usd.unwrap_or_else(|| sprice_cny / buffered_rate);
+                for platform in &["alibaba", "aliexpress", "website"] {
+                    let price_req = CreateProductPriceRequest {
+                        product_id: product.id,
+                        platform: Some(platform.to_string()),
+                        sale_price_cny: sprice_cny,
+                        sale_price_usd: Some((sprice_usd * 100.0).round() / 100.0),
+                        exchange_rate: Some(buffered_rate),
+                        profit_margin: Some(0.15),
+                        platform_fee_rate: Some(0.02),
+                        platform_fee: None,
+                        is_reference: Some(*platform == "alibaba"),
+                        effective_date: None,
+                        notes: None,
+                        pricing_mode: None,
+                        input_currency: None,
+                        reference_platform: None,
+                        adjustment_type: None,
+                        adjustment_value: None,
+                    };
+                    let _ = price_queries.create(&price_req).await;
+                }
+            }
+        }
+
+        ok_count += 1;
+    }
+
+    let error_html = if errors.is_empty() {
+        String::new()
+    } else {
+        let items: String = errors.iter().map(|e| format!("<li class='text-red-600'>{}</li>", e)).collect();
+        format!(r#"<div class="mt-4"><h4 class="font-semibold text-red-700 mb-2">错误详情：</h4><ul class="list-disc list-inside space-y-1 text-sm">{}</ul></div>"#, items)
+    };
+
+    let content = format!(r#"
+<div class="max-w-lg mx-auto mt-8">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">导入完成</h2>
+        <div class="grid grid-cols-3 gap-4 mb-4">
+            <div class="text-center p-3 bg-green-50 rounded-lg">
+                <div class="text-2xl font-bold text-green-600">{ok_count}</div>
+                <div class="text-sm text-gray-600">成功导入</div>
+            </div>
+            <div class="text-center p-3 bg-yellow-50 rounded-lg">
+                <div class="text-2xl font-bold text-yellow-600">{skip_count}</div>
+                <div class="text-sm text-gray-600">跳过（空行）</div>
+            </div>
+            <div class="text-center p-3 bg-red-50 rounded-lg">
+                <div class="text-2xl font-bold text-red-600">{err_count}</div>
+                <div class="text-sm text-gray-600">失败</div>
+            </div>
+        </div>
+        {error_html}
+        <div class="mt-6">
+            <a href="/products" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">返回产品列表</a>
+        </div>
+    </div>
+</div>"#,
+        ok_count = ok_count,
+        skip_count = skip_count,
+        err_count = errors.len(),
+        error_html = error_html,
+    );
+
+    render_layout("导入结果", "products", Some(user), &content)
 }
 
 // ============================================================================
@@ -2434,6 +4110,7 @@ pub async fn product_update_handler(
 #[derive(Debug, Deserialize)]
 pub struct OrdersQuery {
     pub page: Option<u32>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     pub status: Option<i64>,
     pub currency: Option<String>,
     pub platform: Option<String>,
@@ -2675,7 +4352,7 @@ pub async fn orders_page(
                     <span class="text-gray-800">{}</span>
                 </td>
                 <td class="px-4 sm:px-6 py-4 text-right">
-                    <span class="font-medium text-gray-800">{:.2}</span>
+                    <span class="font-medium text-gray-800">{}{:.2}</span>
                 </td>
                 <td class="px-4 sm:px-6 py-4 text-right">
                     {}
@@ -2690,6 +4367,7 @@ pub async fn orders_page(
             order.order_code,
             order.platform,
             order.customer_name.as_deref().unwrap_or("-"),
+            if order.currency.to_uppercase() == "USD" { "$" } else { "¥" },
             order.total_amount,
             profit_cell,
             status_class,
@@ -2711,6 +4389,9 @@ pub async fn orders_page(
             let mut params = vec![format!("page={}", p)];
             if let Some(s) = query.status {
                 params.push(format!("status={}", s));
+            }
+            if let Some(ref pl) = query.platform {
+                params.push(format!("platform={}", pl));
             }
             if let Some(c) = current_currency {
                 params.push(format!("currency={}", c));
@@ -2748,15 +4429,48 @@ pub async fn orders_page(
         <p class="text-gray-600 mt-1 text-sm sm:text-base">以订单为核心，PI/CI 为可下载文件</p>
     </div>
     <div class="flex flex-wrap gap-2">
-        <a href="/orders/import/ae" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-            <span>📥</span><span>导入AE订单</span>
+        <a href="/orders/import/template" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+            <span>↓</span><span>订单模板</span>
         </a>
+        <button onclick="document.getElementById('orderImportModal').classList.remove('hidden')"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+            <span>📥</span><span>导入订单</span>
+        </button>
         <a href="/api/v1/orders/export" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
             <span>📊</span><span>导出Excel</span>
         </a>
         <a href="/orders/new" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
             <span>+</span><span>新建订单</span>
         </a>
+    </div>
+</div>
+
+<!-- 订单导入弹窗 -->
+<div id="orderImportModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">📥 批量导入订单</h3>
+            <button onclick="document.getElementById('orderImportModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <div class="text-sm text-gray-600 mb-4 space-y-2 bg-blue-50 rounded-lg p-3">
+            <p class="font-medium text-gray-800">统一模板列顺序（支持 Alibaba / AliExpress 混合导入）：</p>
+            <p>日期 / 订单号* / 客户姓名 / 产品名称* / 数量* / 平台*(alibaba/aliexpress) / 单价* / 币种(USD/RMB) / 成本 / 备注</p>
+            <p class="text-xs text-gray-500">• Alibaba：单价 USD，自动换算 CNY<br>• AliExpress：单价 RMB，自动换算 USD</p>
+            <p><a href="/orders/import/template" class="text-blue-600 hover:underline">↓ 下载统一订单模板</a></p>
+        </div>
+        <form action="/orders/import" method="POST" enctype="multipart/form-data">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">选择文件 (.xlsx)</label>
+                <input type="file" name="file" accept=".xlsx"
+                       class="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg px-3 py-2 cursor-pointer" required>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('orderImportModal').classList.add('hidden')"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">取消</button>
+                <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">开始导入</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -2852,6 +4566,155 @@ pub async fn orders_page(
     );
 
     render_layout("订单管理", "orders", Some(user), &content)
+}
+
+/// GET /orders/import/template — 下载统一订单导入模板
+pub async fn order_import_template_handler(
+    Extension(_auth_user): Extension<AuthUser>,
+) -> impl axum::response::IntoResponse {
+    use rust_xlsxwriter::{Format, FormatAlign, Workbook};
+    let mut workbook = Workbook::new();
+    let worksheet = workbook.add_worksheet();
+    let _ = worksheet.set_name("订单导入模板");
+
+    let header_fmt = Format::new()
+        .set_bold()
+        .set_align(FormatAlign::Center)
+        .set_background_color(rust_xlsxwriter::Color::RGB(0x4F81BD))
+        .set_font_color(rust_xlsxwriter::Color::White);
+
+    let headers = [
+        "日期(YYYY-MM-DD)", "订单号*", "客户姓名", "产品名称*",
+        "数量*", "平台*(alibaba/aliexpress)", "单价*", "币种(USD/RMB)", "成本", "备注"
+    ];
+    for (col, h) in headers.iter().enumerate() {
+        let _ = worksheet.write_with_format(0, col as u16, *h, &header_fmt);
+        let _ = worksheet.set_column_width(col as u16, 22.0);
+    }
+
+    // 示例行 - Alibaba (USD)
+    let _ = worksheet.write(1, 0, "2025-08-14");
+    let _ = worksheet.write(1, 1, "ORD-20250814-001");
+    let _ = worksheet.write(1, 2, "Tokpasoua Haba");
+    let _ = worksheet.write(1, 3, "COMFAST CF-EW85");
+    let _ = worksheet.write(1, 4, 3u32);
+    let _ = worksheet.write(1, 5, "alibaba");
+    let _ = worksheet.write(1, 6, 46.0f64);
+    let _ = worksheet.write(1, 7, "USD");
+    let _ = worksheet.write(1, 8, 45.13f64);
+    let _ = worksheet.write(1, 9, "示例-Alibaba订单");
+
+    // 示例行 - AliExpress (RMB)
+    let _ = worksheet.write(2, 0, "2025-11-03");
+    let _ = worksheet.write(2, 1, "ORD-20251103-001");
+    let _ = worksheet.write(2, 2, "Oleksandr Maltsev");
+    let _ = worksheet.write(2, 3, "MOES Plug-in Display");
+    let _ = worksheet.write(2, 4, 1u32);
+    let _ = worksheet.write(2, 5, "aliexpress");
+    let _ = worksheet.write(2, 6, 51.62f64);
+    let _ = worksheet.write(2, 7, "RMB");
+    let _ = worksheet.write(2, 8, 86.0f64);
+    let _ = worksheet.write(2, 9, "示例-AliExpress订单");
+
+    let buf = workbook.save_to_buffer().unwrap_or_default();
+    (
+        [
+            (axum::http::header::CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            (axum::http::header::CONTENT_DISPOSITION, "attachment; filename=\"orders_import_template.xlsx\""),
+        ],
+        buf,
+    )
+}
+
+/// POST /orders/import — 批量导入订单（统一模板，支持 Alibaba/AliExpress）
+pub async fn order_import_handler(
+    Extension(auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    mut multipart: axum::extract::Multipart,
+) -> Html<String> {
+    let user = get_user_from_extension(&auth_user);
+
+    let mut file_data: Option<Vec<u8>> = None;
+    while let Ok(Some(field)) = multipart.next_field().await {
+        if field.name() == Some("file") {
+            if let Ok(bytes) = field.bytes().await {
+                file_data = Some(bytes.to_vec());
+                break;
+            }
+        }
+    }
+
+    let file_bytes = match file_data {
+        Some(b) if !b.is_empty() => b,
+        _ => {
+            let content = r#"<div class="max-w-2xl mx-auto p-6"><div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">错误：未收到文件，请重试。<br><a href="/orders" class="text-blue-600 hover:underline">返回订单列表</a></div></div>"#;
+            return render_layout("导入失败", "orders", Some(user), content);
+        }
+    };
+
+    // 保存上传文件
+    let uploads_dir = "/home/wxy/data/ciciERP/data/uploads";
+    let _ = std::fs::create_dir_all(uploads_dir);
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs()).unwrap_or(0);
+    let upload_path = format!("{}/unified_import_{}.xlsx", uploads_dir, ts);
+    if let Err(e) = std::fs::write(&upload_path, &file_bytes) {
+        let content = format!(r#"<div class="max-w-2xl mx-auto p-6"><div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">保存文件失败: {}<br><a href="/orders" class="text-blue-600 hover:underline">返回</a></div></div>"#, e);
+        return render_layout("导入失败", "orders", Some(user), &content);
+    }
+
+    // 用统一脚本处理（分拆到 Ali / AE 脚本）
+    let script_path = "/home/wxy/data/ciciERP/scripts/import_orders_unified.py";
+    let db_path = "/home/wxy/data/ciciERP/data/cicierp.db";
+    let output = std::process::Command::new("python3")
+        .arg(script_path)
+        .arg(&upload_path)
+        .arg(db_path)
+        .output();
+    let _ = std::fs::remove_file(&upload_path);
+
+    let content = match output {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let summary = stdout.lines().rev()
+                .find(|l| l.starts_with('{'))
+                .and_then(|l| serde_json::from_str::<serde_json::Value>(l).ok());
+
+            if out.status.success() {
+                let (orders_added, customers_added, skipped) = if let Some(j) = &summary {
+                    (j["orders_added"].as_i64().unwrap_or(0),
+                     j["customers_added"].as_i64().unwrap_or(0),
+                     j["skipped"].as_i64().unwrap_or(0))
+                } else { (0, 0, 0) };
+                format!(r#"<div class="max-w-2xl mx-auto p-6">
+  <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+    <h3 class="text-lg font-semibold text-green-700 mb-3">✅ 导入成功</h3>
+    <div class="grid grid-cols-3 gap-4 text-center">
+      <div><p class="text-2xl font-bold text-green-600">{}</p><p class="text-sm text-gray-600">新增订单</p></div>
+      <div><p class="text-2xl font-bold text-blue-600">{}</p><p class="text-sm text-gray-600">新增客户</p></div>
+      <div><p class="text-2xl font-bold text-gray-500">{}</p><p class="text-sm text-gray-600">跳过记录</p></div>
+    </div>
+  </div>
+  <details class="mb-4"><summary class="cursor-pointer text-sm text-gray-500">查看完整输出</summary>
+    <pre class="bg-gray-50 border rounded p-3 text-xs mt-2 overflow-x-auto">{}</pre></details>
+  <a href="/orders" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">查看订单列表</a>
+</div>"#, orders_added, customers_added, skipped, html_escape(&stdout))
+            } else {
+                format!(r#"<div class="max-w-2xl mx-auto p-6">
+  <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+    <h3 class="text-lg font-semibold text-red-700 mb-2">❌ 导入失败</h3>
+    <pre class="text-xs whitespace-pre-wrap">{}</pre>
+  </div>
+  <a href="/orders" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm">返回</a>
+</div>"#, html_escape(&format!("STDOUT:\n{}\nSTDERR:\n{}", stdout, stderr)))
+            }
+        }
+        Err(e) => format!(r#"<div class="max-w-2xl mx-auto p-6"><div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">执行脚本失败: {}<br><a href="/orders">返回</a></div></div>"#, e),
+    };
+
+    render_layout("导入订单结果", "orders", Some(user), &content)
 }
 
 /// GET /orders/import/ae — AliExpress 订单导入页面
@@ -3066,7 +4929,6 @@ pub async fn inventory_page(
             r#"<tr class="hover:bg-gray-50 {}">
                 <td class="px-4 sm:px-6 py-4"><span class="font-mono text-sm">{}</span></td>
                 <td class="px-4 sm:px-6 py-4 font-medium">{}</td>
-                <td class="px-4 sm:px-6 py-4 text-sm text-gray-500">{}</td>
                 <td class="px-4 sm:px-6 py-4 text-right">{}</td>
                 <td class="px-4 sm:px-6 py-4 text-right font-medium">{}</td>
                 <td class="px-4 sm:px-6 py-4 text-right text-gray-500">{}</td>
@@ -3075,13 +4937,13 @@ pub async fn inventory_page(
                 <td class="px-4 sm:px-6 py-4 text-center">
                     <a href="/inventory/{}/adjust" class="text-blue-600 hover:text-blue-800 text-sm mr-2">调整</a>
                     <a href="/inventory/{}" class="text-gray-600 hover:text-gray-800 text-sm mr-2">详情</a>
-                    <a href="/inventory/{}/movements" class="text-green-600 hover:text-green-800 text-sm">流水</a>
+                    <a href="/inventory/{}/movements" class="text-green-600 hover:text-green-800 text-sm mr-2">流水</a>
+                    <button onclick="deleteItem('/api/v1/inventory/{}/delete', '确认删除该库存记录？', true)" class="text-red-600 hover:text-red-800 text-sm">删除</button>
                 </td>
             </tr>"#,
             row_class,
-            item.sku_code,
+            item.product_code,
             item.product_name,
-            item.spec_values,
             item.total_quantity,
             if item.available_quantity <= 0 {
                 format!(r#"<span class="text-red-600">{}</span>"#, item.available_quantity)
@@ -3093,14 +4955,15 @@ pub async fn inventory_page(
             item.locked_quantity,
             item.safety_stock,
             status_badge,
-            item.sku_id,
-            item.sku_id,
-            item.sku_id
+            item.product_id,
+            item.product_id,
+            item.product_id,
+            item.id
         )
     }).collect();
 
     let rows = if rows.is_empty() {
-        r#"<tr><td colspan="9" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📊</p><p>暂无库存数据</p></div></td></tr>"#.to_string()
+        r#"<tr><td colspan="8" class="px-6 py-12 text-center"><div class="text-gray-500"><p class="text-4xl mb-2">📊</p><p>暂无库存数据</p></div></td></tr>"#.to_string()
     } else {
         rows
     };
@@ -3151,7 +5014,7 @@ pub async fn inventory_page(
     <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4">
         <div class="flex items-center gap-2 sm:gap-3">
             <div class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center"><span class="text-lg sm:text-xl">📦</span></div>
-            <div><p class="text-xs sm:text-sm text-gray-500">总SKU数</p><p class="text-lg sm:text-xl font-bold text-gray-800">{}</p></div>
+            <div><p class="text-xs sm:text-sm text-gray-500">产品数</p><p class="text-lg sm:text-xl font-bold text-gray-800">{}</p></div>
         </div>
     </div>
     <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:p-4">
@@ -3180,9 +5043,8 @@ pub async fn inventory_page(
         <table class="w-full min-w-[900px]">
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
-                    <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">SKU编码</th>
+                    <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">产品编码</th>
                     <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">产品名称</th>
-                    <th class="px-4 sm:px-6 py-4 text-left text-sm font-semibold text-gray-700">规格</th>
                     <th class="px-4 sm:px-6 py-4 text-right text-sm font-semibold text-gray-700">总库存</th>
                     <th class="px-4 sm:px-6 py-4 text-right text-sm font-semibold text-gray-700">可用</th>
                     <th class="px-4 sm:px-6 py-4 text-right text-sm font-semibold text-gray-700">锁定</th>
@@ -3216,7 +5078,9 @@ pub async fn inventory_page(
 pub struct CustomersQuery {
     page: Option<u32>,
     keyword: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     status: Option<i64>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i64")]
     lead_status: Option<i64>,
 }
 
@@ -3288,7 +5152,26 @@ pub async fn customers_page(
 
     let total_pages = ((result.pagination.total as f64) / (page_size as f64)).ceil() as u32;
     let pagination = if total_pages > 1 {
-        format!(r#"<div class="mt-4 text-sm text-gray-600">共 {} 条，第 {}/{} 页</div>"#, result.pagination.total, page, total_pages)
+        let build_cust_url = |p: u32| -> String {
+            let mut params = vec![format!("page={}", p)];
+            if let Some(ref kw) = query.keyword { params.push(format!("keyword={}", kw)); }
+            if let Some(ls) = query.lead_status { params.push(format!("lead_status={}", ls)); }
+            if let Some(st) = query.status { params.push(format!("status={}", st)); }
+            format!("/customers?{}", params.join("&"))
+        };
+        let prev_btn = if page > 1 {
+            format!(r#"<a href="{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">上一页</a>"#, build_cust_url(page - 1))
+        } else { String::new() };
+        let next_btn = if page < total_pages {
+            format!(r#"<a href="{}" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-300">下一页</a>"#, build_cust_url(page + 1))
+        } else { String::new() };
+        format!(
+            r#"<div class="flex items-center justify-between px-4 sm:px-6 py-4 border-t border-gray-100">
+                <p class="text-sm text-gray-600">共 {} 条记录，第 {}/{} 页</p>
+                <div class="flex items-center gap-2">{}{}</div>
+            </div>"#,
+            result.pagination.total, page, total_pages, prev_btn, next_btn
+        )
     } else {
         String::new()
     };
@@ -3531,6 +5414,14 @@ pub async fn order_new_page(
             p.id, p.name, price, p.product_code, p.name)
     }).collect();
 
+    // 获取缓冲汇率（市场汇率 - 0.05）用于订单页面JS计算
+    let order_buffered_rate = {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        let rate = eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
+        ((rate - 0.05) * 100.0).round() / 100.0
+    };
+
     let content = format!(
         r#"<!-- 页面标题 -->
 <div class="mb-6">
@@ -3708,6 +5599,8 @@ pub async fn order_new_page(
 </div>
 
 <script>
+// 缓冲汇率（market - 0.05）
+const EXCHANGE_RATE = {order_buffered_rate};
 // 客户地址缓存
 let customerAddresses = [];
 
@@ -3826,8 +5719,8 @@ async function updateItemPrice(select) {{
             if (result.code === 200 && result.data) {{
                 const refPriceCny = result.data.reference_price_cny || result.data.avg_cost_cny;
                 if (refPriceCny) {{
-                    // 假设汇率7.2，转换为USD
-                    const refPriceUsd = (refPriceCny / 7.2).toFixed(2);
+                    // 使用缓冲汇率转换为USD
+                    const refPriceUsd = (refPriceCny / EXCHANGE_RATE).toFixed(2);
                     priceInput.placeholder = '参考: $' + refPriceUsd;
                     if (priceTip) {{
                         priceTip.textContent = '(参考: $' + refPriceUsd + ')';
@@ -3973,7 +5866,8 @@ function filterProductSelect(input) {{
 }}
 </script>"#,
         customer_options,
-        product_options
+        product_options,
+        order_buffered_rate = order_buffered_rate
     );
 
     render_layout("新建订单", "orders", Some(user), &content)
@@ -4015,6 +5909,14 @@ pub async fn order_create_handler(
     Form(form): Form<OrderForm>,
 ) -> Result<impl IntoResponse, Html<String>> {
     let queries = OrderQueries::new(state.db.pool());
+
+    // 获取成交汇率快照（缓冲汇率）
+    let snapshot_rate = {
+        let eq = ExchangeRateQueries::new(state.db.pool());
+        let rate = eq.get_latest_rate("USD", "CNY").await
+            .ok().flatten().map(|r| r.rate).unwrap_or(7.2);
+        ((rate - 0.05) * 100.0).round() / 100.0
+    };
 
     // 处理客户信息 - 自动创建客户
     let mut customer_id = form.customer_id;
@@ -4129,6 +6031,8 @@ pub async fn order_create_handler(
         payment_terms: form.payment_terms.clone(),
         delivery_terms: form.delivery_terms.clone(),
         lead_time: form.lead_time.clone(),
+        exchange_rate: Some(snapshot_rate),  // 成交时汇率快照
+        currency: Some("USD".to_string()),   // 手动订单默认 USD
     };
 
     match queries.create(&req).await {
@@ -4196,6 +6100,7 @@ pub async fn order_detail_page(
     let status_text = crate::templates::orders::order_status_text(order.order.order_status);
     let status_class = crate::templates::orders::order_status_class(order.order.order_status);
     let status_badge = format!(r#"<span class="px-3 py-1 text-sm font-medium {} rounded-full">{}</span>"#, status_class, status_text);
+    let currency_sym = if order.order.currency.to_uppercase() == "USD" { "$" } else { "¥" };
 
     // 判断可下载的文件
     let can_download_pi = crate::templates::orders::can_download_pi(order.order.order_status);
@@ -4344,11 +6249,11 @@ pub async fn order_detail_page(
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <h3 class="text-base font-semibold text-gray-800 mb-4">💰 金额信息</h3>
             <div class="space-y-3">
-                <div class="flex justify-between"><span class="text-gray-600">商品总额</span><span>${:.2}</span></div>
-                <div class="flex justify-between"><span class="text-gray-600">运费</span><span>${:.2}</span></div>
-                <div class="flex justify-between"><span class="text-gray-600">优惠</span><span>-${:.2}</span></div>
+                <div class="flex justify-between"><span class="text-gray-600">商品总额</span><span>{}{:.2}</span></div>
+                <div class="flex justify-between"><span class="text-gray-600">运费</span><span>{}{:.2}</span></div>
+                <div class="flex justify-between"><span class="text-gray-600">优惠</span><span>-{}{:.2}</span></div>
                 <div class="flex justify-between pt-3 border-t border-gray-100 font-semibold">
-                    <span>订单总额</span><span class="text-lg text-blue-600">${:.2}</span>
+                    <span>订单总额</span><span class="text-lg text-blue-600">{}{:.2}</span>
                 </div>
                 <div class="flex justify-between"><span class="text-gray-600">支付状态</span>{}</div>
             </div>
@@ -4407,9 +6312,13 @@ function changeStatus(newStatus) {{
         status_hint,
         items_html,
         address_html,
+        currency_sym,
         order.order.subtotal,
+        currency_sym,
         order.order.shipping_fee,
+        currency_sym,
         order.order.discount_amount,
+        currency_sym,
         order.order.total_amount,
         payment_status,
         order.order.order_code,
@@ -4877,8 +6786,8 @@ pub async fn inventory_new_page(
     <form action="/inventory/new" method="POST" class="p-4 sm:p-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">SKU ID <span class="text-red-500">*</span></label>
-                <input type="number" name="sku_id" required min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="输入SKU ID">
+                <label class="block text-sm font-medium text-gray-700 mb-2">产品 ID <span class="text-red-500">*</span></label>
+                <input type="number" name="product_id" required min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="输入产品 ID">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">入库数量 <span class="text-red-500">*</span></label>
@@ -4903,7 +6812,7 @@ pub async fn inventory_new_page(
 /// 库存入库表单
 #[derive(Debug, Deserialize)]
 pub struct InventoryForm {
-    sku_id: i64,
+    product_id: i64,
     quantity: i64,
     note: Option<String>,
 }
@@ -4921,13 +6830,13 @@ pub async fn inventory_create_handler(
         damaged_quantity: None,
     };
 
-    match queries.update(form.sku_id, &req, None).await {
+    match queries.update(form.product_id, &req, None).await {
         Ok(Some(inventory)) => {
-            info!("Inventory updated: sku_id={}, qty={}", form.sku_id, form.quantity);
-            Ok(Redirect::to(&format!("/inventory/{}", inventory.sku_id)))
+            info!("Inventory updated: product_id={}, qty={}", form.product_id, form.quantity);
+            Ok(Redirect::to(&format!("/inventory/{}", inventory.product_id)))
         }
         Ok(None) => {
-            Err(Html(r#"<!DOCTYPE html><html><body><script>alert('SKU不存在');history.back();</script></body></html>"#.to_string()))
+            Err(Html(r#"<!DOCTYPE html><html><body><script>alert('产品不存在');history.back();</script></body></html>"#.to_string()))
         }
         Err(e) => {
             Err(Html(format!(
@@ -4947,7 +6856,7 @@ pub async fn inventory_detail_page(
     let user = get_user_from_extension(&auth_user);
 
     let queries = InventoryQueries::new(state.db.pool());
-    let inventory = match queries.get_by_sku(id).await {
+    let inventory = match queries.get_by_product(id).await {
         Ok(Some(i)) => i,
         _ => {
             let content = r#"<div class="text-center py-12">
@@ -5053,9 +6962,9 @@ pub async fn inventory_detail_page(
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-        <h3 class="text-base font-semibold text-gray-800 mb-4">📦 SKU 信息</h3>
+        <h3 class="text-base font-semibold text-gray-800 mb-4">📦 产品信息</h3>
         <div class="space-y-3">
-            <div class="flex justify-between"><span class="text-gray-500">SKU ID</span><span class="font-mono">{}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">产品 ID</span><span class="font-mono">{}</span></div>
             <div class="flex justify-between"><span class="text-gray-500">损坏数量</span><span class="font-mono">{}</span></div>
             <div class="flex justify-between"><span class="text-gray-500">仓库 ID</span><span class="font-mono">{}</span></div>
             <div class="flex justify-between"><span class="text-gray-500">更新时间</span><span>{}</span></div>
@@ -5085,16 +6994,16 @@ pub async fn inventory_detail_page(
     </div>
 </div>"#,
         status_badge,
-        inventory.sku_id,
+        inventory.product_id,
         inventory.total_quantity,
         inventory.available_quantity,
         inventory.locked_quantity,
         inventory.safety_stock,
-        inventory.sku_id,
+        inventory.product_id,
         inventory.damaged_quantity,
         inventory.warehouse_id.map(|id| id.to_string()).unwrap_or("-".to_string()),
         inventory.updated_at.format("%Y-%m-%d %H:%M"),
-        inventory.sku_id,
+        inventory.product_id,
         movement_rows
     );
 
@@ -5110,7 +7019,7 @@ pub async fn inventory_adjust_page(
     let user = get_user_from_extension(&auth_user);
 
     let queries = InventoryQueries::new(state.db.pool());
-    let inventory = match queries.get_by_sku(id).await {
+    let inventory = match queries.get_by_product(id).await {
         Ok(Some(i)) => i,
         _ => {
             let content = r#"<div class="text-center py-12">
@@ -5203,13 +7112,13 @@ pub async fn inventory_adjust_page(
         <div><span class="font-medium text-teal-600">解锁</span>：订单取消，锁定→可用</div>
     </div>
 </div>"#,
-        inventory.sku_id,
+        inventory.product_id,
         inventory.total_quantity,
         inventory.available_quantity,
         inventory.locked_quantity,
         inventory.damaged_quantity,
-        inventory.sku_id,
-        inventory.sku_id
+        inventory.product_id,
+        inventory.product_id
     );
 
     render_layout("库存调整", "inventory", Some(user), &content)
@@ -5234,7 +7143,7 @@ pub async fn inventory_adjust_handler(
     let operator_id = Some(auth_user.user_id);
 
     // 获取当前库存
-    let current = match queries.get_by_sku(id).await {
+    let current = match queries.get_by_product(id).await {
         Ok(Some(i)) => i,
         _ => {
             return Err(Html(r#"<!DOCTYPE html><html><body><script>alert('库存记录不存在');history.back();</script></body></html>"#.to_string()))
@@ -5298,7 +7207,7 @@ pub async fn inventory_adjust_handler(
 
     match result {
         Ok(_) => {
-            info!("Inventory adjusted: sku_id={}, type={}, qty={}", id, form.adjust_type, form.quantity);
+            info!("Inventory adjusted: product_id={}, type={}, qty={}", id, form.adjust_type, form.quantity);
             Ok(Redirect::to(&format!("/inventory/{}", id)))
         }
         Err(e) => {
@@ -5324,7 +7233,7 @@ pub async fn inventory_movements_page(
     let queries = InventoryQueries::new(state.db.pool());
 
     // 获取库存信息
-    let inventory = queries.get_by_sku(id).await.ok().flatten();
+    let inventory = queries.get_by_product(id).await.ok().flatten();
 
     // 获取流水记录
     let result = queries.get_movements(Some(id), page, page_size).await.unwrap_or_else(|_| PagedResponse::new(vec![], page, page_size, 0));
@@ -5403,7 +7312,7 @@ pub async fn inventory_movements_page(
             r#"<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <span class="text-gray-500">SKU ID: </span>
+                        <span class="text-gray-500">产品 ID: </span>
                         <span class="font-mono">{}</span>
                     </div>
                     <div class="flex items-center gap-4 text-sm">
@@ -5413,7 +7322,7 @@ pub async fn inventory_movements_page(
                     </div>
                 </div>
             </div>"#,
-            inv.sku_id,
+            inv.product_id,
             inv.total_quantity,
             inv.available_quantity,
             inv.locked_quantity
@@ -7139,17 +9048,13 @@ pub async fn purchase_detail_page(
     }).collect();
 
     let action_buttons = if detail.order.status == 1 {
-        r#"<form method="POST" action="" class="inline">
-            <button type="submit" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+        r#"<button onclick="submitForReview()" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
                 提交审核
-            </button>
-        </form>"#
+            </button>"#
     } else if detail.order.status == 2 {
-        r#"<form method="POST" action="" class="inline">
-            <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+        r#"<button onclick="confirmApproval()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                 审批通过
-            </button>
-        </form>"#
+            </button>"#
     } else {
         ""
     };
@@ -7199,7 +9104,31 @@ pub async fn purchase_detail_page(
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h3 class="font-semibold text-gray-800 mb-4">产品明细</h3>
     {}
-</div>"#,
+</div>
+
+<script>
+function submitForReview() {{
+    if (!confirm('确认提交审核？')) return;
+    fetch('/api/v1/purchases/{}/approve', {{
+        method: 'POST',
+        headers: {{'Content-Type': 'application/json'}},
+        body: JSON.stringify({{approval_note: ''}})
+    }}).then(r => r.json()).then(d => {{
+        if (d.code === 200) {{ location.reload(); }}
+        else {{ alert('提交失败: ' + d.message); }}
+    }}).catch(e => alert('请求失败: ' + e));
+}}
+function confirmApproval() {{
+    if (!confirm('确认审批通过？')) return;
+    fetch('/api/v1/purchases/{}/confirm', {{
+        method: 'POST',
+        headers: {{'Content-Type': 'application/json'}}
+    }}).then(r => r.json()).then(d => {{
+        if (d.code === 200) {{ location.reload(); }}
+        else {{ alert('审批失败: ' + d.message); }}
+    }}).catch(e => alert('请求失败: ' + e));
+}}
+</script>"#,
         detail.order.order_code,
         detail.items.len(),
         status_badge,
@@ -7209,7 +9138,9 @@ pub async fn purchase_detail_page(
         detail.order.expected_date.as_deref().unwrap_or("-"),
         detail.order.created_at,
         if detail.order.internal_note.is_some() { format!(r#"<div class="mt-4 pt-4 border-t border-gray-200"><span class="text-sm text-gray-500">备注:</span> {}</div>"#, detail.order.internal_note.as_deref().unwrap_or("")) } else { String::new() },
-        supplier_sections
+        supplier_sections,
+        detail.order.id,
+        detail.order.id
     );
 
     render_layout("采购单详情", "purchase", Some(user), &content)
@@ -7375,7 +9306,9 @@ pub async fn logistics_page(
 
 #[derive(Debug, Deserialize)]
 pub struct AnalyticsQuery {
+    #[serde(default, deserialize_with = "empty_string_as_none_i32")]
     pub year: Option<i32>,
+    #[serde(default, deserialize_with = "empty_string_as_none_i32")]
     pub month: Option<i32>,
 }
 

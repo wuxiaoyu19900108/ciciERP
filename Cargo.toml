@@ -12,7 +12,7 @@ license = "MIT"
 # Web 框架
 axum = { version = "0.7", features = ["macros", "multipart"] }
 tower = "0.4"
-tower-http = { version = "0.5", features = ["cors", "trace"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "compression-gzip"] }
 hyper = { version = "1.0", features = ["full"] }
 
 # 数据库
@@ -80,3 +80,7 @@ futures = "0.3"
 cicierp-db = { path = "crates/db" }
 cicierp-models = { path = "crates/models" }
 cicierp-utils = { path = "crates/utils" }
+
+# OpenAPI 文档生成
+utoipa = "4.2"
+utoipa-swagger-ui = { version = "4.0", features = ["axum"] }

@@ -265,16 +265,39 @@ impl<'a> PurchaseQueries<'a> {
         }
     }
 
+    /// 审批通过：待审核(2) → 已审核(3)
+    pub async fn confirm(&self, id: i64, confirmed_by: i64) -> sqlx::Result<bool> {
+        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+        let result = sqlx::query(
+            "UPDATE purchase_orders SET status = 3, approved_by = ?, approved_at = ?, updated_at = ?
+             WHERE id = ? AND status = 2"
+        )
+        .bind(confirmed_by)
+        .bind(&now)
+        .bind(&now)
+        .bind(id)
+        .execute(self.pool)
+        .await?;
+
+        if result.rows_affected() > 0 {
+            info!("Purchase order {} confirmed by user {}", id, confirmed_by);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     /// 采购入库
     pub async fn receive(&self, order_id: i64, req: &ReceivePurchaseRequest) -> sqlx::Result<bool> {
         let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-        // 查找对应的采购明细
+        // 查找对应的采购明细（使用 product_id）
         let item = sqlx::query_as::<_, PurchaseOrderItem>(
-            "SELECT * FROM purchase_order_items WHERE order_id = ? AND sku_id = ?"
+            "SELECT * FROM purchase_order_items WHERE order_id = ? AND product_id = ?"
         )
         .bind(order_id)
-        .bind(req.sku_id)
+        .bind(req.product_id)
         .fetch_optional(self.pool)
         .await?;
 
@@ -315,35 +338,35 @@ impl<'a> PurchaseQueries<'a> {
 
         // 记录库存流水
         sqlx::query(
-            "INSERT INTO stock_movements (movement_code, sku_id, movement_type, quantity,
+            "INSERT INTO stock_movements (movement_code, product_id, movement_type, quantity,
              before_quantity, after_quantity, reference_type, reference_id, reference_code, note, created_at)
              SELECT ?, ?, 1, ?, COALESCE(available_quantity, 0), COALESCE(available_quantity, 0) + ?,
                     'purchase', ?, (SELECT order_code FROM purchase_orders WHERE id = ?), ?, ?
-             FROM inventory WHERE sku_id = ?"
+             FROM inventory WHERE product_id = ?"
         )
         .bind(&movement_code)
-        .bind(req.sku_id)
+        .bind(req.product_id)
         .bind(qualified_qty)
         .bind(qualified_qty)
         .bind(order_id)
         .bind(order_id)
         .bind(&req.note)
         .bind(&now)
-        .bind(req.sku_id)
+        .bind(req.product_id)
         .execute(self.pool)
         .await?;
 
         // 更新库存
         sqlx::query(
-            "INSERT INTO inventory (sku_id, total_quantity, available_quantity, locked_quantity,
+            "INSERT INTO inventory (product_id, total_quantity, available_quantity, locked_quantity,
              damaged_quantity, safety_stock, created_at, updated_at)
              VALUES (?, ?, ?, 0, 0, 10, ?, ?)
-             ON CONFLICT(sku_id) DO UPDATE SET
+             ON CONFLICT(product_id) DO UPDATE SET
                 total_quantity = total_quantity + ?,
                 available_quantity = available_quantity + ?,
                 updated_at = excluded.updated_at"
         )
-        .bind(req.sku_id)
+        .bind(req.product_id)
         .bind(qualified_qty)
         .bind(qualified_qty)
         .bind(&now)
@@ -353,7 +376,7 @@ impl<'a> PurchaseQueries<'a> {
         .execute(self.pool)
         .await?;
 
-        info!("Purchase order {} received {} units of SKU {}", order_id, qualified_qty, req.sku_id);
+        info!("Purchase order {} received {} units of product {}", order_id, qualified_qty, req.product_id);
         Ok(true)
     }
 

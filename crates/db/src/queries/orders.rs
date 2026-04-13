@@ -9,7 +9,6 @@ use cicierp_models::{
     order::{CreateOrderRequest, Order, OrderAddress, OrderDetail, OrderItem, OrderListItem, ShipOrderRequest, UpdateOrderRequest},
     common::PagedResponse,
 };
-use super::inventory::InventoryQueries;
 
 pub struct OrderQueries<'a> {
     pool: &'a SqlitePool,
@@ -37,7 +36,7 @@ impl<'a> OrderQueries<'a> {
         let offset = (page.saturating_sub(1)) * page_size;
 
         // 构建安全的 count 查询
-        let mut count_query = QueryBuilder::new("SELECT COUNT(*) FROM orders o WHERE 1=1");
+        let mut count_query = QueryBuilder::new("SELECT COUNT(*) FROM orders o WHERE o.deleted_at IS NULL");
 
         if let Some(os) = order_status {
             count_query.push(" AND o.order_status = ");
@@ -52,8 +51,12 @@ impl<'a> OrderQueries<'a> {
             count_query.push_bind(cid);
         }
         if let Some(p) = platform {
-            count_query.push(" AND o.platform = ");
-            count_query.push_bind(p);
+            if p == "other" {
+                count_query.push(" AND o.platform NOT IN ('alibaba', 'aliexpress')");
+            } else {
+                count_query.push(" AND o.platform = ");
+                count_query.push_bind(p);
+            }
         }
         if let Some(df) = date_from {
             count_query.push(" AND date(o.created_at) >= date(");
@@ -98,7 +101,7 @@ impl<'a> OrderQueries<'a> {
                       FROM order_items oi WHERE oi.order_id = o.id) / o.total_amount * 100)
                 ELSE NULL END as profit_rate
             FROM orders o
-            WHERE 1=1"#
+            WHERE o.deleted_at IS NULL"#
         );
 
         if let Some(os) = order_status {
@@ -114,8 +117,12 @@ impl<'a> OrderQueries<'a> {
             list_query.push_bind(cid);
         }
         if let Some(p) = platform {
-            list_query.push(" AND o.platform = ");
-            list_query.push_bind(p);
+            if p == "other" {
+                list_query.push(" AND o.platform NOT IN ('alibaba', 'aliexpress')");
+            } else {
+                list_query.push(" AND o.platform = ");
+                list_query.push_bind(p);
+            }
         }
         if let Some(df) = date_from {
             list_query.push(" AND date(o.created_at) >= date(");
@@ -156,7 +163,7 @@ impl<'a> OrderQueries<'a> {
     /// 根据 ID 获取订单
     pub async fn get_by_id(&self, id: i64) -> Result<Option<Order>> {
         let order: Option<Order> = sqlx::query_as(
-            "SELECT * FROM orders WHERE id = ?"
+            "SELECT * FROM orders WHERE id = ? AND deleted_at IS NULL"
         )
         .bind(id)
         .fetch_optional(self.pool)
@@ -219,9 +226,9 @@ impl<'a> OrderQueries<'a> {
             INSERT INTO orders (
                 order_code, platform, platform_order_id, customer_id, customer_name,
                 customer_mobile, customer_email, order_type, order_status, payment_status,
-                fulfillment_status, total_amount, subtotal, discount_amount, shipping_fee,
-                customer_note, payment_terms, delivery_terms, lead_time, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 1, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                fulfillment_status, currency, total_amount, subtotal, discount_amount, shipping_fee,
+                exchange_rate, customer_note, payment_terms, delivery_terms, lead_time, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 1, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#
         )
         .bind(&order_code)
@@ -231,10 +238,12 @@ impl<'a> OrderQueries<'a> {
         .bind(&req.customer_name)
         .bind(&req.customer_mobile)
         .bind(&req.customer_email)
+        .bind(req.currency.as_deref().unwrap_or("USD"))
         .bind(total_amount)
         .bind(subtotal)
         .bind(discount_amount)
         .bind(shipping_fee)
+        .bind(req.exchange_rate)
         .bind(&req.customer_note)
         .bind(&payment_terms)
         .bind(&delivery_terms)
@@ -246,8 +255,7 @@ impl<'a> OrderQueries<'a> {
 
         let order_id = result.last_insert_rowid();
 
-        // 创建订单明细并锁定库存
-        let inventory_queries = InventoryQueries::new(self.pool);
+        // 创建订单明细
         for item in &req.items {
             let item_subtotal = item.unit_price * item.quantity as f64;
             sqlx::query(
@@ -274,17 +282,6 @@ impl<'a> OrderQueries<'a> {
             .bind(&now)
             .execute(&mut *tx)
             .await?;
-
-            // 锁定库存（如果有 SKU ID）
-            if let Some(sku_id) = item.sku_id {
-                let locked = inventory_queries.lock(sku_id, item.quantity as i64, Some(order_id)).await?;
-                if !locked {
-                    return Err(anyhow::anyhow!(
-                        "Insufficient inventory for SKU {} (quantity: {})",
-                        sku_id, item.quantity
-                    ));
-                }
-            }
         }
 
         // 创建收货地址
@@ -365,16 +362,8 @@ impl<'a> OrderQueries<'a> {
         self.get_by_id(id).await
     }
 
-    /// 取消订单（含库存解锁）
+    /// 取消订单
     pub async fn cancel(&self, id: i64, reason: &str) -> Result<bool> {
-        // 获取订单明细中的 SKU 信息
-        let items: Vec<OrderItem> = sqlx::query_as(
-            "SELECT * FROM order_items WHERE order_id = ?"
-        )
-        .bind(id)
-        .fetch_all(self.pool)
-        .await?;
-
         let now = chrono::Utc::now().to_rfc3339();
         let result = sqlx::query(
             r#"
@@ -394,13 +383,6 @@ impl<'a> OrderQueries<'a> {
         .await?;
 
         if result.rows_affected() > 0 {
-            // 解锁库存
-            let inventory_queries = InventoryQueries::new(self.pool);
-            for item in items {
-                if let Some(sku_id) = item.sku_id {
-                    let _ = inventory_queries.unlock(sku_id, item.quantity as i64, Some(id)).await;
-                }
-            }
             Ok(true)
         } else {
             Ok(false)
@@ -704,13 +686,17 @@ impl<'a> OrderQueries<'a> {
                     FROM order_items oi WHERE oi.order_id = o.id
                 ) < 0 THEN 1 END) as loss_count
             FROM orders o
-            WHERE 1=1"#
+            WHERE o.deleted_at IS NULL"#
         );
         if let Some(os) = order_status {
             q.push(" AND o.order_status = "); q.push_bind(os);
         }
         if let Some(p) = platform {
-            q.push(" AND o.platform = "); q.push_bind(p);
+            if p == "other" {
+                q.push(" AND o.platform NOT IN ('alibaba', 'aliexpress')");
+            } else {
+                q.push(" AND o.platform = "); q.push_bind(p);
+            }
         }
         if let Some(c) = currency {
             q.push(" AND o.currency = "); q.push_bind(c);
@@ -724,7 +710,7 @@ impl<'a> OrderQueries<'a> {
     pub async fn platform_counts(&self) -> Result<Vec<PlatformStats>> {
         let rows: Vec<PlatformStats> = sqlx::query_as(
             r#"SELECT platform, COUNT(*) as order_count, COALESCE(SUM(total_amount), 0) as total_sales
-               FROM orders GROUP BY platform ORDER BY order_count DESC"#
+               FROM orders WHERE deleted_at IS NULL GROUP BY platform ORDER BY order_count DESC"#
         ).fetch_all(self.pool).await?;
         Ok(rows)
     }
@@ -742,7 +728,7 @@ impl<'a> OrderQueries<'a> {
                 COUNT(*) as order_count
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
-            WHERE strftime('%Y', o.created_at) = ? AND strftime('%m', o.created_at) = ?
+            WHERE o.deleted_at IS NULL AND strftime('%Y', o.created_at) = ? AND strftime('%m', o.created_at) = ?
             GROUP BY o.currency
             "#
         )
@@ -761,7 +747,7 @@ impl<'a> OrderQueries<'a> {
                 SUM(oi.total_amount) as total_sales
             FROM order_items oi
             JOIN orders o ON oi.order_id = o.id
-            WHERE strftime('%Y', o.created_at) = ? AND strftime('%m', o.created_at) = ?
+            WHERE o.deleted_at IS NULL AND strftime('%Y', o.created_at) = ? AND strftime('%m', o.created_at) = ?
             GROUP BY oi.product_id, oi.product_name
             ORDER BY total_quantity DESC
             LIMIT 10
@@ -780,7 +766,7 @@ impl<'a> OrderQueries<'a> {
                 COUNT(*) as order_count,
                 SUM(total_amount) as total_sales
             FROM orders
-            WHERE strftime('%Y', created_at) = ? AND strftime('%m', created_at) = ?
+            WHERE deleted_at IS NULL AND strftime('%Y', created_at) = ? AND strftime('%m', created_at) = ?
             GROUP BY platform
             ORDER BY order_count DESC
             "#

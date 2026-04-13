@@ -42,6 +42,32 @@
             </a>
         </div>
     </div>
+
+<!-- 平台筛选 -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+    <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-500">平台筛选:</span>
+        <div class="flex items-center gap-2">
+            <a href="/orders"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if platform.is_none() %}bg-blue-100 text-blue-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                全部
+            </a>
+            <a href="/orders?platform=ae"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if platform == Some("ae") %}bg-orange-100 text-orange-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                速卖通
+            </a>
+            <a href="/orders?platform=ali"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if platform == Some("ali") %}bg-orange-100 text-orange-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                阿里国际站
+            </a>
+            <a href="/orders?platform=manual"
+               class="px-3 py-1 text-sm rounded-full transition-colors {% if platform == Some("manual") %}bg-purple-100 text-purple-700{% else %}text-gray-600 hover:bg-gray-100{% endif %}">
+                手动创建
+            </a>
+        </div>
+    </div>
+</div>
+
 </div>
 
 <!-- 订单表格 -->

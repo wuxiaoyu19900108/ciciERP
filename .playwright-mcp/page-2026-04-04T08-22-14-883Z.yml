@@ -1,0 +1,68 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - heading "ciciERP" [level=1] [ref=e5]
+    - navigation [ref=e6]:
+      - link "📊 仪表板" [ref=e7] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e8]: 📊
+        - text: 仪表板
+      - link "📦 产品管理" [ref=e9] [cursor=pointer]:
+        - /url: /products
+        - generic [ref=e10]: 📦
+        - text: 产品管理
+      - link "📋 订单管理" [ref=e11] [cursor=pointer]:
+        - /url: /orders
+        - generic [ref=e12]: 📋
+        - text: 订单管理
+      - link "📈 数据分析" [ref=e13] [cursor=pointer]:
+        - /url: /analytics
+        - generic [ref=e14]: 📈
+        - text: 数据分析
+      - link "📊 库存管理" [ref=e15] [cursor=pointer]:
+        - /url: /inventory
+        - generic [ref=e16]: 📊
+        - text: 库存管理
+      - link "👥 客户管理" [ref=e17] [cursor=pointer]:
+        - /url: /customers
+        - generic [ref=e18]: 👥
+        - text: 客户管理
+      - link "🏭 供应商管理" [ref=e19] [cursor=pointer]:
+        - /url: /suppliers
+        - generic [ref=e20]: 🏭
+        - text: 供应商管理
+      - link "🛒 采购管理" [ref=e21] [cursor=pointer]:
+        - /url: /purchase
+        - generic [ref=e22]: 🛒
+        - text: 采购管理
+      - link "🚚 物流管理" [ref=e23] [cursor=pointer]:
+        - /url: /logistics
+        - generic [ref=e24]: 🚚
+        - text: 物流管理
+  - main [ref=e25]:
+    - generic [ref=e26]:
+      - heading "CI 管理" [level=2] [ref=e27]
+      - generic [ref=e28]: 欢迎，admin
+    - generic [ref=e30]:
+      - heading "CI 列表" [level=3] [ref=e32]
+      - table [ref=e34]:
+        - rowgroup [ref=e35]:
+          - row "CI 编号 客户 总金额 币种 状态 创建日期 操作" [ref=e36]:
+            - columnheader "CI 编号" [ref=e37]
+            - columnheader "客户" [ref=e38]
+            - columnheader "总金额" [ref=e39]
+            - columnheader "币种" [ref=e40]
+            - columnheader "状态" [ref=e41]
+            - columnheader "创建日期" [ref=e42]
+            - columnheader "操作" [ref=e43]
+        - rowgroup [ref=e44]:
+          - row "CI-20260404-0001 ABC Trading Ltd 1210.00 CNY 草稿 2026-04-04 查看" [ref=e45]:
+            - cell "CI-20260404-0001" [ref=e46]
+            - cell "ABC Trading Ltd" [ref=e47]
+            - cell "1210.00" [ref=e48]
+            - cell "CNY" [ref=e49]
+            - cell "草稿" [ref=e50]
+            - cell "2026-04-04" [ref=e51]
+            - cell "查看" [ref=e52]:
+              - link "查看" [ref=e53] [cursor=pointer]:
+                - /url: /orders/ci/1
+      - generic [ref=e54]: 共 1 条，第 1/1 页

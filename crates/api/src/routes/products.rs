@@ -105,12 +105,8 @@ pub async fn get_product(
     let queries = ProductQueries::new(state.db.pool());
     let product = queries.get_by_id(id).await?.ok_or(AppError::NotFound)?;
 
-    // 获取 SKU 列表
-    let skus = queries.get_skus(id).await?;
-
     let detail = ProductDetail {
         product,
-        skus,
         category: None,
         brand: None,
     };

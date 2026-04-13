@@ -72,10 +72,10 @@ impl<'a> ProformaInvoiceQueries<'a> {
             INSERT INTO proforma_invoices (
                 pi_code, customer_id, customer_name, customer_email, customer_phone, customer_address,
                 seller_name, seller_address, seller_phone, seller_email,
-                currency, subtotal, discount, total_amount, status,
+                currency, subtotal, discount, total_amount, exchange_rate, status,
                 pi_date, valid_until, payment_terms, delivery_terms, lead_time, notes,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
             "#
         )
         .bind(&pi_code)
@@ -92,6 +92,7 @@ impl<'a> ProformaInvoiceQueries<'a> {
         .bind(subtotal)
         .bind(discount)
         .bind(total_amount)
+        .bind(req.exchange_rate)
         .bind(&req.pi_date)
         .bind(&req.valid_until)
         .bind(req.payment_terms.as_deref().unwrap_or("100% before shipment"))

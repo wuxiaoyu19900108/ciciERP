@@ -1,5 +1,7 @@
 //! 数据库查询模块
 
+pub mod brands;
+pub mod categories;
 pub mod products;
 pub mod product_costs;
 pub mod product_prices;

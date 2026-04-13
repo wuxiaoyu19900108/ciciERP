@@ -27,6 +27,7 @@ pub fn router() -> Router<AppState> {
         .route("/purchases/:id", put(update_purchase))
         .route("/purchases/:id", delete(delete_purchase))
         .route("/purchases/:id/approve", post(approve_purchase))
+        .route("/purchases/:id/confirm", post(confirm_purchase))
         .route("/purchases/:id/receive", post(receive_purchase))
 }
 
@@ -193,6 +194,29 @@ pub async fn approve_purchase(
     Ok(Json(ApiResponse::success_message("审批成功")))
 }
 
+/// @api POST /api/v1/purchases/:id/confirm
+/// @desc 审批通过采购单（待审核→已审核）
+/// @param id: number (采购单ID)
+/// @response 200 { "code": 200, "message": "审批通过" }
+/// @response 400 采购单状态不正确
+pub async fn confirm_purchase(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(id): Path<i64>,
+) -> AppResult<Json<ApiResponse<()>>> {
+    info!("Confirm purchase: id={}", id);
+
+    let queries = PurchaseQueries::new(state.db.pool());
+    let confirmed = queries.confirm(id, auth_user.user_id).await?;
+
+    if !confirmed {
+        return Err(AppError::BadRequest("审批失败：采购单状态不正确（需为待审核状态）".to_string()));
+    }
+
+    info!("Purchase confirmed: id={}", id);
+    Ok(Json(ApiResponse::success_message("审批通过")))
+}
+
 /// @api POST /api/v1/purchases/:id/receive
 /// @desc 采购入库
 /// @param id: number (采购单ID)
@@ -201,7 +225,7 @@ pub async fn approve_purchase(
 /// @response 400 入库失败
 /// @example curl -X POST "http://localhost:3000/api/v1/purchases/1/receive" \
 ///   -H "Content-Type: application/json" \
-///   -d '{"sku_id":1,"received_qty":100,"qualified_qty":98,"defective_qty":2}'
+///   -d '{"product_id":1,"received_qty":100,"qualified_qty":98,"defective_qty":2}'
 pub async fn receive_purchase(
     State(state): State<AppState>,
     _auth_user: Extension<AuthUser>,
@@ -209,8 +233,8 @@ pub async fn receive_purchase(
     Json(req): Json<ReceivePurchaseRequest>,
 ) -> AppResult<Json<ApiResponse<()>>> {
     info!(
-        "Receive purchase: order_id={}, sku_id={}, qty={}",
-        id, req.sku_id, req.received_qty
+        "Receive purchase: order_id={}, product_id={}, qty={}",
+        id, req.product_id, req.received_qty
     );
 
     // 验证请求
@@ -230,9 +254,9 @@ pub async fn receive_purchase(
     let received = queries.receive(id, &req).await?;
 
     if !received {
-        return Err(AppError::BadRequest("入库失败：SKU不在采购单中".to_string()));
+        return Err(AppError::BadRequest("入库失败：产品不在采购单中".to_string()));
     }
 
-    info!("Purchase received: order_id={}, sku_id={}", id, req.sku_id);
+    info!("Purchase received: order_id={}, product_id={}", id, req.product_id);
     Ok(Json(ApiResponse::success_message("入库成功")))
 }

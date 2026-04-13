@@ -41,43 +41,31 @@ def main():
     print("\n=== 处理产品 ===")
 
     # Excel 中的所有产品
-    excel_products = df['Product'].unique()
+    excel_products = df['Product'].dropna().unique()
     print(f"Excel 中的产品: {list(excel_products)}")
 
-    # 查询现有产品
-    cursor.execute('SELECT id, product_code, name FROM products')
-    existing_products = {row[2]: {'id': row[0], 'code': row[1]} for row in cursor.fetchall()}
+    # 查询现有产品（按名称匹配）
+    cursor.execute('SELECT id, name FROM products WHERE deleted_at IS NULL')
+    existing_products = {row[1]: row[0] for row in cursor.fetchall()}
 
-    # 产品映射
+    # 产品映射：自动创建不存在的产品
     product_map = {}
-
-    # 需要新增的产品
-    new_products = [
-        ('SP-141', 'SONOFF Slampher', 0, 0),
-        ('SP-142', 'SONOFF Basic', 0, 0),
-    ]
-
-    for code, name, purchase_price, sale_price in new_products:
-        if name not in existing_products:
-            cursor.execute('''
-                INSERT INTO products (product_code, name, purchase_price, sale_price, status)
-                VALUES (?, ?, ?, ?, 1)
-            ''', (code, name, purchase_price, sale_price))
-            product_id = cursor.lastrowid
-            print(f"  新增产品: {code} - {name} (ID: {product_id})")
-            stats['products_added'] += 1
-            product_map[name] = product_id
-        else:
-            product_map[name] = existing_products[name]['id']
-            print(f"  产品已存在: {name} (ID: {product_map[name]})")
-
-    # 映射其他产品
     for prod_name in excel_products:
-        if prod_name not in product_map:
-            if prod_name in existing_products:
-                product_map[prod_name] = existing_products[prod_name]['id']
-            else:
-                print(f"  警告: 产品 '{prod_name}' 不在数据库中")
+        prod_name = str(prod_name).strip()
+        if not prod_name:
+            continue
+        if prod_name in existing_products:
+            product_map[prod_name] = existing_products[prod_name]
+            print(f"  产品已存在: {prod_name} (ID: {product_map[prod_name]})")
+        else:
+            # 自动创建占位产品，后续可在产品页完善
+            cursor.execute('''
+                INSERT INTO products (name, purchase_price, sale_price, status)
+                VALUES (?, 0, 0, 1)
+            ''', (prod_name,))
+            product_map[prod_name] = cursor.lastrowid
+            stats['products_added'] += 1
+            print(f"  新增产品: {prod_name} (ID: {product_map[prod_name]})")
 
     conn.commit()
 
@@ -165,7 +153,7 @@ def main():
                     order_status, payment_status, fulfillment_status,
                     total_amount, subtotal, paid_amount, currency,
                     created_at, updated_at
-                ) VALUES (?, 'import', ?, ?, 5, 3, 3, ?, ?, ?, 'RMB', ?, ?)
+                ) VALUES (?, 'aliexpress', ?, ?, 5, 3, 3, ?, ?, ?, 'RMB', ?, ?)
             ''', (
                 order_code,
                 customer_map[customer_name],

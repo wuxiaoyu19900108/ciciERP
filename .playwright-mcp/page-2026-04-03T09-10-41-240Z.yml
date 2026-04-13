@@ -1,0 +1,158 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - button [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+          - heading "编辑产品" [level=2] [ref=e45]
+        - generic [ref=e46]:
+          - generic [ref=e47]: admin
+          - button "退出" [ref=e49] [cursor=pointer]
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - link "产品列表" [ref=e53] [cursor=pointer]:
+            - /url: /products
+          - generic [ref=e54]: /
+          - link "Playwright测试产品" [ref=e55] [cursor=pointer]:
+            - /url: /products/178
+          - generic [ref=e56]: /
+          - generic [ref=e57]: 编辑
+        - heading "编辑产品" [level=1] [ref=e58]
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - heading "📦 基本信息" [level=3] [ref=e62]
+          - generic [ref=e63]:
+            - generic [ref=e64]:
+              - generic [ref=e65]: 产品编码 (不可修改)
+              - textbox [disabled] [ref=e66]: SP-144
+            - generic [ref=e67]:
+              - generic [ref=e68]: 产品名称 *
+              - textbox "产品名称 *" [ref=e69]:
+                - /placeholder: 请输入产品名称
+                - text: Playwright测试产品
+            - generic [ref=e70]:
+              - generic [ref=e71]: 英文名称
+              - textbox "英文名称" [ref=e72]:
+                - /placeholder: English Name
+            - generic [ref=e73]:
+              - generic [ref=e74]: 重量 (kg)
+              - spinbutton "重量 (kg)" [ref=e75]
+            - generic [ref=e76]:
+              - generic [ref=e77]: 体积 (m³)
+              - spinbutton "体积 (m³)" [ref=e78]
+            - generic [ref=e79]:
+              - generic [ref=e80]: 状态
+              - combobox "状态" [ref=e81]:
+                - option "草稿"
+                - option "上架" [selected]
+                - option "下架"
+            - generic [ref=e82]:
+              - generic [ref=e83]: 产品描述
+              - textbox "产品描述" [ref=e84]:
+                - /placeholder: 请输入产品描述...
+            - generic [ref=e85]:
+              - generic [ref=e86]: 备注
+              - textbox "备注" [ref=e87]:
+                - /placeholder: 内部备注信息
+        - generic [ref=e88]:
+          - heading "💰 参考成本 (可选，不影响历史订单)" [level=3] [ref=e89]
+          - generic [ref=e90]:
+            - generic [ref=e91]:
+              - generic [ref=e92]: 成本 (CNY)
+              - spinbutton "成本 (CNY)" [ref=e93]
+            - generic [ref=e94]:
+              - generic [ref=e95]: 成本 (USD)
+              - spinbutton "成本 (USD)" [ref=e96]
+            - generic [ref=e97]:
+              - generic [ref=e98]: 汇率
+              - spinbutton "汇率" [ref=e99]: "7.2"
+            - generic [ref=e100]:
+              - generic [ref=e101]: 成本备注
+              - textbox "成本备注" [ref=e102]:
+                - /placeholder: 成本相关备注信息
+        - generic [ref=e103]:
+          - heading "🏷️ 参考售价 (可选，不影响历史订单)" [level=3] [ref=e104]
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - generic [ref=e107]: 销售平台
+              - combobox "销售平台" [ref=e108]:
+                - option "独立站 (Website)" [selected]
+                - option "阿里巴巴 (Alibaba)"
+                - option "亚马逊 (Amazon)"
+            - generic [ref=e109]:
+              - generic [ref=e110]: 售价 (CNY)
+              - spinbutton "售价 (CNY)" [ref=e111]
+            - generic [ref=e112]:
+              - generic [ref=e113]: 售价 (USD)
+              - spinbutton "售价 (USD)" [ref=e114]
+            - generic [ref=e115]:
+              - generic [ref=e116]: 汇率
+              - spinbutton "汇率" [ref=e117]: "7.2"
+            - generic [ref=e118]:
+              - generic [ref=e119]: 目标利润率 (%)
+              - spinbutton "目标利润率 (%)" [ref=e120]: "15"
+            - generic [ref=e121]:
+              - generic [ref=e122]: 各平台费率 (%)
+              - generic [ref=e123]:
+                - generic [ref=e124]:
+                  - generic [ref=e125]: Alibaba
+                  - spinbutton [ref=e126]: "3.0"
+                - generic [ref=e127]:
+                  - generic [ref=e128]: AliExpress
+                  - spinbutton [ref=e129]: "5.0"
+                - generic [ref=e130]:
+                  - generic [ref=e131]: 网站/其他
+                  - spinbutton [ref=e132]: "2.5"
+            - generic [ref=e133]:
+              - generic [ref=e134]: 售价备注
+              - textbox "售价备注" [ref=e135]:
+                - /placeholder: 售价相关备注信息
+        - generic [ref=e136]:
+          - button "保存修改" [ref=e137] [cursor=pointer]
+          - link "取消" [ref=e138] [cursor=pointer]:
+            - /url: /products/178

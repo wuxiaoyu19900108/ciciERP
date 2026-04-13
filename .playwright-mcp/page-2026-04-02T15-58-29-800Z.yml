@@ -1,0 +1,95 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "📦 ciciERP" [level=1] [ref=e5]
+      - paragraph [ref=e6]: 企业资源管理系统
+    - navigation [ref=e7]:
+      - list [ref=e8]:
+        - link "📊 仪表板" [ref=e9] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e10]: 📊
+          - generic [ref=e11]: 仪表板
+        - link "📦 产品管理" [ref=e12] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e13]: 📦
+          - generic [ref=e14]: 产品管理
+        - link "📋 订单管理" [ref=e15] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e16]: 📋
+          - generic [ref=e17]: 订单管理
+        - link "📈 数据分析" [ref=e18] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e19]: 📈
+          - generic [ref=e20]: 数据分析
+        - link "📊 库存管理" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e22]: 📊
+          - generic [ref=e23]: 库存管理
+        - link "👥 客户管理" [ref=e24] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e25]: 👥
+          - generic [ref=e26]: 客户管理
+        - link "🏭 供应商管理" [ref=e27] [cursor=pointer]:
+          - /url: /suppliers
+          - generic [ref=e28]: 🏭
+          - generic [ref=e29]: 供应商管理
+        - link "🛒 采购管理" [ref=e30] [cursor=pointer]:
+          - /url: /purchase
+          - generic [ref=e31]: 🛒
+          - generic [ref=e32]: 采购管理
+        - link "🚚 物流管理" [ref=e33] [cursor=pointer]:
+          - /url: /logistics
+          - generic [ref=e34]: 🚚
+          - generic [ref=e35]: 物流管理
+    - paragraph [ref=e37]: ciciERP v0.1.0
+  - generic [ref=e38]:
+    - banner [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - button [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+          - heading "客户管理" [level=2] [ref=e45]
+        - generic [ref=e46]:
+          - generic [ref=e47]: admin
+          - button "退出" [ref=e49] [cursor=pointer]
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - heading "客户管理" [level=1] [ref=e53]
+          - paragraph [ref=e54]: 管理所有客户信息
+        - link "+ 新增客户" [ref=e55] [cursor=pointer]:
+          - /url: /customers/new
+          - generic [ref=e56]: +
+          - generic [ref=e57]: 新增客户
+      - generic [ref=e59]:
+        - textbox "搜索客户名称、手机号..." [ref=e61]
+        - button "搜索" [ref=e62] [cursor=pointer]
+      - generic [ref=e63]:
+        - link "全部" [ref=e64] [cursor=pointer]:
+          - /url: /customers
+        - link "潜在客户" [ref=e65] [cursor=pointer]:
+          - /url: /customers?lead_status=1
+        - link "跟进中" [ref=e66] [cursor=pointer]:
+          - /url: /customers?lead_status=2
+        - link "已成交" [ref=e67] [cursor=pointer]:
+          - /url: /customers?lead_status=3
+        - link "已流失" [ref=e68] [cursor=pointer]:
+          - /url: /customers?lead_status=4
+      - table [ref=e71]:
+        - rowgroup [ref=e72]:
+          - row "客户编码 姓名 手机号 邮箱 状态 阶段 操作" [ref=e73]:
+            - columnheader "客户编码" [ref=e74]
+            - columnheader "姓名" [ref=e75]
+            - columnheader "手机号" [ref=e76]
+            - columnheader "邮箱" [ref=e77]
+            - columnheader "状态" [ref=e78]
+            - columnheader "阶段" [ref=e79]
+            - columnheader "操作" [ref=e80]
+        - rowgroup [ref=e81]:
+          - row "👥 暂无客户数据 添加第一个客户" [ref=e82]:
+            - cell "👥 暂无客户数据 添加第一个客户" [ref=e83]:
+              - generic [ref=e84]:
+                - paragraph [ref=e85]: 👥
+                - paragraph [ref=e86]: 暂无客户数据
+                - link "添加第一个客户" [ref=e87] [cursor=pointer]:
+                  - /url: /customers/new
