@@ -1440,10 +1440,10 @@ pub async fn product_new_page(
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
-                        <input type="number" id="web_fee_rate" name="web_fee_rate" step="0.01" min="0" value="0.0"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                               placeholder="2.5">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%) <span class="text-xs text-gray-400">(固定)</span></label>
+                        <input type="number" id="web_fee_rate" name="web_fee_rate" step="0.01" min="0" value="12.0"
+                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
+                               readonly>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
@@ -1554,19 +1554,19 @@ pub async fn product_new_page(
     }}
 
     function calcWebPrices() {{
-        const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
+        const fee = 0.12;
         const cny = calcSalePrice(costCnyVal(), fee, webMargin);
+        const usd = calcSalePrice(costUsdVal(), fee, webMargin);
         const cnyEl = document.getElementById('web_sale_price_cny');
         const usdEl = document.getElementById('web_sale_price_usd');
         if (cnyEl) cnyEl.value = cny > 0 ? cny.toFixed(2) : '';
-        if (usdEl && cny > 0) usdEl.value = (cny / rate()).toFixed(2);
-        else if (usdEl) usdEl.value = '';
+        if (usdEl) usdEl.value = usd > 0 ? usd.toFixed(2) : '';
         updateWebProfit();
     }}
 
     function updateWebProfit() {{
         const priceCny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
-        const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
+        const fee = 0.12;
         const cost = costCnyVal();
         if (priceCny > 0 && cost > 0) {{
             const profit = priceCny - cost - priceCny * fee;
@@ -1877,7 +1877,7 @@ impl From<&ProductEditForm> for ProductPricingInput {
 
 const AE_DEFAULT_FEE_RATE: f64 = 0.12;
 const ALI_DEFAULT_FEE_RATE: f64 = 0.025;
-const WEB_DEFAULT_FEE_RATE: f64 = 0.0;
+const WEB_DEFAULT_FEE_RATE: f64 = 0.12;
 const AE_FIXED_PROFIT_MARGIN: f64 = 0.40;
 const ALI_FIXED_PROFIT_MARGIN: f64 = 0.15;
 const WEB_FIXED_PROFIT_MARGIN: f64 = 0.40;
@@ -1964,14 +1964,16 @@ fn build_website_price_write(
     exchange_rate: f64,
 ) -> Option<ReferencePriceWrite> {
     let cost_cny = pricing.cost_cny.filter(|v| *v > 0.0)?;
-    let fee_rate = pricing.web_fee_rate.map(|v| v / 100.0).unwrap_or(WEB_DEFAULT_FEE_RATE);
+    let cost_usd = cost_cny / exchange_rate;
+    let fee_rate = WEB_DEFAULT_FEE_RATE;
     let sale_price_cny = compute_sale_price(cost_cny, fee_rate, WEB_FIXED_PROFIT_MARGIN)?;
+    let sale_price_usd = compute_sale_price(cost_usd, fee_rate, WEB_FIXED_PROFIT_MARGIN)?;
 
     Some(ReferencePriceWrite {
         product_id,
         platform: "website".to_string(),
         sale_price_cny,
-        sale_price_usd: Some(sale_price_cny / exchange_rate),
+        sale_price_usd: Some(sale_price_usd),
         exchange_rate,
         profit_margin: Some(WEB_FIXED_PROFIT_MARGIN),
         platform_fee_rate: Some(fee_rate),
@@ -2002,13 +2004,10 @@ fn validate_pricing_configuration(pricing: &ProductPricingInput) -> Option<&'sta
     if matches!(pricing.ali_fee_rate, Some(value) if value < 0.0) {
         return Some("Alibaba 平台费率不能为负数");
     }
-    if matches!(pricing.web_fee_rate, Some(value) if value < 0.0) {
-        return Some("Website 平台费率不能为负数");
-    }
     if matches!(pricing.cost_cny, Some(value) if value > 0.0) {
         let ae_fee_rate = pricing.ae_fee_rate.map(|v| v / 100.0).unwrap_or(AE_DEFAULT_FEE_RATE);
         let ali_fee_rate = pricing.ali_fee_rate.map(|v| v / 100.0).unwrap_or(ALI_DEFAULT_FEE_RATE);
-        let web_fee_rate = pricing.web_fee_rate.map(|v| v / 100.0).unwrap_or(WEB_DEFAULT_FEE_RATE);
+        let web_fee_rate = WEB_DEFAULT_FEE_RATE;
         if 1.0 - AE_FIXED_PROFIT_MARGIN - ae_fee_rate <= 0.0 {
             return Some("AliExpress 平台费率过高，无法计算售价");
         }
@@ -2225,7 +2224,8 @@ fn render_product_form_error(error: &str, form: &ProductForm) -> Html<String> {
             <div>
                 <label for="web_fee_rate" class="block text-sm font-medium text-gray-700 mb-2">Website 平台费率 (%)</label>
                 <input type="number" id="web_fee_rate" name="web_fee_rate" value="{}" step="0.01" min="0"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                       class="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                       readonly>
             </div>
             <div>
                 <label for="status" class="block text-sm font-medium text-gray-700 mb-2">状态</label>
@@ -2257,7 +2257,7 @@ fn render_product_form_error(error: &str, form: &ProductForm) -> Html<String> {
         form.price_exchange_rate.unwrap_or(0.0),
         form.ae_fee_rate.unwrap_or(12.0),
         form.ali_fee_rate.unwrap_or(2.5),
-        form.web_fee_rate.unwrap_or(0.0),
+        form.web_fee_rate.unwrap_or(12.0),
         if form.status == Some(3) { "selected" } else { "" },
         if form.status == Some(1) || form.status.is_none() { "selected" } else { "" },
         if form.status == Some(2) { "selected" } else { "" },
@@ -2609,7 +2609,7 @@ pub async fn product_edit_page(
     let ali_fee = price_alibaba.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "2.5".to_string());
     let web_price_cny = product_price.as_ref().map(|p| format!("{:.2}", p.sale_price_cny)).unwrap_or_default();
     let web_price_usd = product_price.as_ref().and_then(|p| p.sale_price_usd).map(|v| format!("{:.2}", v)).unwrap_or_default();
-    let web_fee = product_price.as_ref().map(|p| format!("{:.1}", p.platform_fee_rate * 100.0)).unwrap_or_else(|| "0.0".to_string());
+    let web_fee = format!("{:.1}", WEB_DEFAULT_FEE_RATE * 100.0);
     let rate_val = product_price.as_ref()
         .or(price_alibaba.as_ref())
         .or(price_aliexpress.as_ref())
@@ -2909,10 +2909,10 @@ pub async fn product_edit_page(
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%)</label>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">平台费率 (%) <span class="text-xs text-gray-400">(固定)</span></label>
                         <input type="number" id="web_fee_rate" name="web_fee_rate" step="0.01" min="0" value="{web_fee}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                               placeholder="2.5">
+                               class="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white text-gray-700 cursor-not-allowed"
+                               readonly>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">售价 CNY <span class="text-xs text-gray-400">(自动)</span></label>
@@ -3066,19 +3066,19 @@ pub async fn product_edit_page(
     }}
 
     function calcWebPrices() {{
-        const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
+        const fee = 0.12;
         const cny = calcSalePrice(costCnyVal(), fee, webMargin);
+        const usd = calcSalePrice(costUsdVal(), fee, webMargin);
         const cnyEl = document.getElementById('web_sale_price_cny');
         const usdEl = document.getElementById('web_sale_price_usd');
         if (cnyEl) cnyEl.value = cny > 0 ? cny.toFixed(2) : '';
-        if (usdEl && cny > 0) usdEl.value = (cny / rate()).toFixed(2);
-        else if (usdEl) usdEl.value = '';
+        if (usdEl) usdEl.value = usd > 0 ? usd.toFixed(2) : '';
         updateWebProfit();
     }}
 
     function updateWebProfit() {{
         const priceCny = parseFloat(document.getElementById('web_sale_price_cny')?.value) || 0;
-        const fee = (parseFloat(document.getElementById('web_fee_rate')?.value) || 0) / 100;
+        const fee = 0.12;
         const cost = costCnyVal();
         if (priceCny > 0 && cost > 0) {{
             const profit = priceCny - cost - priceCny * fee;
